@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Szaf_SDK">
+    <output-path>$PROJECT_DIR$/out/artifacts/Szaf_SDK</output-path>
+    <root id="archive" name="Szaf_SDK.jar">
+      <element id="module-output" name="Sazf_SDK.main" />
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/src/META-INF/MANIFEST.MF" />
+      </element>
+    </root>
+  </artifact>
+</component>
