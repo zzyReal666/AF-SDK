@@ -4,7 +4,26 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1fa4fd60-2579-4dd2-ba1c-f18c876934f6" name="Changes" comment="" />
+    <list default="true" id="1fa4fd60-2579-4dd2-ba1c-f18c876934f6" name="Changes" comment="构建安付通讯SDK">
+      <change afterPath="$PROJECT_DIR$/.idea/leetcode/editor.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/leetcode/statistics.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/af/bean/RequestHeader.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/af/bean/ResponseMesage.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/af/exception/AFIOException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/af/utils/BytesBuffer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/AFExceptionTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/af/bean/RequestMessageTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/af/utils/AFExceptionTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/myLogFile.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/myLogFile.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/bean/RequestMessage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/bean/RequestMessage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/constant/CmdConsts.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/constant/CmdConsts.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/utils/BytesOperate.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/utils/BytesOperate.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/LogbackTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/LogbackTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/af/utils/BytesOperateTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/af/utils/BytesOperateTest.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,7 +45,12 @@
         </task>
         <projects_view>
           <tree_state>
-            <expand />
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="Sazf_SDK" type="f1a62948:ProjectNode" />
+              </path>
+            </expand>
             <select />
           </tree_state>
         </projects_view>
@@ -39,11 +63,14 @@
         <option value="FxmlFile" />
         <option value="AnnotationType" />
         <option value="Interface" />
-        <option value="JUnit5 Test Class" />
-        <option value="Class" />
         <option value="Enum" />
+        <option value="Class" />
+        <option value="JUnit5 Test Class" />
       </list>
     </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
@@ -63,10 +90,12 @@
   "keyToString": {
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "WebServerToolWindowFactoryState": "false",
     "com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrary": "JUnit5",
     "com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrarySuperClass.JUnit5": "",
-    "last_directory_selection": "D:/workPlace/Sazf_SDK/src/test/java",
+    "git-widget-placeholder": "master",
+    "last_directory_selection": "D:/workPlace/Sazf_SDK/src/test/java/com/af",
     "last_opened_file_path": "D:/workPlace/Sazf_SDK/src/main/java/com/af",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -77,7 +106,7 @@
     "project.structure.last.edited": "Modules",
     "project.structure.proportion": "0.15",
     "project.structure.side.proportion": "0.30840045",
-    "settings.editor.selected.configurable": "editor.preferences.import",
+    "settings.editor.selected.configurable": "reference.settingsdialog.project.gradle",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -100,12 +129,27 @@
     <key name="CreateTestDialog.Recents.Supers">
       <recent name="" />
     </key>
+    <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
+      <recent name="" />
+    </key>
     <key name="CreateTestDialog.RecentsKey">
+      <recent name="com.af.bean" />
+      <recent name="com.af.utils" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="" />
       <recent name="com.af.utils" />
     </key>
   </component>
-  <component name="RunManager" selected="Gradle.LomBokTest.testLombokBase">
-    <configuration name="BytesOperateTest.bytes2int" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+  <component name="RunAnythingCache">
+    <option name="myCommands">
+      <command value="gradle clean" />
+      <command value="gradle build" />
+      <command value="gradle build --refresh-dependencies" />
+    </option>
+  </component>
+  <component name="RunManager" selected="Gradle.RequestMessageTest.testToBytes">
+    <configuration name="AFExceptionTest.testAFIOException (1)" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -118,7 +162,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;com.af.utils.BytesOperateTest.bytes2int&quot;" />
+            <option value="&quot;AFExceptionTest.testAFIOException&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -129,7 +173,7 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="BytesOperateTest.bytesToHexString" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="AFExceptionTest.testAFIOException" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -142,7 +186,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;com.af.utils.BytesOperateTest.bytesToHexString&quot;" />
+            <option value="&quot;com.af.utils.AFExceptionTest.testAFIOException&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -153,7 +197,7 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="BytesOperateTest.bytesToHexString1" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="BytesOperateTest.int2bytes" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -166,7 +210,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;com.af.utils.BytesOperateTest.bytesToHexString1&quot;" />
+            <option value="&quot;com.af.utils.BytesOperateTest.int2bytes&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -177,7 +221,7 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="LogbackTest.testLogback" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="RequestMessageTest.test" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -190,7 +234,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;LogbackTest.testLogback&quot;" />
+            <option value="&quot;com.af.bean.RequestMessageTest.test&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -201,7 +245,7 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="LomBokTest.testLombokBase" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="RequestMessageTest.testToBytes" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -214,7 +258,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;LomBokTest.testLombokBase&quot;" />
+            <option value="&quot;com.af.bean.RequestMessageTest.testToBytes&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -227,11 +271,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Gradle.LomBokTest.testLombokBase" />
-        <item itemvalue="Gradle.LogbackTest.testLogback" />
-        <item itemvalue="Gradle.BytesOperateTest.bytesToHexString1" />
-        <item itemvalue="Gradle.BytesOperateTest.bytesToHexString" />
-        <item itemvalue="Gradle.BytesOperateTest.bytes2int" />
+        <item itemvalue="Gradle.RequestMessageTest.testToBytes" />
+        <item itemvalue="Gradle.RequestMessageTest.test" />
+        <item itemvalue="Gradle.BytesOperateTest.int2bytes" />
+        <item itemvalue="Gradle.AFExceptionTest.testAFIOException (1)" />
+        <item itemvalue="Gradle.AFExceptionTest.testAFIOException" />
       </list>
     </recent_temporary>
   </component>
@@ -243,12 +287,26 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1681718784754</updated>
-      <workItem from="1681718786007" duration="28586000" />
+      <workItem from="1681718786007" duration="29347000" />
+      <workItem from="1681867594622" duration="5771000" />
+      <workItem from="1681889734521" duration="10040000" />
     </task>
+    <task id="LOCAL-00001" summary="构建安付通讯SDK">
+      <created>1681812859945</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1681812859945</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="构建安付通讯SDK" />
+    <option name="LAST_COMMIT_MESSAGE" value="构建安付通讯SDK" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

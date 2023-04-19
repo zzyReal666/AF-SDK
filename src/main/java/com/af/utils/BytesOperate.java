@@ -1,6 +1,9 @@
 package com.af.utils;
 
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
@@ -58,6 +61,24 @@ public class BytesOperate {
         }
         return sb.toString();
     }
+
+    /**
+     * int 转换为byte数组  小端模式
+     * @param num
+     * @return
+     */
+    public static byte[] int2bytes(int num) {
+//        byte[] bytes = new byte[4];
+//        for (int i = 0; i < 4; ++i) {
+//            bytes[i] = (byte) (255 & num >> i * 8);
+//        }
+//        return bytes;
+//
+       return ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(num).array();
+
+    }
+
+
 
 
 }

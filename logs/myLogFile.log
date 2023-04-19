@@ -1,3 +1,11 @@
 2023-04-17 17:50:43,782 INFO LogbackTest [Test worker] Info message
 2023-04-17 17:50:43,786 WARN LogbackTest [Test worker] Warn message
 2023-04-17 17:50:43,787 ERROR LogbackTest [Test worker] Error message
+2023-04-19 15:51:00,007 INFO LogbackTest [Test worker] Info message
+2023-04-19 15:51:00,010 WARN LogbackTest [Test worker] Warn message
+2023-04-19 15:51:00,010 ERROR LogbackTest [Test worker] Error message
+2023-04-19 15:51:00,012 INFO LogbackTest [Test worker] Info log message
+2023-04-19 15:51:00,013 WARN LogbackTest [Test worker] Warn log message
+2023-04-19 15:51:00,013 ERROR LogbackTest [Test worker] Error log message
+2023-04-19 15:51:00,015 WARN LogbackTest [Test worker] Warn log message
+2023-04-19 15:51:00,015 ERROR LogbackTest [Test worker] Error log message

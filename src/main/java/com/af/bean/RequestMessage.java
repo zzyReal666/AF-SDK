@@ -1,12 +1,21 @@
 package com.af.bean;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import cn.hutool.crypto.Mode;
+import cn.hutool.crypto.Padding;
+import cn.hutool.crypto.symmetric.SM4;
+import com.af.constant.CmdConsts;
+import com.af.utils.BytesBuffer;
+import lombok.Getter;
+import lombok.ToString;
 
+import java.util.concurrent.atomic.AtomicInteger;
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
  * @since 2023/4/18 17:48
  */
+@ToString
+@Getter
 public class RequestMessage {
     /**
      * 用于生成请求ID
@@ -15,7 +24,7 @@ public class RequestMessage {
     /**
      * 包长度
      */
-    private int lc;
+    private int length;
     /**
      * 请求ID
      */
@@ -38,23 +47,62 @@ public class RequestMessage {
     private byte[] cipherData;
 
 
+    /**
+     * 请求消息体 构建
+     * @param cmd 命令码
+     * @param data 数据
+     */
+    public RequestMessage(int cmd, byte[] data) {
+        this(cmd, data, null);
+    }
+
+    /**
+     * 请求消息体 构建
+     * @param cmd 命令码
+     * @param data 数据
+     * @param agreementKey 协商密钥，为空代表明文通信
+     */
     public RequestMessage(int cmd, byte[] data, byte[] agreementKey) {
         this.cmd = cmd;
         this.data = data;
         this.agreementKey = agreementKey;
-        lc = 12 + data.length;
+        length = 12 + data.length;
         if (agreementKey != null) {
-            lc = 12 + cipherData.length;
+            length = 12 + cipherData.length;
         }
-        if(CmdConsts. == cmd) {
+        if(CmdConsts.CMD_LOGIN== cmd) {
             requestId = 0;
         } else {
             requestId = atomicInteger.incrementAndGet();
         }
+
         if (agreementKey != null) {
             SM4 sm4Padding = new SM4(Mode.ECB, Padding.PKCS5Padding, agreementKey);
             cipherData = sm4Padding.encrypt(data);
-            lc = 12 + cipherData.length;
+            length = 12 + cipherData.length;
         }
     }
+
+
+    /**
+     * 转换为字节数组
+     * @return
+     */
+    public byte[] toBytes() {
+        BytesBuffer buf = new BytesBuffer();
+        buf.append(length);
+        buf.append(requestId);
+        buf.append(cmd);
+        // 如果密文数据不为空，使用密文数据，否则使用明文数据
+        buf.append(cipherData == null ? data : cipherData);
+        return buf.toBytes();
+    }
+    /**
+     * 是否密文通信
+     */
+    public boolean isEncrypt() {
+        // 密文数据不为空，代表密文通信
+        return cipherData != null;
+    }
+
 }
