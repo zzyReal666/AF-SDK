@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
@@ -28,28 +29,32 @@ public class RequestMessage {
     /**
      * 请求ID
      */
-    private int requestId;
+    private final int requestId;
     /**
      * 命令码
      */
-    private int cmd;
+    private final int cmd;
     /**
      * 数据
      */
-    private byte[] data;
+    private final byte[] data;
     /**
      * 协商密钥
      */
-    private byte[] agreementKey;
+    private final byte[] agreementKey;
     /**
      * 密文数据
      */
     private byte[] cipherData;
-
+    /**
+     * 请求头长度常量
+     */
+    public static final int HEADER_LENGTH = 12;
 
     /**
      * 请求消息体 构建
-     * @param cmd 命令码
+     *
+     * @param cmd  命令码
      * @param data 数据
      */
     public RequestMessage(int cmd, byte[] data) {
@@ -58,34 +63,32 @@ public class RequestMessage {
 
     /**
      * 请求消息体 构建
-     * @param cmd 命令码
-     * @param data 数据
+     *
+     * @param cmd          命令码
+     * @param data         数据
      * @param agreementKey 协商密钥，为空代表明文通信
      */
     public RequestMessage(int cmd, byte[] data, byte[] agreementKey) {
         this.cmd = cmd;
         this.data = data;
         this.agreementKey = agreementKey;
-        length = 12 + data.length;
-        if (agreementKey != null) {
-            length = 12 + cipherData.length;
-        }
-        if(CmdConsts.CMD_LOGIN== cmd) {
+        length = HEADER_LENGTH + data.length;
+        if (CmdConsts.CMD_LOGIN == cmd) {
             requestId = 0;
         } else {
             requestId = atomicInteger.incrementAndGet();
         }
-
         if (agreementKey != null) {
             SM4 sm4Padding = new SM4(Mode.ECB, Padding.PKCS5Padding, agreementKey);
             cipherData = sm4Padding.encrypt(data);
-            length = 12 + cipherData.length;
+            length = HEADER_LENGTH + cipherData.length;
         }
     }
 
 
     /**
      * 转换为字节数组
+     *
      * @return
      */
     public byte[] toBytes() {
@@ -97,6 +100,7 @@ public class RequestMessage {
         buf.append(cipherData == null ? data : cipherData);
         return buf.toBytes();
     }
+
     /**
      * 是否密文通信
      */
