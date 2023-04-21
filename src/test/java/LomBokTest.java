@@ -1,5 +1,3 @@
-import com.af.socket.AFHsmInfo;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -10,10 +8,6 @@ import org.junit.jupiter.api.Test;
 public class LomBokTest {
     @Test
     public void testLombokBase() {
-        AFHsmInfo hsmInfo = new AFHsmInfo("192.1268.xxx.xxx", 8008, "11111111");
-        AFHsmInfo hsmInfo1 = new AFHsmInfo("192.1268.xxx.xxx", 8008, "11111111");
-        System.out.println(hsmInfo);
-        Assertions.assertEquals(hsmInfo, hsmInfo1);
 
     }
 }

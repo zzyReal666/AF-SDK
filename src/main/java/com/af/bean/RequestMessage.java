@@ -21,7 +21,7 @@ public class RequestMessage {
     /**
      * 用于生成请求ID
      */
-    private static AtomicInteger atomicInteger = new AtomicInteger(1);
+    private static final AtomicInteger atomicInteger = new AtomicInteger(1);
     /**
      * 包长度
      */
@@ -89,7 +89,7 @@ public class RequestMessage {
     /**
      * 转换为字节数组
      *
-     * @return
+     * @return  字节数组
      */
     public byte[] toBytes() {
         BytesBuffer buf = new BytesBuffer();
