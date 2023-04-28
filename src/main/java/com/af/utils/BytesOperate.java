@@ -1,8 +1,10 @@
 package com.af.utils;
 
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Set;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -38,6 +40,16 @@ public class BytesOperate {
         }
         return num;
     }
+//    public static int bytes2int(byte[] bytes, int offset) {
+//        int num = 0;
+//
+//        for (int i = 0; i < 4; ++i) {
+//            num = (int) ((long) num + ((255L & (long) bytes[i + offset]) << i * 8));
+//        }
+//
+//        return num;
+//    }
+
 
 
     /**
@@ -64,6 +76,7 @@ public class BytesOperate {
 
     /**
      * int 转换为byte数组  小端模式
+     *
      * @param num
      * @return
      */
@@ -73,12 +86,22 @@ public class BytesOperate {
 //            bytes[i] = (byte) (255 & num >> i * 8);
 //        }
 //        return bytes;
-//
-       return ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(num).array();
+        return ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(num).array();
 
     }
 
+    /**
+     * 封装数据 输入一个字节数组,返回一个封装好的字节数组
+     */
 
+
+    public byte[] packData(Set<byte[]> set) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        for (byte[] bytes : set) {
+            out.write(bytes, 0, bytes.length);
+        }
+        return out.toByteArray();
+    }
 
 
 }

@@ -9,7 +9,7 @@ import io.netty.handler.codec.MessageToByteEncoder;
 *
 * @author zhangzhongyuan@szanfu.cn
 * @since  2023/4/20 11:43
-* @description
+* @description  编码器 用于将对象转换成字节流 用于发送数据 暂时未使用到
 */
 public class MessageEncoder extends MessageToByteEncoder<RequestMessage> {
     /**
@@ -24,6 +24,6 @@ public class MessageEncoder extends MessageToByteEncoder<RequestMessage> {
     @Override
     protected void encode(ChannelHandlerContext ctx, RequestMessage msg, ByteBuf out) throws Exception {
         //todo 编码
-        out.writeBytes(msg.toBytes());
+        out.writeBytes(msg.encode());
     }
 }

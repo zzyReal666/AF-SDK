@@ -1,4 +1,4 @@
-package com.af.crypto.struct.impl;
+package com.af.crypto.struct.implold;
 
 /**
  * @author zhangzhongyuan@szanfu.cn

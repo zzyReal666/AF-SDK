@@ -1,8 +1,14 @@
 package com.af.netty.handler;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -10,40 +16,42 @@ import lombok.Getter;
  * @since 2023/4/20 15:47
  */
 @Getter
+@NoArgsConstructor
+@Setter
+@ChannelHandler.Sharable
 public class AFNettyClientHandler extends ChannelInboundHandlerAdapter {
 
+    private static final Logger logger = LoggerFactory.getLogger(AFNettyClientHandler.class);
+
     private byte[] request;
+    private ByteBuf response;
 
-    /**
-     * 读取服务端返回的消息
-     *
-     * @param ctx 上下文
-     * @param msg 消息-字节数组,需要自行解码封装为对象
-     * @throws Exception 异常
-     */
-    @Override
-    public void channelRead(io.netty.channel.ChannelHandlerContext ctx, Object msg) throws Exception {
-
+    public AFNettyClientHandler(byte[] request) {
+        this.request = request;
     }
 
 
 
 
-
-
-
-
-    /**
-     * 关闭通道 释放资源
-     *
-     * @param ctx   上下文
-     * @param cause 异常
-     * @throws Exception 异常
-     */
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        cause.printStackTrace();
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        logger.debug("出站=>" + request);
+        ByteBuf buf = ctx.alloc().buffer();
+        buf.writeBytes(request);
+        ctx.writeAndFlush(buf);
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        logger.debug("入站=>" + msg);
+        response = (ByteBuf) msg;
         ctx.close();
+    }
+
+    public byte[] getResponse() {
+        byte[] bytes = new byte[response.readableBytes()];
+        response.readBytes(bytes);
+        return bytes;
     }
 
 

@@ -2,8 +2,6 @@ package com.af.bean;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class RequestMessageTest {
     @Test
     void testObject() {
@@ -14,7 +12,7 @@ class RequestMessageTest {
     @Test
     void testToBytes() {
         RequestMessage requestMessage = new RequestMessage(1, new byte[]{1, 2, 3});
-        byte[] bytes = requestMessage.toBytes();
+        byte[] bytes = requestMessage.encode();
         //遍历数组
         for (byte b : bytes) {
             System.out.println(b);

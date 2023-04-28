@@ -1,7 +1,7 @@
-package com.af.crypto.struct.impl;
+package com.af.crypto.struct.implold;
 
 import com.af.exception.AFCryptoException;
-import com.af.crypto.struct.AFStruct;
+import com.af.crypto.struct.IAFStruct;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,7 +15,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class DeviceInfo implements AFStruct {
+public class DeviceInfo implements IAFStruct {
     private byte[] IssuerName = new byte[40];
     private byte[] DeviceName = new byte[16];
     private byte[] DeviceSerial = new byte[16];

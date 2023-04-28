@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
- * @description
+ * @description   解码器 从输入流中解析出对象 用于解析服务端返回的数据 暂时未使用到
  * @since 2023/4/20 11:49
  */
 public class MessageDecoder extends ByteToMessageDecoder {
@@ -25,7 +25,6 @@ public class MessageDecoder extends ByteToMessageDecoder {
      */
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-        //todo 解码 输入流构建成对象
-        out.add(new ResponseMessage(null, null, 0));
+        out.add(new ResponseMessage(in.array()));
     }
 }

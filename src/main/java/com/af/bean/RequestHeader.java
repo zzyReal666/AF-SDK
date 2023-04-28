@@ -24,28 +24,33 @@ public class RequestHeader {
     private static final Logger logger = LoggerFactory.getLogger(RequestHeader.class);
 
     /**
-     * 包长度
+     * 请求头长度常量
      */
-    protected int totalLength;
+    public static final int HEADER_LENGTH = 12;
+
+    /**
+     * 包长度  头+数据
+     */
+    protected final int length;
 
     /**
      * 任务编号
      */
-    protected int taskNO;
+    protected final int taskNO;
 
     /**
      * CMD 命令码
      */
-    protected int cmd;
+    protected final  int cmd;
 
     /**
      * 用于生成请求ID
      */
-    private static AtomicInteger atomicInteger = new AtomicInteger(1);
+    private static final AtomicInteger atomicInteger = new AtomicInteger(1);
 
 
-    public RequestHeader(int totalLength, int cmd) {
-        this.totalLength = totalLength;
+    public RequestHeader(int length, int cmd) {
+        this.length = length+HEADER_LENGTH;
         this.cmd = cmd;
         if (CmdConsts.CMD_LOGIN == cmd) {
             taskNO = 0;
@@ -63,13 +68,16 @@ public class RequestHeader {
     public byte[] encode() {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            out.write(BytesOperate.int2bytes(this.totalLength));
+            out.write(BytesOperate.int2bytes(this.length));
             out.write(BytesOperate.int2bytes(this.taskNO));
             out.write(BytesOperate.int2bytes(this.cmd));
         } catch (Exception e) {
-            logger.error("请求头转换为字节数组失败,totalLength={},taskNO={},cmd={}", this.totalLength, this.taskNO, this.cmd);
+            logger.error("请求头转换为字节数组失败,totalLength={},taskNO={},cmd={}", this.length, this.taskNO, this.cmd);
             throw new AFIOException("请求头转换为字节数组失败");
         }
         return out.toByteArray();
     }
+
+
+
 }

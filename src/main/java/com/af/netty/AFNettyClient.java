@@ -1,15 +1,21 @@
 package com.af.netty;
 
+import com.af.bean.RequestMessage;
+import com.af.bean.ResponseMessage;
 import com.af.netty.handler.AFNettyClientHandler;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.*;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LoggingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -23,9 +29,10 @@ public class AFNettyClient {
     private static final Logger logger = LoggerFactory.getLogger(AFNettyClient.class);
 
     //重试参数
-    private static final int MAX_RETRY = 10; // 最大重试次数
-    private static final int RETRY_DELAY = 5; // 重试间隔时间（秒）
+    private static final int MAX_RETRY = 3; // 最大重试次数
+    private static final int RETRY_DELAY = 5000; // 重试间隔时间（秒）
     private int retryCount = 0; // 当前重试次数
+
 
     //单例
     private static volatile AFNettyClient instance;
@@ -34,8 +41,8 @@ public class AFNettyClient {
     private final Bootstrap bootstrap;
     private final String host;
     private final int port;
-    private final EventLoopGroup group;
-    private Channel channel;
+    private final String password;
+
 
     /**
      * 私有构造器
@@ -43,22 +50,14 @@ public class AFNettyClient {
      * @param host 服务器地址
      * @param port 服务器端口
      */
-    private AFNettyClient(String host, int port) {
+    private AFNettyClient(String host, int port, String password) {
         this.host = host;
         this.port = port;
-        this.group = new NioEventLoopGroup();
-        this.bootstrap = new Bootstrap()
-                .group(group)
-                .channel(NioSocketChannel.class)
-                .option(ChannelOption.TCP_NODELAY, true)
-                .handler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    public void initChannel(SocketChannel ch) {
-                        ch.pipeline().addLast(new AFNettyClientHandler());
-                    }
-                });
-        //获取连接
-        connect();
+        this.password = password;
+        this.bootstrap = new Bootstrap().group(new NioEventLoopGroup()).channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY, true)  //不写缓存
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 7000)  //连接超时时间
+                .option(ChannelOption.SO_KEEPALIVE, true); //保持连接
+        login();
     }
 
     /**
@@ -68,11 +67,11 @@ public class AFNettyClient {
      * @param port 服务器端口
      * @return 单例 AFNettyClient
      */
-    public static AFNettyClient getInstance(String host, int port) {
+    public static AFNettyClient getInstance(String host, int port, String password) {
         if (instance == null) {
             synchronized (AFNettyClient.class) {
                 if (instance == null) {
-                    instance = new AFNettyClient(host, port);
+                    instance = new AFNettyClient(host, port, password);
                 }
             }
         }
@@ -80,86 +79,78 @@ public class AFNettyClient {
     }
 
     /**
-     * 连接服务器 重连机制
+     * 登录 在获取client实例时自动登录
      */
-    private void connect() {
-        if (channel != null && channel.isActive()) {
-            logger.info("连接成功");
-            retryCount = 0;
-            return;
+    private void login() {
+        byte[] psw = password.getBytes();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            out.write(psw);
+        } catch (IOException e) {
+            logger.error("密码编码错误!");
+            throw new RuntimeException(e);
         }
-        retryCount++;
-        if (retryCount > MAX_RETRY) {
-            logger.error("重试次数已用完，放弃连接");
-            return;
+        for (int i = psw.length; i < 16; ++i) {
+            out.write(0);
         }
-        logger.info("开始连接服务器，第{}次连接", retryCount);
-        ChannelFuture future = bootstrap.connect(host, port);
-        future.addListener(new ChannelFutureListener() {
+        new RequestMessage(0x00000000, out.toByteArray());
+        ResponseMessage responseMessage = send(new RequestMessage(0x00000000, out.toByteArray()));
+        if (responseMessage.getHeader().getErrorCode() != 0x00000000) {
+            logger.error("登录失败,请检查密码是否正确!");
+            throw new RuntimeException("登录失败,密码错误!");
+        }
+    }
+
+
+    /**
+     * 发送数据
+     *
+     * @param data 待发送数据
+     * @return 服务器返回数据
+     */
+    public byte[] send(byte[] data) {
+        AFNettyClientHandler handeler = new AFNettyClientHandler(data);
+        bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                if (future.isSuccess()) {
-                    logger.info("连接服务器成功");
-                    channel = future.channel();
-                } else {
-                    logger.info("第{}次连接服务器失败,{}秒后重试", retryCount, RETRY_DELAY);
-                    future.channel().eventLoop().schedule(new Runnable() {
-                        @Override
-                        public void run() {
-                            connect();
-                        }
-                    }, RETRY_DELAY, java.util.concurrent.TimeUnit.SECONDS);
-                }
+            protected void initChannel(SocketChannel ch) throws Exception {
+                ch.pipeline().addLast(new LoggingHandler());
+                ch.pipeline().addLast(handeler);
             }
         });
-    }
-
-    /**
-     * 发送消息
-     *
-     */
-    public void sendMessage(byte[] message) throws InterruptedException {
-        int maxRetryTimes = 3; // 最大重试次数
-        int retryInterval = 1000; // 重试间隔时间，单位为毫秒
-        int retryTimes = 0; // 当前重试次数
-        while (true) {
-            retryTimes++;
-            if (channel == null || !channel.isActive()) {
-                // 如果通道不存在或已经不活跃，重新获取通道连接
-                connect();
-            }
+        while (retryCount < MAX_RETRY) {
             try {
-                ByteBuf buf = Unpooled.copiedBuffer(message);
-                ChannelFuture future = channel.writeAndFlush(buf);
-                future.sync(); // 等待发送结果返回
-                if (future.isSuccess()) {
-                    // 发送成功，退出循环
-                    break;
-                }
-            } catch (InterruptedException e) {
-                // 发送过程中出现异常，记录日志并减少重试次数
-                logger.error("第{}次发送数据失败,等待重试",retryTimes,e);
-                if (retryTimes >= maxRetryTimes) {
-                    // 超过最大重试次数，退出循环
-                    break;
-                }
-            } finally {
-                if (retryTimes > 0) {
-                    // 休眠一段时间后重试
-                    Thread.sleep(retryInterval);
+                ChannelFuture future = bootstrap.connect(host, port).sync();
+                logger.info("连接服务器成功，服务器地址{}:{}", host, port);
+                future.channel().closeFuture().sync();
+                return handeler.getResponse();
+            } catch (Exception e) {
+                retryCount++;
+                logger.error("连接服务器失败，服务器地址：{}:{} ,正在第{}次重试", host, port, retryCount);
+                if (retryCount < MAX_RETRY) {
+                    long currentTimeMillis = System.currentTimeMillis();
+                    while (true) {
+                        if (System.currentTimeMillis() - currentTimeMillis >= RETRY_DELAY) {
+                            break;
+                        }
+                    }
                 }
             }
         }
+        logger.error("连接服务器失败，服务器地址：{}:{} ,重试{}次后仍失败", host, port, retryCount);
+        return null;
     }
 
 
     /**
-     * 关闭连接 释放资源
+     * 对外暴露的发送消息方法
+     *
+     * @param requestMessage 请求消息
+     * @return 响应消息
      */
-    public void shutdown() {
-        if (channel != null) {
-            channel.close();
-        }
-        group.shutdownGracefully();
+    public ResponseMessage send(RequestMessage requestMessage) {
+        byte[] send = send(requestMessage.encode());
+        return new ResponseMessage(send);
     }
+
 }
+

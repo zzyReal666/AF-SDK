@@ -1,48 +1,41 @@
 package com.af.bean;
 
-import cn.hutool.crypto.Mode;
-import cn.hutool.crypto.Padding;
-import cn.hutool.crypto.symmetric.SM4;
-import com.af.utils.BytesBuffer;
 import lombok.Getter;
 import lombok.ToString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
  * @since 2023/4/19 18:09
  */
-@ToString
 @Getter
+@ToString
 public class ResponseMessage {
-
-    private final int length; // 包长度
-    private final int requestId; // 请求ID
-    private final int status; // 结果状态码 0x00000000:成功
-    private final byte[] data; // 数据
-    private final long costMillis; // 响应时间
-    private BytesBuffer dataBuffer;
-
+    /**
+     * 日志
+     */
+    private static final Logger logger = LoggerFactory.getLogger(ResponseMessage.class);
 
     /**
-     * 服务端响应消息体
-     * @param request 请求消息体
-     * @param data 数据
-     * @param costMillis 响应时间
+     * 响应头
      */
-    public ResponseMessage(RequestMessage request, byte[] data, long costMillis) {
-        BytesBuffer buf = new BytesBuffer(data);
-        this.length = buf.readInt();
-        this.requestId = buf.readInt();
-        this.status = buf.readInt();
-        this.costMillis = costMillis;
-        if (request.isEncrypt()) {
-            SM4 sm4NoPadding = new SM4(Mode.ECB, Padding.NoPadding, request.getAgreementKey());
-            this.data = sm4NoPadding.decrypt(buf.toBytes());
-        } else {
-            this.data = buf.toBytes();
-        }
-        this.dataBuffer = new BytesBuffer(this.data);
-    }
+    private final ResponseHeader header;
 
+    /**
+     * 数据
+     */
+    private final byte[] data;
+
+    public ResponseMessage(byte[] data) {
+        //判空
+        if (data == null || data.length < ResponseHeader.HEADER_LENGTH) {
+            logger.error("响应数据为空或长度小于响应头长度");
+            throw new IllegalArgumentException("响应数据为空或长度小于响应头长度");
+        }
+        this.header = new ResponseHeader(data);
+        this.data = new byte[data.length - ResponseHeader.HEADER_LENGTH];
+        System.arraycopy(data, ResponseHeader.HEADER_LENGTH, this.data, 0, this.data.length);
+    }
 }
