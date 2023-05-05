@@ -9,7 +9,7 @@ import lombok.Setter;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
- * @description  密钥信息 包含密钥类型、密钥长度、密钥对 、对称密钥
+ * @description 密钥信息 包含密钥类型、密钥长度、密钥对 、对称密钥
  * @since 2023/4/18 11:49
  */
 @Setter
@@ -27,11 +27,11 @@ public class AFKmsKeyInfo {
      */
     private int keyBits;
     /**
-     *
+     * 对称密钥
      */
     private byte[] symmetricData;
     /**
-     * 密钥对
+     * 非对称/密钥对
      */
     private AFByteKeyPair keyPair;
 

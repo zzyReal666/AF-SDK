@@ -7,7 +7,7 @@ import com.af.exception.AFCryptoException;
  * @description 国密SM4算法接口 用于加解密 MAC计算
  * @since 2023/4/24 15:09
  */
-public interface IAFSM4 {
+public interface SM4 {
 
     //===================ECB模式加解密相关===================
 

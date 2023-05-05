@@ -32,9 +32,10 @@ public class SM2Cipher implements IAFStruct {
         this.x = x;
         this.y = y;
         this.M = M;
-        this.L = C.length ;
+        this.L = C.length;
         this.C = C;
     }
+
     @Override
     public int size() {
         return length / 8 + length / 8 + 32 + 4 + C.length;
@@ -74,6 +75,48 @@ public class SM2Cipher implements IAFStruct {
                 .putInt(L)
                 .put(C)
                 .array();
+    }
+
+    public SM2Cipher to256() {
+        SM2Cipher outCipher = new SM2Cipher();
+        byte[] outX = new byte[32];
+        byte[] outY = new byte[32];
+        byte[] outM = new byte[32];
+        byte[] outC = new byte[136];
+
+        outCipher.setL(this.getL());
+        System.arraycopy(this.getX(), 32, outX, 0, 32);
+        System.arraycopy(this.getY(), 32, outY, 0, 32);
+        System.arraycopy(this.getM(), 0, outM, 0, 32);
+        System.arraycopy(this.getC(), 0, outC, 0, 136);
+
+        outCipher.setX(outX);
+        outCipher.setY(outY);
+        outCipher.setM(outM);
+        outCipher.setC(outC);
+
+        return outCipher;
+    }
+
+    public SM2Cipher to512() {
+        SM2Cipher outCipher = new SM2Cipher();
+        byte[] outX = new byte[64];
+        byte[] outY = new byte[64];
+        byte[] outM = new byte[32];
+        byte[] outC = new byte[136];
+
+        outCipher.setL(this.getL());
+        System.arraycopy(this.getX(), 0, outX, 32, 32);
+        System.arraycopy(this.getY(), 0, outY, 32, 32);
+        System.arraycopy(this.getM(), 0, outM, 0, 32);
+        System.arraycopy(this.getC(), 0, outC, 0, 136);
+
+        outCipher.setX(outX);
+        outCipher.setY(outY);
+        outCipher.setM(outM);
+        outCipher.setC(outC);
+
+        return outCipher;
     }
 
 

@@ -10,7 +10,7 @@ import com.af.crypto.struct.impl.SM2Cipher;
  * @description SM2算法接口
  * @since 2023/4/26 10:43
  */
-public interface IAFSM2 {
+public interface SM2 {
 
     //===================获取密钥相关===================
 

@@ -2,6 +2,7 @@ package com.af.crypto.key.sm2;
 
 import com.af.constant.SM2KeyType;
 import com.af.crypto.key.Key;
+import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -61,11 +62,11 @@ public class SM2PubKey implements Key {
     }
 
     public byte[] encode() {
-        ByteBuffer buffer = ByteBuffer.allocate(4 + this.x.length + this.y.length);
-        buffer.put(BytesOperate.int2bytes(this.length));
-        buffer.put(this.x);
-        buffer.put(this.y);
-        return buffer.array();
+        BytesBuffer buf = new BytesBuffer();
+        buf.append(BytesOperate.int2bytes(this.length));
+        buf.append(this.x);
+        buf.append(this.y);
+        return buf.toBytes();
     }
 
     @Override

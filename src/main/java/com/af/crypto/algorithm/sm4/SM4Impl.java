@@ -7,7 +7,7 @@ import com.af.exception.AFCryptoException;
  * @description
  * @since 2023/4/27 14:54
  */
-public class AFSM4Impl implements IAFSM4 {
+public class SM4Impl implements SM4 {
     /**
      * SM4 ECB模式加密 使用内部密钥
      *

@@ -3,7 +3,7 @@ package com.af.crypto.algorithm.sm3;
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
- * @since 2023/4/27 15:06
+ * @since 2023/5/5 15:02
  */
-public interface IAFSM3 {
+public class SM3Impl implements SM3{
 }

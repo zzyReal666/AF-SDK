@@ -8,8 +8,9 @@ import lombok.Data;
  * @description 对称密钥状态
  * @since 2023/4/18 11:47
  */
-@Data  // 生成get set方法
-@AllArgsConstructor // 生成全参构造方法
+
+@Data
+@AllArgsConstructor
 public class AFSymmetricKeyStatus {
     private int index;
     private int length;

@@ -2,11 +2,10 @@ package com.af.crypto.key.sm2;
 
 
 import com.af.crypto.key.Key;
+import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.nio.ByteBuffer;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -77,10 +76,10 @@ public class SM2PriKey implements Key {
 
     @Override
     public byte[] encode() {
-        ByteBuffer buffer = ByteBuffer.allocate(size());
-        buffer.put(BytesOperate.int2bytes(this.length));
-        buffer.put(this.D);
-        return buffer.array();
+        BytesBuffer buf = new BytesBuffer();
+        buf.append(BytesOperate.int2bytes(this.length));
+        buf.append(this.D);
+        return buf.toBytes();
     }
 
     @Override
