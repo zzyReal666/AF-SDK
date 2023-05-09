@@ -1,8 +1,13 @@
 package com.af.crypto.algorithm.sm4;
 
+import com.af.bean.RequestMessage;
+import com.af.bean.ResponseMessage;
+import com.af.constant.CMDCode;
+import com.af.constant.ConstantNumber;
 import com.af.crypto.key.keyInfo.KeyInfoImpl;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.utils.BytesBuffer;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -12,7 +17,6 @@ import com.af.netty.AFNettyClient;
 public class SM4Impl implements SM4 {
 
 
-
     private final AFNettyClient client;
     private final KeyInfoImpl keyInfo;
 
@@ -20,6 +24,7 @@ public class SM4Impl implements SM4 {
         this.client = client;
         this.keyInfo = KeyInfoImpl.getInstance(client);
     }
+
     /**
      * SM4 ECB模式加密 使用内部密钥
      *
@@ -139,7 +144,28 @@ public class SM4Impl implements SM4 {
      */
     @Override
     public byte[] SM4Mac(int index, byte[] data, byte[] IV) throws AFCryptoException {
-        return new byte[0];
+        int keyType = 0;
+        int keyId = 0;
+        byte[] key = keyInfo.exportSymmKey(index);
+        byte[] param = new BytesBuffer()
+                .append(ConstantNumber.SGD_SMS4_CBC)
+                .append(keyType)
+                .append(keyId)
+                .append(key.length)
+                .append(key)
+                .append(IV.length)
+                .append(IV)
+                .append(data.length)
+                .append(data)
+                .toBytes();
+
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_CALCULATEMAC, param);
+        ResponseMessage responseMessage = client.send(requestMessage);
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            throw new AFCryptoException("SM4 Mac error,ErrorInfo:{}" + responseMessage.getHeader().getErrorInfo());
+        }
+        return responseMessage.getDataBuffer().readOneData();
+
     }
 
     /**
@@ -153,7 +179,26 @@ public class SM4Impl implements SM4 {
      */
     @Override
     public byte[] SM4Mac(byte[] key, byte[] data, byte[] IV) throws AFCryptoException {
-        return new byte[0];
+        int keyType = 0;
+        int keyId = 0;
+        byte[] param = new BytesBuffer()
+                .append(ConstantNumber.SGD_SMS4_CBC)
+                .append(keyType)
+                .append(keyId)
+                .append(key.length)
+                .append(key)
+                .append(IV.length)
+                .append(IV)
+                .append(data.length)
+                .append(data)
+                .toBytes();
+
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_CALCULATEMAC, param);
+        ResponseMessage responseMessage = client.send(requestMessage);
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            throw new AFCryptoException("SM4 Mac error,ErrorInfo:{}" + responseMessage.getHeader().getErrorInfo());
+        }
+        return responseMessage.getDataBuffer().readOneData();
     }
 
     /**

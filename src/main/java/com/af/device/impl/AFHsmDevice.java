@@ -369,7 +369,7 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 加密异常
      */
     @Override
-    public SM2Cipher SM2Encrypt(ModulusLength length,int index, byte[] data) throws AFCryptoException {
+    public SM2Cipher SM2Encrypt(ModulusLength length, int index, byte[] data) throws AFCryptoException {
         logger.info("SM2内部密钥加密 index: {} length: {}", index, length);
         if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
             logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
@@ -392,14 +392,11 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 解密异常
      */
     @Override
-    public byte[] SM2Decrypt(ModulusLength length,int index, SM2Cipher encodeData) throws AFCryptoException {
+    public byte[] SM2Decrypt(ModulusLength length, int index, SM2Cipher encodeData) throws AFCryptoException {
         logger.info("SM2内部密钥解密 length: {} index: {} encodeData: {}", length, index, encodeData);
         if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
             logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
             throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
-        }
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            encodeData = encodeData.to256();
         }
         if (ModulusLength.LENGTH_512.equals(length)) {
             encodeData = encodeData.to512();
@@ -416,15 +413,14 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 加密异常
      */
     @Override
-    public SM2Cipher SM2Encrypt(ModulusLength length,SM2PubKey key, byte[] data) throws AFCryptoException {
+    public SM2Cipher SM2Encrypt(ModulusLength length, SM2PubKey key, byte[] data) throws AFCryptoException {
         logger.info("SM2外部密钥加密 length: {} key: {} data: {}", length, key, data);
+        byte[] bytes = sm2.sm2Encrypt(0, key, data);
+        SM2Cipher sm2Cipher = new SM2Cipher(bytes);
         if (ModulusLength.LENGTH_256.equals(length)) {
-            key = key.to256();
+            return sm2Cipher.to256();
         }
-        if (ModulusLength.LENGTH_512.equals(length)) {
-            key = key.to512();
-        }
-        return new SM2Cipher(sm2.sm2Encrypt(0, key, data));
+        return sm2Cipher;
     }
 
     /**
@@ -436,7 +432,7 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 解密异常
      */
     @Override
-    public byte[] SM2Decrypt(ModulusLength length,SM2PriKey key, SM2Cipher encodeData) throws AFCryptoException {
+    public byte[] SM2Decrypt(ModulusLength length, SM2PriKey key, SM2Cipher encodeData) throws AFCryptoException {
         logger.info("SM2外部密钥解密 length: {} key: {} encodeData: {}", length, key, encodeData);
         if (ModulusLength.LENGTH_256.equals(length)) {
             key = key.to256();
@@ -509,7 +505,8 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public byte[] SM3Hash(byte[] data) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SM3哈希 杂凑算法 data: {}", data);
+        return sm3.SM3Hash(data);
     }
 
     /**
@@ -524,7 +521,8 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public byte[] SM3HashWithPubKey(byte[] data, SM2PubKey publicKey, byte[] userID) throws AFCryptoException {
-        return new byte[0];
+        SM2PubKey publicKey256 = publicKey.to256();
+        return sm3.SM3HashWithPublicKey256(data, publicKey256, userID);
     }
 
     /**
@@ -537,7 +535,7 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public byte[] SM3HMac(int index, byte[] data) throws AFCryptoException {
-        return new byte[0];
+        return sm3.SM3HMac(index, null, data);
     }
 
     /**
@@ -550,24 +548,58 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public byte[] SM3HMac(byte[] key, byte[] data) throws AFCryptoException {
-        return new byte[0];
+        return sm3.SM3HMac(-1, key, data);
     }
 
+    /**
+     * SM4 Mac 内部密钥
+     * @param index 密钥索引
+     * @param data 待计算数据
+     * @param IV 初始向量
+     * @return 消息验证码值
+     */
     @Override
     public byte[] SM4Mac(int index, byte[] data, byte[] IV) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SM4Mac index: {} data: {} IV: {}", index, data, IV);
+        return sm4.SM4Mac(index, data, IV);
     }
 
+    /**
+     * SM4 Mac 外部密钥
+     * @param key 密钥
+     * @param data 待计算数据
+     * @param IV 初始向量
+     * @return 消息验证码值
+     */
     @Override
     public byte[] SM4Mac(byte[] key, byte[] data, byte[] IV) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SM4Mac key: {} data: {} IV: {}", key, data, IV);
+        return sm4.SM4Mac(key, data, IV);
+
     }
 
+    /**
+     * SM4 内部密钥加密
+     * @param mode 加密模式 ECB/CBC
+     * @param index 密钥索引
+     * @param data 待加密数据
+     * @param IV 初始向量
+     * @return  加密结果
+     */
     @Override
     public byte[] SM4Encrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SM4Encrypt mode: {} index: {} data: {} IV: {}", mode, index, data, IV);
+
     }
 
+    /**
+     * SM4 内部密钥解密
+     * @param mode 加密模式 ECB/CBC
+     * @param index 密钥索引
+     * @param data 待解密数据
+     * @param IV 初始向量
+     * @return 解密结果
+     */
     @Override
     public byte[] SM4Decrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException {
         return new byte[0];

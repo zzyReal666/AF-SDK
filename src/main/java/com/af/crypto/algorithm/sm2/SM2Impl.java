@@ -148,7 +148,15 @@ public class SM2Impl implements SM2 {
         int Zero = 0;
         byte[] param;
         if (null != privateKey) {  // 使用外部密钥
-
+            param = new BytesBuffer()
+                    .append(Zero)
+                    .append(ConstantNumber.SGD_SM2_3)
+                    .append(Zero)
+                    .append(privateKey.size())
+                    .append(privateKey.encode())
+                    .append(encodeData.size())
+                    .append(encodeData.encode())
+                    .toBytes();
 
         } else {       //使用内部密钥
             param = new BytesBuffer()
@@ -160,8 +168,6 @@ public class SM2Impl implements SM2 {
                     .append(encodeData.encode())
                     .toBytes();
         }
-
-
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALDECRYPT_ECC, param);
         ResponseMessage responseMessage = client.send(requestMessage);
         logger.debug("SM2解密 responseMessage:{}", responseMessage);

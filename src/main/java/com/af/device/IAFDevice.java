@@ -169,7 +169,6 @@ public interface IAFDevice {
     /**
      * SM2外部密钥解密
      *
-     * @param key        密钥
      * @param encodeData 待解密数据
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常

@@ -25,20 +25,9 @@ public class SM2PubKey implements Key {
     public SM2PubKey(byte[] data) {
         this.decode(data);
     }
+
     //构造函数 全部参数
     public SM2PubKey(int length, byte[] x, byte[] y) {
-        //如果密钥长度不是256或512位 抛出异常
-        if (length != 256 && length != 512) {
-            throw new IllegalArgumentException("SM2PubKey length must be 256 or 512");
-        }
-        //如果x和y长度不等
-        if (x.length != y.length) {
-            throw new IllegalArgumentException("SM2PubKey x and y length must be equal");
-        }
-        //如果length != x.length/8
-        if (length != x.length * 8) {
-            throw new IllegalArgumentException("SM2PubKey length must be equal to x.length * 8");
-        }
         this.length = length;
         this.x = x;
         this.y = y;
@@ -71,7 +60,9 @@ public class SM2PubKey implements Key {
 
     @Override
     public void decode(byte[] pubKey) {
-        this.length = BytesOperate.bytes2int(pubKey, 0) + 256;
+        //this.length = BytesOperate.bytes2int(pubKey, 0) + 256;
+        //todo
+        this.length = 512;
         this.x = new byte[64];
         this.y = new byte[64];
         System.arraycopy(pubKey, 4, this.x, 0, this.x.length);
@@ -80,7 +71,7 @@ public class SM2PubKey implements Key {
 
     //size
     public int size() {
-        return 4 + this.x.length / 8 + this.y.length / 8;
+        return 4 + this.x.length + this.y.length;
     }
 
 
