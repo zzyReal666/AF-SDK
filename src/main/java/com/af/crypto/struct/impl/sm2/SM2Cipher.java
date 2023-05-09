@@ -1,13 +1,12 @@
-package com.af.crypto.struct.impl;
+package com.af.crypto.struct.impl.sm2;
 
 import com.af.crypto.struct.IAFStruct;
 import com.af.exception.AFCryptoException;
+import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.nio.ByteBuffer;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -27,18 +26,23 @@ public class SM2Cipher implements IAFStruct {
     private byte[] C;   //密文
 
 
+    public SM2Cipher(byte[] data) throws AFCryptoException {
+        this.length = 512;
+        this.decode(data);
+    }
+
     public SM2Cipher(int length, byte[] x, byte[] y, byte[] M, byte[] C) {
-        this.length = C.length * 8;
+        this.length = x.length * 8;
         this.x = x;
         this.y = y;
         this.M = M;
-        this.L = C.length;
+        this.L = 136;
         this.C = C;
     }
 
     @Override
     public int size() {
-        return length / 8 + length / 8 + 32 + 4 + C.length;
+        return 64 + 64 + 32 + 4 + 136;
     }
 
 
@@ -58,27 +62,37 @@ public class SM2Cipher implements IAFStruct {
 
     @Override
     public void decode(byte[] data) throws AFCryptoException {
-        this.length = BytesOperate.bytes2int(data, 0);
-        System.arraycopy(data, 4, this.x, 0, length / 8);
-        System.arraycopy(data, 4 + length / 8, this.y, 0, length / 8);
-        System.arraycopy(data, 4 + length / 8 + length / 8, this.C, 0, C.length);
-        System.arraycopy(data, 4 + length / 8 + length / 8 + C.length, this.M, 0, length / 8);
+        //todo 实际返回64字节(512位) 但是长度字段现在时0100(256位) 有待确认
+        this.x = new byte[64];
+        this.y = new byte[64];
+        this.C = new byte[136];
+        this.M = new byte[32];
+
+        System.arraycopy(data, 0, this.x, 0, 64);
+        System.arraycopy(data, 64, this.y, 0, 64);
+        System.arraycopy(data, 128, this.M, 0, 32);
+        this.L = BytesOperate.bytes2int(data, 64 + 64 + 32);
+        System.arraycopy(data, 164, this.C, 0, 136);
 
     }
 
     @Override
     public byte[] encode() {
-        return ByteBuffer.allocate(size())
-                .put(x)
-                .put(y)
-                .put(M)
-                .putInt(L)
-                .put(C)
-                .array();
+        return new BytesBuffer()
+                .append(this.x)
+                .append(this.y)
+                .append(this.L)
+                .append(this.M)
+                .append(this.C)
+                .toBytes();
     }
 
     public SM2Cipher to256() {
+        if (this.length == 256) {
+            return this;
+        }
         SM2Cipher outCipher = new SM2Cipher();
+        outCipher.setLength(256);
         byte[] outX = new byte[32];
         byte[] outY = new byte[32];
         byte[] outM = new byte[32];
@@ -99,7 +113,11 @@ public class SM2Cipher implements IAFStruct {
     }
 
     public SM2Cipher to512() {
+        if (this.length == 512) {
+            return this;
+        }
         SM2Cipher outCipher = new SM2Cipher();
+        outCipher.setLength(512);
         byte[] outX = new byte[64];
         byte[] outY = new byte[64];
         byte[] outM = new byte[32];

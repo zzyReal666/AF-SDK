@@ -1,5 +1,6 @@
 package com.af.bean;
 
+import com.af.constant.ErrorNumber;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
 import lombok.ToString;
@@ -55,5 +56,10 @@ public class ResponseHeader {
         this.length = BytesOperate.bytes2int(header);
         this.taskNO = BytesOperate.bytes2int(header, 4);
         this.errorCode = BytesOperate.bytes2int(header, 8);
+    }
+
+
+    public String getErrorInfo() {
+        return ErrorNumber.toErrorInfo(this.errorCode);
     }
 }

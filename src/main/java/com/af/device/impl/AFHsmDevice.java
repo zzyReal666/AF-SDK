@@ -1,6 +1,8 @@
 package com.af.device.impl;
 
-import com.af.constant.GroupMode;
+import com.af.bean.RequestMessage;
+import com.af.bean.ResponseMessage;
+import com.af.constant.*;
 import com.af.crypto.algorithm.sm1.SM1;
 import com.af.crypto.algorithm.sm1.SM1Impl;
 import com.af.crypto.algorithm.sm2.SM2;
@@ -9,41 +11,75 @@ import com.af.crypto.algorithm.sm3.SM3;
 import com.af.crypto.algorithm.sm3.SM3Impl;
 import com.af.crypto.algorithm.sm4.SM4;
 import com.af.crypto.algorithm.sm4.SM4Impl;
-import com.af.crypto.key.AFKmsKeyInfo;
-import com.af.crypto.key.AFSymmetricKeyStatus;
+import com.af.crypto.key.keyInfo.AFKmsKeyInfo;
+import com.af.crypto.key.keyInfo.AFSymmetricKeyStatus;
+import com.af.crypto.key.keyInfo.KeyInfo;
+import com.af.crypto.key.keyInfo.KeyInfoImpl;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PriKey;
 import com.af.crypto.key.sm2.SM2PubKey;
-import com.af.crypto.struct.impl.SM2Cipher;
-import com.af.crypto.struct.impl.SM2Signature;
+import com.af.crypto.struct.impl.sm2.SM2Cipher;
+import com.af.crypto.struct.impl.sm2.SM2Signature;
 import com.af.device.DeviceInfo;
 import com.af.device.IAFDevice;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.utils.BytesBuffer;
+import com.af.utils.BytesOperate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+
 
 /**
  * @author zhangzhongyuan@szanfu.cn
- * @description  HSM设备实现类 用于实现HSM设备的各种算法
+ * @description HSM设备实现类 用于实现HSM设备的各种算法 以及获取设备信息<br>
+ * 该类为单例模式 通过getInstance方法获取实例<br>
+ * 该层为对外接口层 用于对外提供各种算法的实现<br>
+ * 该层进行参数校验,具体调用在各个密码算法的实现中(获取设备信息和随机数在当前类中执行)<br>
  * @since 2023/4/27 14:53
  */
 public class AFHsmDevice implements IAFDevice {
 
-    private AFNettyClient nettyClient; //netty客户端
-    private final SM1 sm1 = new SM1Impl();
-    private final SM2 sm2 = new SM2Impl();
-    private final SM3 sm3 = new SM3Impl();
-    private final SM4 sm4 = new SM4Impl();
+    //log
+    private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
 
+    private static String host1;
+    private static int port1;
+    private static String passwd1;
+
+    private final AFNettyClient client;
+    private final SM1 sm1;
+    private final SM2 sm2;
+    private final SM3 sm3;
+    private final SM4 sm4;
+    private final KeyInfo keyInfo;
+
+    //==============================单例模式===================================
+    protected AFHsmDevice(String host, int port, String passwd) {
+        this.client = AFNettyClient.getInstance(host, port, passwd);
+        this.sm1 = new SM1Impl(client);
+        this.sm2 = new SM2Impl(client);
+        this.sm3 = new SM3Impl(client);
+        this.sm4 = new SM4Impl(client);
+        this.keyInfo = KeyInfoImpl.getInstance(client);
+    }
 
     private static final class InstanceHolder {
-        static final AFHsmDevice instance = new AFHsmDevice();
+        static final AFHsmDevice instance = new AFHsmDevice(host1, port1, passwd1);
     }
-    public static AFHsmDevice getInstance() {
+
+    public static AFHsmDevice getInstance(String host, int port, String passwd) {
+        host1 = host;
+        port1 = port;
+        passwd1 = passwd;
         return InstanceHolder.instance;
     }
 
+
+    //==============================API===================================
 
     /**
      * 获取设备信息
@@ -53,26 +89,93 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public DeviceInfo getDeviceInfo() throws AFCryptoException {
-        return null;
+        logger.info("获取设备信息");
+        RequestMessage req = new RequestMessage(CMDCode.CMD_DEVICEINFO, null);
+        ResponseMessage resp;
+        //发送请求
+        try {
+            resp = client.send(req);
+        } catch (Exception e) {
+            logger.error("获取设备信息错误", e);
+            throw new AFCryptoException("获取设备信息异常", e);
+        }
+        if (resp == null || resp.getHeader().getErrorCode() != 0) {
+            logger.error("获取设备信息错误,无响应或者响应码错误 response:{} ErrorCode:{}", resp == null ? "null" : resp.toString(), resp == null ? "null" : resp.getHeader().getErrorCode());
+            throw new AFCryptoException("获取设备信息错误");
+        }
+        //解析响应
+        int retLen = BytesOperate.bytes2int(resp.getData());
+        byte[] outData = BytesOperate.subBytes(resp.getData(), 4, retLen);
+        DeviceInfo info = new DeviceInfo();
+        info.decode(outData);
+        return info;
     }
+
 
     /**
      * 获取随机数
      *
-     * @param length 随机数长度
+     * @param length 随机数长度 字节数
      * @return 随机数
      * @throws AFCryptoException 获取随机数异常
      */
     @Override
     public byte[] getRandom(int length) throws AFCryptoException {
-        return new byte[0];
+        logger.info("获取随机数");
+        if (length <= 0) {
+            logger.error("获取随机数错误,随机数长度错误 length:{}", length);
+            throw new AFCryptoException("获取随机数错误,随机数长度错误");
+        }
+        byte[] param = new BytesBuffer().append(length).toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATERANDOM, param);
+        ResponseMessage resp;
+        //发送请求
+        try {
+            resp = client.send(req);
+        } catch (Exception e) {
+            logger.error("获取随机数错误", e);
+            throw new AFCryptoException("获取随机数异常", e);
+        }
+        if (resp == null || resp.getHeader().getErrorCode() != 0) {
+            logger.error("获取随机数错误,无响应或者响应码错误 response:{} ErrorCode:{}", resp == null ? "null" : resp.toString(), resp == null ? "null" : resp.getHeader().getErrorCode());
+            throw new AFCryptoException("获取随机数异常");
+        }
+        int retLen = BytesOperate.bytes2int(resp.getData());
+        return BytesOperate.subBytes(resp.getData(), 4, retLen);
+    }
+
+
+    /**
+     * 加解密分包  4096个字节一段 最后一段如果不足4096个字节 取实际长度
+     *
+     * @param data 数据
+     * @return 分组后的数据 List<byte[]>
+     */
+    private List<byte[]> splitPackage(byte[] data) {
+        int uiIndex;
+        byte[] inputData;
+        byte[] paddingData = Padding(data);
+        List<byte[]> bytes = new ArrayList<>();
+        //分段加密 4096个字节一段 n-1段
+        for (uiIndex = 0; uiIndex != (paddingData.length / ConstantNumber.AF_LEN_4096); ++uiIndex) {
+            inputData = new byte[ConstantNumber.AF_LEN_4096];
+            System.arraycopy(paddingData, ConstantNumber.AF_LEN_4096 * uiIndex, inputData, 0, ConstantNumber.AF_LEN_4096);
+            bytes.add(inputData);
+        }
+        //最后一段 如果不足4096个字节
+        if ((paddingData.length % ConstantNumber.AF_LEN_4096) != 0) {
+            inputData = new byte[paddingData.length % ConstantNumber.AF_LEN_4096];
+            System.arraycopy(paddingData, ConstantNumber.AF_LEN_4096 * uiIndex, inputData, 0, inputData.length);
+            bytes.add(inputData);
+        }
+        return bytes;
     }
 
     /**
      * SM1内部密钥加密
      *
      * @param mode  分组模式 ECB/CBC
-     * @param index 内部密钥索引
+     * @param index 内部密钥索引 如果使用外部密钥传-1
      * @param iv    初始向量  CBC模式下需要 ECB模式下传null
      * @param data  待加密数据
      * @return 加密后的数据
@@ -80,22 +183,58 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public byte[] SM1Encrypt(GroupMode mode, int index, byte[] iv, byte[] data) throws AFCryptoException {
-        return new byte[0];
+        List<byte[]> singleData = splitPackage(data); //分包
+        BytesBuffer buffer = new BytesBuffer();
+        switch (mode) {
+            case ECB:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm1.SM1EncryptECB(index, bytes));
+                }
+                break;
+            case CBC:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm1.SM1EncryptCBC(index, iv, bytes));
+                }
+                break;
+            default:
+                break;
+        }
+        return buffer.toBytes();
+
     }
+
 
     /**
      * SM1内部密钥解密
      *
-     * @param mode       分组模式 ECB/CBC
-     * @param index      内部密钥索引
-     * @param iv         初始向量  CBC模式下需要 ECB模式下传null
-     * @param encodeData 待解密数据
+     * @param mode  分组模式 ECB/CBC
+     * @param index 内部密钥索引
+     * @param iv    初始向量  CBC模式下需要 ECB模式下传null
+     * @param data  待解密数据
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常
      */
     @Override
-    public byte[] SM1Decrypt(GroupMode mode, int index, byte[] iv, byte[] encodeData) throws AFCryptoException {
-        return new byte[0];
+    public byte[] SM1Decrypt(GroupMode mode, int index, byte[] iv, byte[] data) throws AFCryptoException {
+        List<byte[]> groupData = splitPackage(data); //分组
+        BytesBuffer buffer = new BytesBuffer();
+        switch (mode) {
+            case ECB:
+                for (byte[] bytes : groupData) {
+                    //解密后的数据需要去除填充
+                    buffer.append(sm1.SM1DecryptECB(index, bytes));
+                }
+                break;
+            case CBC:
+                for (byte[] bytes : groupData) {
+                    //解密后的数据需要去除填充
+                    buffer.append(sm1.SM1DecryptCBC(index, iv, bytes));
+                }
+                break;
+            default:
+                break;
+        }
+        return cutting(buffer.toBytes());
     }
 
     /**
@@ -110,7 +249,24 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public byte[] SM1Encrypt(GroupMode mode, byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
-        return new byte[0];
+        List<byte[]> singleData = splitPackage(data); //分包
+        BytesBuffer buffer = new BytesBuffer();
+        switch (mode) {
+            case ECB:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm1.SM1EncryptECB(key, bytes));
+                }
+                break;
+            case CBC:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm1.SM1EncryptCBC(key, iv, bytes));
+                }
+                break;
+            default:
+                break;
+        }
+        return buffer.toBytes();
+
     }
 
     /**
@@ -125,19 +281,46 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public byte[] SM1Decrypt(GroupMode mode, byte[] key, byte[] iv, byte[] encodeData) throws AFCryptoException {
-        return new byte[0];
+        List<byte[]> singleData = splitPackage(encodeData); //分包
+        BytesBuffer buffer = new BytesBuffer();
+        switch (mode) {
+            case ECB:
+                for (byte[] bytes : singleData) {
+                    //解密后的数据需要去除填充
+                    buffer.append(sm1.SM1DecryptECB(key, bytes));
+                }
+                break;
+            case CBC:
+                for (byte[] bytes : singleData) {
+                    //解密后的数据需要去除填充
+                    buffer.append(sm1.SM1DecryptCBC(key, iv, bytes));
+                }
+                break;
+            default:
+                break;
+        }
+        return cutting(buffer.toBytes());
     }
 
     /**
      * 获取SM2签名公钥
      *
-     * @param index 索引
-     * @return SM2签名公钥 默认512位, 如果需要256位, 请调用{@link SM2PubKey#to256()}
+     * @param index  索引
+     * @param length 模长 256/512
+     * @return SM2签名公钥
      * @throws AFCryptoException 获取SM2签名公钥异常
      */
     @Override
-    public SM2PubKey getSM2SignPublicKey(int index) throws AFCryptoException {
-        return null;
+    public SM2PubKey getSM2SignPublicKey(int index, ModulusLength length) throws AFCryptoException {
+        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
+            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
+            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
+        }
+        SM2PubKey publicKey = sm2.getPublicKey(index, SM2KeyType.SIGN);
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            return publicKey.to256();
+        }
+        return publicKey;
     }
 
     /**
@@ -148,8 +331,17 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 获取SM2加密公钥异常
      */
     @Override
-    public SM2PubKey getSM2EncryptPublicKey(int index) throws AFCryptoException {
-        return null;
+    public SM2PubKey getSM2EncryptPublicKey(int index, ModulusLength length) throws AFCryptoException {
+        logger.info("获取SM2加密公钥 index: {} length: {}", index, length);
+        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
+            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
+            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
+        }
+        SM2PubKey publicKey = sm2.getPublicKey(index, SM2KeyType.ENCRYPT);
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            return publicKey.to256();
+        }
+        return publicKey;
     }
 
     /**
@@ -159,8 +351,13 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 生成SM2密钥对异常
      */
     @Override
-    public SM2KeyPair generateSM2KeyPair() throws AFCryptoException {
-        return null;
+    public SM2KeyPair generateSM2KeyPair(ModulusLength length) throws AFCryptoException {
+        logger.info("生成SM2密钥对");
+        SM2KeyPair keyPair = sm2.generateKeyPair();
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            return keyPair.to256();
+        }
+        return keyPair;
     }
 
     /**
@@ -172,8 +369,18 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 加密异常
      */
     @Override
-    public SM2Cipher SM2Encrypt(int index, byte[] data) throws AFCryptoException {
-        return null;
+    public SM2Cipher SM2Encrypt(ModulusLength length,int index, byte[] data) throws AFCryptoException {
+        logger.info("SM2内部密钥加密 index: {} length: {}", index, length);
+        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
+            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
+            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
+        }
+        byte[] encData = sm2.sm2Encrypt(index, null, data);
+        SM2Cipher cipher = new SM2Cipher(encData);
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            return cipher.to256();
+        }
+        return cipher;
     }
 
     /**
@@ -185,8 +392,19 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 解密异常
      */
     @Override
-    public byte[] SM2Decrypt(int index, SM2Cipher encodeData) throws AFCryptoException {
-        return new byte[0];
+    public byte[] SM2Decrypt(ModulusLength length,int index, SM2Cipher encodeData) throws AFCryptoException {
+        logger.info("SM2内部密钥解密 length: {} index: {} encodeData: {}", length, index, encodeData);
+        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
+            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
+            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
+        }
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            encodeData = encodeData.to256();
+        }
+        if (ModulusLength.LENGTH_512.equals(length)) {
+            encodeData = encodeData.to512();
+        }
+        return sm2.SM2Decrypt(index, null, encodeData);
     }
 
     /**
@@ -198,8 +416,15 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 加密异常
      */
     @Override
-    public SM2Cipher SM2Encrypt(SM2PubKey key, byte[] data) throws AFCryptoException {
-        return null;
+    public SM2Cipher SM2Encrypt(ModulusLength length,SM2PubKey key, byte[] data) throws AFCryptoException {
+        logger.info("SM2外部密钥加密 length: {} key: {} data: {}", length, key, data);
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            key = key.to256();
+        }
+        if (ModulusLength.LENGTH_512.equals(length)) {
+            key = key.to512();
+        }
+        return new SM2Cipher(sm2.sm2Encrypt(0, key, data));
     }
 
     /**
@@ -211,8 +436,15 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 解密异常
      */
     @Override
-    public byte[] SM2Decrypt(SM2PubKey key, SM2Cipher encodeData) throws AFCryptoException {
-        return new byte[0];
+    public byte[] SM2Decrypt(ModulusLength length,SM2PriKey key, SM2Cipher encodeData) throws AFCryptoException {
+        logger.info("SM2外部密钥解密 length: {} key: {} encodeData: {}", length, key, encodeData);
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            key = key.to256();
+        }
+        if (ModulusLength.LENGTH_512.equals(length)) {
+            key = key.to512();
+        }
+        return sm2.SM2Decrypt(0, key, encodeData);
     }
 
     /**
@@ -411,5 +643,76 @@ public class AFHsmDevice implements IAFDevice {
     @Override
     public List<AFKmsKeyInfo> generateKey(int keyType, int keyBits, int count) throws AFCryptoException {
         return null;
+    }
+
+
+    /**
+     * 填充
+     *
+     * @param data 待填充数据
+     * @return 填充后数据
+     */
+//    private static byte[] Padding(byte[] data) {
+//        int paddingNumber = 16 - (data.length % 16);
+//        byte[] paddingData = new byte[paddingNumber];
+//        for (int i = 0; i < paddingNumber; ++i) {
+//            paddingData[i] = (byte) paddingNumber;
+//        }
+//        byte[] outData = new byte[data.length + paddingNumber];
+//        System.arraycopy(data, 0, outData, 0, data.length);
+//        System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
+//        return outData;
+//    }
+    private static byte[] Padding(byte[] data) {
+        if ((data.length % 16) == 0) {
+            return data;
+        }
+
+        int paddingNumber = 16 - (data.length % 16);
+        byte[] paddingData = new byte[paddingNumber];
+
+        for (int i = 0; i < paddingNumber; ++i) {
+            paddingData[i] = (byte) paddingNumber;
+        }
+        byte[] outData = new byte[data.length + paddingNumber];
+        System.arraycopy(data, 0, outData, 0, data.length);
+        System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
+
+        return outData;
+    }
+
+
+    /**
+     * 去填充
+     *
+     * @param data 待去填充数据
+     * @return 去填充后数据
+     * @throws AFCryptoException 去填充异常
+     */
+//    private static byte[] cutting(byte[] data) throws AFCryptoException {
+//        int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
+//        for (int i = 0; i < paddingNumber; ++i) {
+//            if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
+//                throw new AFCryptoException("验证填充数据错误");
+//            }
+//        }
+//        byte[] outData = new byte[data.length - paddingNumber];
+//        System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
+//        return outData;
+//    }
+    private static byte[] cutting(byte[] data) {
+        int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
+        if (paddingNumber >= 16) paddingNumber = 0;
+
+        for (int i = 0; i < paddingNumber; ++i) {
+            if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
+                return null;
+            }
+        }
+
+        byte[] outData = new byte[data.length - paddingNumber];
+        System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
+
+        return outData;
     }
 }

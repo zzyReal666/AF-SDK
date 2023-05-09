@@ -10,6 +10,8 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
@@ -35,7 +37,7 @@ public class AFNettyClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.debug("出站=>" + request);
+        logger.debug("出站=>" + Arrays.toString(request));
         ByteBuf buf = ctx.alloc().buffer();
         buf.writeBytes(request);
         ctx.writeAndFlush(buf);

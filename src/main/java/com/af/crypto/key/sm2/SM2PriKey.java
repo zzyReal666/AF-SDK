@@ -19,6 +19,9 @@ public class SM2PriKey implements Key {
     private int length; //密钥长度 256/512
     private byte[] D;   //私钥D
 
+    public SM2PriKey(byte[] data) {
+        this.decode(data);
+    }
 
     public SM2PriKey(int length, byte[] d) {
         //如果length不是256或者512位 抛出异常
@@ -84,7 +87,9 @@ public class SM2PriKey implements Key {
 
     @Override
     public void decode(byte[] encodedKey) {
-        this.length = BytesOperate.bytes2int(encodedKey, 0);
+        //todo 因为返回实际是64字节,长度却是0100(256位)
+        this.length = BytesOperate.bytes2int(encodedKey, 0)+256;
+        this.D = new byte[this.length / 8];
         //从encodedKey的第4个字节开始  复制到this.D的0位置 复制长度为this.length/8
         System.arraycopy(encodedKey, 4, this.D, 0, this.length / 8);
     }
@@ -104,8 +109,9 @@ public class SM2PriKey implements Key {
         if (this.length == 256) {
             return this;
         }
-        System.arraycopy(D, D.length - 32, this.D, 0, this.D.length);
-        return new SM2PriKey(256, this.D);
+        byte [] D = new byte[32];
+        System.arraycopy(this.D, 32, D, 0, D.length);
+        return new SM2PriKey(256, D);
     }
 
     /**

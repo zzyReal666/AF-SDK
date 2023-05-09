@@ -1,6 +1,5 @@
 package com.af.crypto.key.sm2;
 
-import com.af.constant.SM2KeyType;
 import com.af.crypto.key.Key;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
@@ -8,23 +7,24 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.nio.ByteBuffer;
-
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description SM2公钥 256位或512位
  * @since 2023/4/26 10:49
  */
-@Setter
 @Getter
+@Setter
 @NoArgsConstructor
 public class SM2PubKey implements Key {
 
-    private SM2KeyType keyType; //密钥类型 签名/加密
     private int length; //密钥长度 256/512
     private byte[] x;   //公钥x
     private byte[] y;   //公钥y
 
+    //构造函数 字节数据
+    public SM2PubKey(byte[] data) {
+        this.decode(data);
+    }
     //构造函数 全部参数
     public SM2PubKey(int length, byte[] x, byte[] y) {
         //如果密钥长度不是256或512位 抛出异常
@@ -52,7 +52,7 @@ public class SM2PubKey implements Key {
         builder.append("   _|_______________|______________________________________________________").append(nl);
         builder.append("   1| bits          | ").append(this.length).append(nl);
         builder.append("   2| x             | ").append(BytesOperate.bytesToHexString(this.x)).append(nl);
-        builder.append("   3| y             | ").append(BytesOperate.bytesToHexString(this.y)).append(nl);
+        builder.append("   4| y             | ").append(BytesOperate.bytesToHexString(this.y)).append(nl);
         return builder.toString();
     }
 
@@ -71,9 +71,11 @@ public class SM2PubKey implements Key {
 
     @Override
     public void decode(byte[] pubKey) {
-        this.length = BytesOperate.bytes2int(pubKey, 0);
-        System.arraycopy(pubKey, 4, this.x, 0, this.x.length / 8);
-        System.arraycopy(pubKey, 4 + this.x.length / 8, this.y, 0, this.y.length / 8);
+        this.length = BytesOperate.bytes2int(pubKey, 0) + 256;
+        this.x = new byte[64];
+        this.y = new byte[64];
+        System.arraycopy(pubKey, 4, this.x, 0, this.x.length);
+        System.arraycopy(pubKey, 4 + this.x.length, this.y, 0, this.y.length);
     }
 
     //size

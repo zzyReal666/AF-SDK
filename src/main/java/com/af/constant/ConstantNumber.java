@@ -5,9 +5,9 @@ package com.af.constant;
  * @description
  * @since 2023/4/18 14:41
  */
-public enum ConstantNum {
+public enum ConstantNumber {
     ;
-    public static final  int SGD_TRUE = 0x00000001;
+    public static final int SGD_TRUE = 0x00000001;
     public static final int SGD_FALSE = 0x00000000;
 
     public static final int SGD_MODE_MASK = 0x000000FF;
@@ -58,10 +58,10 @@ public enum ConstantNum {
     public static final int SGD_RSA_SIGN = 0x00010010; //user-defined
     public static final int SGD_RSA_ENC = 0x00010020;//user-defined
 
-    public static final int SGD_SM2 = 0x00020100;
-    public static final int SGD_SM2_1 = 0x00020200;
-    public static final int SGD_SM2_2 = 0x00020400;
-    public static final int SGD_SM2_3 = 0x00020800;
+    public static final int SGD_SM2 = 0x00020100;     //生成sm2密钥对
+    public static final int SGD_SM2_1 = 0x00020200;  //获取sm2签名公钥
+    public static final int SGD_SM2_2 = 0x00020400;  //获取sm2加密公钥
+    public static final int SGD_SM2_3 = 0x00020800;  //SM2 内部加密/解密
 
     public static final int SGD_SM3 = 0x00000001;
     public static final int SGD_SM3_MAC = 0x00010001;
@@ -98,7 +98,7 @@ public enum ConstantNum {
     // public static final int  MAX_RSA_KEY_PAIR_COUNT_09 = 80;
     // public static final int  MAX_RSA_KEY_PAIR_COUNT_12 = 50;
     // public static final int  MAX_RSA_KEY_PAIR_COUNT_16 = 60;
-    public static final int MAX_ECC_KEY_PAIR_COUNT = 1023;
+    public static final int MAX_ECC_KEY_PAIR_COUNT = 1023;  //最大密钥对数
     public static final int MAX_KEK_COUNT = 2047;
     public static final int MAX_SESSION_KEY_COUNT = 1024;
 

@@ -1,4 +1,4 @@
-package com.af.crypto.struct.impl;
+package com.af.crypto.struct.impl.sm2;
 
 import com.af.crypto.struct.IAFStruct;
 import com.af.exception.AFCryptoException;

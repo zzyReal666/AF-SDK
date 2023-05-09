@@ -51,7 +51,6 @@ public class BytesOperate {
 //    }
 
 
-
     /**
      * 转换byte数组为16进制字符串   大端模式
      *
@@ -103,5 +102,18 @@ public class BytesOperate {
         return out.toByteArray();
     }
 
+    /**
+     * 从响应中截取指定的字节
+     *
+     * @param bytes  响应字节数组
+     * @param offset 偏移量
+     * @param length 长度
+     * @return 截取后的字节数组
+     */
+    public static byte[] subBytes(byte[] bytes, int offset, int length) {
+        byte[] buf = new byte[length];
+        System.arraycopy(bytes, offset, buf, 0, length);
+        return buf;
+    }
 
 }

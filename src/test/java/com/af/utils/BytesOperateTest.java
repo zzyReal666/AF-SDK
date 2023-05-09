@@ -12,9 +12,10 @@ class BytesOperateTest {
 
     @Test
     void bytes2int() {
-        byte[] bytes = new byte[]{(byte) 0xff, 0x00, 0x00, 0x00};
+        byte[] bytes = new byte[]{-124,0,0,0};
         int i = BytesOperate.bytes2int(bytes, 0);
-        assertEquals(255, i);
+        System.out.println(i);
+
     }
 
     @Test

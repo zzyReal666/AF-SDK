@@ -1,4 +1,4 @@
-package com.af.crypto.key;
+package com.af.crypto.key.keyInfo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

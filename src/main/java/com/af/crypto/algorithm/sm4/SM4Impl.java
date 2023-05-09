@@ -1,6 +1,8 @@
 package com.af.crypto.algorithm.sm4;
 
+import com.af.crypto.key.keyInfo.KeyInfoImpl;
 import com.af.exception.AFCryptoException;
+import com.af.netty.AFNettyClient;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -8,6 +10,16 @@ import com.af.exception.AFCryptoException;
  * @since 2023/4/27 14:54
  */
 public class SM4Impl implements SM4 {
+
+
+
+    private final AFNettyClient client;
+    private final KeyInfoImpl keyInfo;
+
+    public SM4Impl(AFNettyClient client) {
+        this.client = client;
+        this.keyInfo = KeyInfoImpl.getInstance(client);
+    }
     /**
      * SM4 ECB模式加密 使用内部密钥
      *

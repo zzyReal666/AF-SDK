@@ -50,7 +50,7 @@ public class AFNettyClient {
      * @param host 服务器地址
      * @param port 服务器端口
      */
-    private AFNettyClient(String host, int port, String password) {
+    protected AFNettyClient(String host, int port, String password) {
         this.host = host;
         this.port = port;
         this.password = password;
@@ -109,12 +109,12 @@ public class AFNettyClient {
      * @return 服务器返回数据
      */
     public byte[] send(byte[] data) {
-        AFNettyClientHandler handeler = new AFNettyClientHandler(data);
+        AFNettyClientHandler handler = new AFNettyClientHandler(data);
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(new LoggingHandler());
-                ch.pipeline().addLast(handeler);
+                ch.pipeline().addLast(handler);
             }
         });
         while (retryCount < MAX_RETRY) {
@@ -122,7 +122,7 @@ public class AFNettyClient {
                 ChannelFuture future = bootstrap.connect(host, port).sync();
                 logger.info("连接服务器成功，服务器地址{}:{}", host, port);
                 future.channel().closeFuture().sync();
-                return handeler.getResponse();
+                return handler.getResponse();
             } catch (Exception e) {
                 retryCount++;
                 logger.error("连接服务器失败，服务器地址：{}:{} ,正在第{}次重试", host, port, retryCount);

@@ -2,7 +2,7 @@ package com.af.constant;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
- * @description 分组模式 ECB/CBC/CFB/OFB/CTR
+ * @description 分组模式 当前支持ECB和CBC
  * @since 2023/4/27 15:24
  */
 public enum GroupMode {

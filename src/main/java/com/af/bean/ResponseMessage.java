@@ -1,5 +1,6 @@
 package com.af.bean;
 
+import com.af.utils.BytesBuffer;
 import lombok.Getter;
 import lombok.ToString;
 import org.slf4j.Logger;
@@ -38,4 +39,9 @@ public class ResponseMessage {
         this.data = new byte[data.length - ResponseHeader.HEADER_LENGTH];
         System.arraycopy(data, ResponseHeader.HEADER_LENGTH, this.data, 0, this.data.length);
     }
+    //getDataBuffer
+    public BytesBuffer getDataBuffer() {
+        return new BytesBuffer(data);
+    }
+
 }

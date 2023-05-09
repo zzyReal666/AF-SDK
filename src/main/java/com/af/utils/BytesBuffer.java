@@ -4,39 +4,53 @@ import java.io.Serializable;
 
 /**
  * bytes数据缓冲区，取代数组， 注意：本类非线程安全
- * 
+ *
  * @author linzhj
  * @date 2022年4月21日
  */
 public class BytesBuffer implements Serializable {
     private static final long serialVersionUID = -2850208874997943712L;
 
-    /** 当前缓冲区 */
+    /**
+     * 当前缓冲区
+     */
     private byte[] buffer;
-    /** 当前缓冲区偏移量 */
+    /**
+     * 当前缓冲区偏移量
+     */
     private int offset;
-    /** 当前缓冲区初始容量 */
+    /**
+     * 当前缓冲区初始容量
+     */
     private final int initialCapacity;
 
-    /** 默认长度的缓冲区 */
+    /**
+     * 默认长度的缓冲区
+     */
     public BytesBuffer() {
         this(1024);
     }
 
-    /** 指定长度的缓冲区 */
+    /**
+     * 指定长度的缓冲区
+     */
     public BytesBuffer(int size) {
         initialCapacity = size;
         this.buffer = new byte[size];
     }
 
-    /** 初始数据转化为缓冲区 */
+    /**
+     * 初始数据转化为缓冲区
+     */
     public BytesBuffer(byte[] array) {
         this.buffer = array;
         offset = array.length;
         initialCapacity = array.length;
     }
 
-    /** 扩充缓冲数组 */
+    /**
+     * 扩充缓冲数组
+     */
     private void resize(int appendSize) {
         if (buffer.length - offset > appendSize) {
             return; // 剩余缓冲足够用
@@ -46,7 +60,9 @@ public class BytesBuffer implements Serializable {
         System.arraycopy(tmp, 0, buffer, 0, offset);
     }
 
-    /** 当前缓冲区已有数据的字节数，并非缓冲区本身字节数 */
+    /**
+     * 当前缓冲区已有数据的字节数，并非缓冲区本身字节数
+     */
     public int size() {
         return offset;
     }
@@ -68,7 +84,7 @@ public class BytesBuffer implements Serializable {
         System.arraycopy(buffer, 0, array, 0, offset);
         return array;
     }
-    
+
     @Override
     public String toString() {
         return encodeHex(toBytes());
@@ -102,7 +118,7 @@ public class BytesBuffer implements Serializable {
      * 追加数据
      */
     public BytesBuffer append(byte[] array) {
-        if(array == null) {
+        if (array == null) {
             return this;
         }
         return append(array, 0, array.length);
@@ -238,7 +254,7 @@ public class BytesBuffer implements Serializable {
      * @return 十六进制字符串
      */
     private static String encodeHex(byte[] data) {
-        final char[] toDigits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+        final char[] toDigits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
         final int len = data.length;
         final char[] out = new char[len << 1];
         for (int i = 0, j = 0; i < len; i++) {
@@ -248,4 +264,8 @@ public class BytesBuffer implements Serializable {
         return new String(out);
     }
 
+    public void clear() {
+        buffer = new byte[0];
+        offset = 0;
+    }
 }

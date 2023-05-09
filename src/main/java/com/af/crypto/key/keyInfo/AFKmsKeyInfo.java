@@ -1,6 +1,6 @@
-package com.af.crypto.key;
+package com.af.crypto.key.keyInfo;
 
-import com.af.constant.ConstantNum;
+import com.af.constant.ConstantNumber;
 import com.af.utils.BytesOperate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -43,7 +43,7 @@ public class AFKmsKeyInfo {
         buf.append("   _|___________________|______________________________________________________").append(nl);
         buf.append("   1| type              | ").append(this.keyType).append(nl);
         buf.append("   2| bits              | ").append(this.keyBits).append(nl);
-        if (this.keyType == ConstantNum.KEY_TYPE_KEK) {
+        if (this.keyType == ConstantNumber.KEY_TYPE_KEK) {
             buf.append("   3| symmetricKeyData  | ").append(BytesOperate.bytesToHexString(this.symmetricData)).append(nl);
         } else {
             buf.append("   3| keyPairData-pub   | ").append(BytesOperate.bytesToHexString(this.keyPair.getPubKeyData())).append(nl);

@@ -1,12 +1,14 @@
 package com.af.device;
+
 import com.af.constant.GroupMode;
-import com.af.crypto.key.AFKmsKeyInfo;
-import com.af.crypto.key.AFSymmetricKeyStatus;
+import com.af.constant.ModulusLength;
+import com.af.crypto.key.keyInfo.AFKmsKeyInfo;
+import com.af.crypto.key.keyInfo.AFSymmetricKeyStatus;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PriKey;
 import com.af.crypto.key.sm2.SM2PubKey;
-import com.af.crypto.struct.impl.SM2Cipher;
-import com.af.crypto.struct.impl.SM2Signature;
+import com.af.crypto.struct.impl.sm2.SM2Cipher;
+import com.af.crypto.struct.impl.sm2.SM2Signature;
 import com.af.exception.AFCryptoException;
 
 import java.util.List;
@@ -105,11 +107,12 @@ public interface IAFDevice {
     /**
      * 获取SM2签名公钥
      *
-     * @param index 索引
-     * @return SM2签名公钥 默认512位, 如果需要256位, 请调用{@link com.af.crypto.key.sm2.SM2PubKey#to256()}
+     * @param index  索引
+     * @param length 密钥长度 256/512
+     * @return SM2签名公钥
      * @throws AFCryptoException 获取SM2签名公钥异常
      */
-    SM2PubKey getSM2SignPublicKey(int index) throws AFCryptoException;
+    SM2PubKey getSM2SignPublicKey(int index, ModulusLength length) throws AFCryptoException;
 
     /**
      * 获取SM2加密公钥
@@ -118,16 +121,15 @@ public interface IAFDevice {
      * @return SM2加密公钥 默认512位, 如果需要256位, 请调用{@link com.af.crypto.key.sm2.SM2PubKey#to256()}
      * @throws AFCryptoException 获取SM2加密公钥异常
      */
-    SM2PubKey getSM2EncryptPublicKey(int index) throws AFCryptoException;
+    SM2PubKey getSM2EncryptPublicKey(int index,ModulusLength length) throws AFCryptoException;
 
 
     /**
      * 生成SM2密钥对
      *
-     * @return SM2密钥对 默认512位, 如果需要256位, 请调用{@link com.af.crypto.key.sm2.SM2KeyPair#to256()}
      * @throws AFCryptoException 生成SM2密钥对异常
      */
-    SM2KeyPair generateSM2KeyPair() throws AFCryptoException;
+    SM2KeyPair generateSM2KeyPair(ModulusLength length) throws AFCryptoException;
 
 
     //===================2.SM2加解密===================
@@ -138,10 +140,9 @@ public interface IAFDevice {
      *
      * @param index 索引
      * @param data  待加密数据
-     * @return 加密后的SM2Cipher对象 默认512位, 如果需要256位, 请调用{@link com.af.crypto.struct.impl.SM2Cipher#to256()}
      * @throws AFCryptoException 加密异常
      */
-    SM2Cipher SM2Encrypt(int index, byte[] data) throws AFCryptoException;
+    SM2Cipher SM2Encrypt(ModulusLength length,int index, byte[] data) throws AFCryptoException;
 
     /**
      * SM2内部密钥解密
@@ -151,7 +152,7 @@ public interface IAFDevice {
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常
      */
-    byte[] SM2Decrypt(int index, SM2Cipher encodeData) throws AFCryptoException;
+    byte[] SM2Decrypt(ModulusLength length,int index, SM2Cipher encodeData) throws AFCryptoException;
 
     //===================2.2外部密钥加解密===================
 
@@ -163,7 +164,7 @@ public interface IAFDevice {
      * @return 加密后的数据
      * @throws AFCryptoException 加密异常
      */
-    SM2Cipher SM2Encrypt(SM2PubKey key, byte[] data) throws AFCryptoException;
+    SM2Cipher SM2Encrypt(ModulusLength length,SM2PubKey key, byte[] data) throws AFCryptoException;
 
     /**
      * SM2外部密钥解密
@@ -173,7 +174,7 @@ public interface IAFDevice {
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常
      */
-    byte[] SM2Decrypt(SM2PubKey key, SM2Cipher encodeData) throws AFCryptoException;
+    byte[] SM2Decrypt(ModulusLength length,SM2PriKey privateKey, SM2Cipher encodeData) throws AFCryptoException;
 
 
     //===================================SM2签名验签===================================
@@ -181,8 +182,8 @@ public interface IAFDevice {
     /**
      * SM2 内部密钥签名
      *
-     * @param index  密钥索引
-     * @param data   待签名数据
+     * @param index 密钥索引
+     * @param data  待签名数据
      * @throws AFCryptoException 签名异常
      */
     SM2Signature SM2Signature(int index, byte[] data) throws AFCryptoException;
@@ -331,8 +332,6 @@ public interface IAFDevice {
      * @throws AFCryptoException 生成密钥信息异常
      */
     List<AFKmsKeyInfo> generateKey(int keyType, int keyBits, int count) throws AFCryptoException;
-
-
 
 
 }
