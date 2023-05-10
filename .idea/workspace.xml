@@ -4,25 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1fa4fd60-2579-4dd2-ba1c-f18c876934f6" name="Changes" comment="构建安付通讯SDK">
-      <change afterPath="$PROJECT_DIR$/.idea/leetcode/editor.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/leetcode/statistics.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/af/bean/RequestHeader.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/af/bean/ResponseMesage.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/af/exception/AFIOException.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/af/utils/BytesBuffer.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/AFExceptionTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/com/af/bean/RequestMessageTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/com/af/utils/AFExceptionTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/myLogFile.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/myLogFile.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/bean/RequestMessage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/bean/RequestMessage.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/constant/CmdConsts.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/constant/CmdConsts.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/utils/BytesOperate.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/utils/BytesOperate.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/LogbackTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/LogbackTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/af/utils/BytesOperateTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/af/utils/BytesOperateTest.java" afterDir="false" />
+    <list default="true" id="1fa4fd60-2579-4dd2-ba1c-f18c876934f6" name="Changes" comment="结构体构建">
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/af/device/impl/SM3Test.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/constant/ConstantNumber.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/constant/ConstantNumber.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/crypto/algorithm/sm2/SM2Impl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/crypto/algorithm/sm2/SM2Impl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/crypto/algorithm/sm4/SM4Impl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/crypto/algorithm/sm4/SM4Impl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/crypto/struct/impl/sm2/SM2Signature.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/crypto/struct/impl/sm2/SM2Signature.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/device/IAFDevice.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/device/IAFDevice.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/device/impl/AFHsmDevice.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/device/impl/AFHsmDevice.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/netty/AFNettyClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/netty/AFNettyClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/af/device/impl/AFHsmDeviceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/af/device/impl/AFHsmDeviceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/af/device/impl/SM2Test.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/af/device/impl/SM2Test.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/af/device/impl/SM4Test.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/af/device/impl/SM4Test.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,6 +43,11 @@
                 <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
                 <item name="Sazf_SDK" type="f1a62948:ProjectNode" />
               </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="Sazf_SDK" type="f1a62948:ProjectNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+              </path>
             </expand>
             <select />
           </tree_state>
@@ -72,6 +70,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitToolBoxStore">
+    <option name="projectConfigVersion" value="5" />
+  </component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -86,37 +87,37 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrary": "JUnit5",
-    "com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrarySuperClass.JUnit5": "",
-    "git-widget-placeholder": "master",
-    "last_directory_selection": "D:/workPlace/Sazf_SDK/src/test/java/com/af",
-    "last_opened_file_path": "D:/workPlace/Sazf_SDK/src/main/java/com/af",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "onboarding.tips.debug.path": "D:/workPlace/Sazf_SDK/src/main/java/com/af/Main.java",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.30840045",
-    "settings.editor.selected.configurable": "reference.settingsdialog.project.gradle",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrary&quot;: &quot;JUnit5&quot;,
+    &quot;com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrarySuperClass.JUnit5&quot;: &quot;&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_directory_selection&quot;: &quot;D:/workPlace/Sazf_SDK/src/test/java/com/af/device/impl&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/workPlace/Sazf_SDK/src/main/java/com/af&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;onboarding.tips.debug.path&quot;: &quot;D:/workPlace/Sazf_SDK/src/main/java/com/af/Main.java&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.30840045&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;CodeWithMe&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CreateClassDialog.RecentsKey">
+      <recent name="com.af.socket.handler" />
       <recent name="com.af.bean.crypto" />
       <recent name="com.af.bean" />
       <recent name="com.af.objectStructure.impl" />
       <recent name="com.af.utils" />
-      <recent name="com.af.utis" />
     </key>
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\workPlace\Sazf_SDK\src\main\java\com\af" />
@@ -133,23 +134,29 @@
       <recent name="" />
     </key>
     <key name="CreateTestDialog.RecentsKey">
+      <recent name="com.af.device.impl" />
+      <recent name="com.af.constant" />
+      <recent name="com.af.netty" />
       <recent name="com.af.bean" />
       <recent name="com.af.utils" />
     </key>
     <key name="CopyClassDialog.RECENTS_KEY">
-      <recent name="" />
+      <recent name="com.af.crypto.algorithm.digest" />
       <recent name="com.af.utils" />
+      <recent name="com.af.crypto.algorithm.sm3" />
+      <recent name="com.af.constant" />
+      <recent name="" />
     </key>
   </component>
   <component name="RunAnythingCache">
     <option name="myCommands">
-      <command value="gradle clean" />
       <command value="gradle build" />
       <command value="gradle build --refresh-dependencies" />
+      <command value="gradle clean" />
     </option>
   </component>
-  <component name="RunManager" selected="Gradle.RequestMessageTest.testToBytes">
-    <configuration name="AFExceptionTest.testAFIOException (1)" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+  <component name="RunManager" selected="Gradle.SM4Test">
+    <configuration name="SM2Test" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -162,7 +169,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;AFExceptionTest.testAFIOException&quot;" />
+            <option value="&quot;com.af.device.impl.SM2Test&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -173,7 +180,7 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="AFExceptionTest.testAFIOException" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="SM2Test.testExternal256" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -186,7 +193,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;com.af.utils.AFExceptionTest.testAFIOException&quot;" />
+            <option value="&quot;com.af.device.impl.SM2Test.testExternal256&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -197,7 +204,7 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="BytesOperateTest.int2bytes" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="SM2Test.testExternal512" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -210,7 +217,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;com.af.utils.BytesOperateTest.int2bytes&quot;" />
+            <option value="&quot;com.af.device.impl.SM2Test.testExternal512&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -221,7 +228,7 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="RequestMessageTest.test" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="SM4Test" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -234,7 +241,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;com.af.bean.RequestMessageTest.test&quot;" />
+            <option value="&quot;com.af.device.impl.SM4Test&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -245,7 +252,7 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="RequestMessageTest.testToBytes" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="SM4Test.testMacInside" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -258,7 +265,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;com.af.bean.RequestMessageTest.testToBytes&quot;" />
+            <option value="&quot;com.af.device.impl.SM4Test.testMacInside&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -271,11 +278,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Gradle.RequestMessageTest.testToBytes" />
-        <item itemvalue="Gradle.RequestMessageTest.test" />
-        <item itemvalue="Gradle.BytesOperateTest.int2bytes" />
-        <item itemvalue="Gradle.AFExceptionTest.testAFIOException (1)" />
-        <item itemvalue="Gradle.AFExceptionTest.testAFIOException" />
+        <item itemvalue="Gradle.SM4Test" />
+        <item itemvalue="Gradle.SM4Test.testMacInside" />
+        <item itemvalue="Gradle.SM2Test" />
+        <item itemvalue="Gradle.SM2Test.testExternal256" />
+        <item itemvalue="Gradle.SM2Test.testExternal512" />
       </list>
     </recent_temporary>
   </component>
@@ -289,7 +296,24 @@
       <updated>1681718784754</updated>
       <workItem from="1681718786007" duration="29347000" />
       <workItem from="1681867594622" duration="5771000" />
-      <workItem from="1681889734521" duration="10040000" />
+      <workItem from="1681889734521" duration="12264000" />
+      <workItem from="1681954663899" duration="156000" />
+      <workItem from="1681954831549" duration="462000" />
+      <workItem from="1681955307891" duration="91000" />
+      <workItem from="1681955411771" duration="20083000" />
+      <workItem from="1682039861122" duration="2203000" />
+      <workItem from="1682058735946" duration="8935000" />
+      <workItem from="1682217404546" duration="18462000" />
+      <workItem from="1682300000568" duration="18142000" />
+      <workItem from="1682471981356" duration="16201000" />
+      <workItem from="1682558222573" duration="10680000" />
+      <workItem from="1682663096555" duration="9588000" />
+      <workItem from="1683164272001" duration="31140000" />
+      <workItem from="1683508984001" duration="23431000" />
+      <workItem from="1683595390245" duration="1221000" />
+      <workItem from="1683597805290" duration="21121000" />
+      <workItem from="1683682615759" duration="4000" />
+      <workItem from="1683682932935" duration="10514000" />
     </task>
     <task id="LOCAL-00001" summary="构建安付通讯SDK">
       <created>1681812859945</created>
@@ -298,15 +322,77 @@
       <option name="project" value="LOCAL" />
       <updated>1681812859945</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="请求体和响应体">
+      <created>1681899945498</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1681899945499</updated>
+    </task>
+    <task id="LOCAL-00003" summary="请求体和响应体">
+      <created>1681955828968</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1681955828968</updated>
+    </task>
+    <task id="LOCAL-00004" summary="结构体构建">
+      <created>1682675870842</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1682675870842</updated>
+    </task>
+    <task id="LOCAL-00005" summary="结构体构建">
+      <created>1683272221813</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1683272221813</updated>
+    </task>
+    <task id="LOCAL-00006" summary="结构体构建">
+      <created>1683272254076</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1683272254076</updated>
+    </task>
+    <task id="LOCAL-00007" summary="结构体构建">
+      <created>1683620435674</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1683620435674</updated>
+    </task>
+    <task id="LOCAL-00008" summary="结构体构建">
+      <created>1683626486752</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1683626486752</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="构建安付通讯SDK" />
-    <option name="LAST_COMMIT_MESSAGE" value="构建安付通讯SDK" />
+    <MESSAGE value="请求体和响应体" />
+    <MESSAGE value="结构体构建" />
+    <option name="LAST_COMMIT_MESSAGE" value="结构体构建" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
@@ -314,5 +400,8 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Sazf_SDK$BytesOperateTest_bytes2int.ic" NAME="BytesOperateTest.bytes2int Coverage Results" MODIFIED="1681788829216" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/Sazf_SDK$AFHsmDeviceTest_testSM2.ic" NAME="AFHsmDeviceTest.testSM2 Coverage Results" MODIFIED="1683602438318" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/Sazf_SDK$AFHsmDeviceTest_testSM1.ic" NAME="AFHsmDeviceTest.testSM1 Coverage Results" MODIFIED="1683513502655" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/Sazf_SDK$AFNettyClientTest_test.ic" NAME="AFNettyClientTest.test Coverage Results" MODIFIED="1682245580091" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
   </component>
 </project>

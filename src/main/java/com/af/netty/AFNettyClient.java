@@ -137,7 +137,7 @@ public class AFNettyClient {
             }
         }
         logger.error("连接服务器失败，服务器地址：{}:{} ,重试{}次后仍失败", host, port, retryCount);
-        return null;
+        throw new RuntimeException("连接服务器失败，服务器地址：" + host + ":" + port + " ,重试" + retryCount + "次后仍失败");
     }
 
 

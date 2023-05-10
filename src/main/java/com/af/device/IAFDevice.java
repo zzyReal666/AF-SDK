@@ -185,7 +185,7 @@ public interface IAFDevice {
      * @param data  待签名数据
      * @throws AFCryptoException 签名异常
      */
-    SM2Signature SM2Signature(int index, byte[] data) throws AFCryptoException;
+    SM2Signature SM2Signature(ModulusLength length,int index, byte[] data) throws AFCryptoException;
 
     /**
      * SM2 内部密钥验签
@@ -196,7 +196,7 @@ public interface IAFDevice {
      * @return 验签结果 true:验签成功 false:验签失败
      * @throws AFCryptoException 验签异常
      */
-    boolean SM2Verify(int index, byte[] data, SM2Signature signature) throws AFCryptoException;
+    boolean SM2Verify(ModulusLength length,int index, byte[] data, SM2Signature signature) throws AFCryptoException;
 
     /**
      * SM2 外部密钥签名

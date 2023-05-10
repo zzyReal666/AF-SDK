@@ -4,13 +4,12 @@ import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PubKey;
 import com.af.crypto.struct.impl.sm2.SM2Cipher;
+import com.af.crypto.struct.impl.sm2.SM2Signature;
 import com.af.exception.AFCryptoException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class SM2Test {
 
@@ -62,7 +61,6 @@ class SM2Test {
         byte[] decrypt = device.SM2Decrypt(ModulusLength.LENGTH_512, 2, sm2Cipher);
         assert Arrays.equals(data, decrypt);
     }
-
     /**
      * 外部加解密
      */
@@ -82,6 +80,25 @@ class SM2Test {
         SM2Cipher sm2Cipher2 = device.SM2Encrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPubKey(), data);
         byte[] decrypt2 = device.SM2Decrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPriKey(), sm2Cipher2);
         assert Arrays.equals(data, decrypt2);
+    }
+
+
+    /**
+     * 内部签名验签
+     */
+    @Test
+    void testInSign256() throws AFCryptoException {
+        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_256, 4, data);
+        boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, 4, data, sm2Signature);
+        assert verify;
+    }
+
+
+    @Test
+    void testInSign512() throws AFCryptoException {
+        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_512, 4, data);
+        boolean verify = device.SM2Verify(ModulusLength.LENGTH_512, 4, data, sm2Signature);
+        assert verify;
     }
 
 }

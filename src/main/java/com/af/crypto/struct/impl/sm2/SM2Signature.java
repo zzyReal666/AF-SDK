@@ -1,7 +1,6 @@
 package com.af.crypto.struct.impl.sm2;
 
 import com.af.crypto.struct.IAFStruct;
-import com.af.exception.AFCryptoException;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
@@ -22,6 +21,10 @@ public class SM2Signature implements IAFStruct {
     private byte[] r;
     private byte[] s;
 
+    public SM2Signature(byte[] data) {
+        this.length = 512;
+        decode(data);
+    }
     public SM2Signature(byte[] r, byte[] s) {
         if (r.length != s.length) {
             throw new IllegalArgumentException("r and s length must be equal");
@@ -40,7 +43,7 @@ public class SM2Signature implements IAFStruct {
     }
 
     @Override
-    public void decode(byte[] data) throws AFCryptoException {
+    public void decode(byte[] data)  {
         System.arraycopy(data, 0, this.r, 0, this.r.length);
         System.arraycopy(data, this.r.length, this.s, 0, this.r.length);
 
@@ -58,6 +61,7 @@ public class SM2Signature implements IAFStruct {
         if (this.length == 256) {
             return this;
         }
+        this.length = 256;
         byte[] r = new byte[32];
         byte[] s = new byte[32];
         System.arraycopy(this.r, 32, r, 0, 32);
@@ -69,6 +73,7 @@ public class SM2Signature implements IAFStruct {
         if (this.length == 512) {
             return this;
         }
+        this.length = 512;
         byte[] r = new byte[64];
         byte[] s = new byte[64];
         System.arraycopy(this.r, 0, r, 32, 32);

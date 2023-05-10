@@ -5,6 +5,8 @@ import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
 import com.af.constant.ConstantNumber;
 import com.af.constant.SM2KeyType;
+import com.af.crypto.algorithm.sm3.SM3;
+import com.af.crypto.algorithm.sm3.SM3Impl;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PriKey;
 import com.af.crypto.key.sm2.SM2PubKey;
@@ -25,9 +27,11 @@ public class SM2Impl implements SM2 {
 
     private static final Logger logger = LoggerFactory.getLogger(SM2Impl.class);
     private final AFNettyClient client;
+    private final SM3 sm3;
 
     public SM2Impl(AFNettyClient client) {
         this.client = client;
+        this.sm3 = new SM3Impl(client);
     }
 
     /**
@@ -125,7 +129,6 @@ public class SM2Impl implements SM2 {
         }
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALENCRYPT_ECC, param);
         ResponseMessage responseMessage = client.send(requestMessage);
-        logger.debug("SM2加密 responseMessage:{}", responseMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM2加密错误,错误信息:{}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM2加密错误,错误信息:" + responseMessage.getHeader().getErrorInfo());
@@ -170,17 +173,13 @@ public class SM2Impl implements SM2 {
         }
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALDECRYPT_ECC, param);
         ResponseMessage responseMessage = client.send(requestMessage);
-        logger.debug("SM2解密 responseMessage:{}", responseMessage);
         if (responseMessage.getHeader().
 
                 getErrorCode() != 0) {
             logger.error("SM2解密错误,错误信息:{}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM2解密错误,错误信息:" + responseMessage.getHeader().getErrorInfo());
         }
-        return responseMessage.getDataBuffer().
-
-                readOneData();
-
+        return responseMessage.getDataBuffer().readOneData();
     }
 
     /**
@@ -194,7 +193,37 @@ public class SM2Impl implements SM2 {
      */
     @Override
     public byte[] SM2Sign(int index, SM2PriKey privateKey, byte[] data) throws AFCryptoException {
-        return new byte[0];
+        int begin = 1;
+        int zero = 0;
+        byte[] hashData = sm3.SM3Hash(data);
+        byte[] param;
+        RequestMessage requestMessage;
+        if (null == privateKey) {   //使用内部密钥
+            param = new BytesBuffer()
+                    .append(begin)
+                    .append(index)
+                    .append(hashData.length)
+                    .append(hashData)
+                    .toBytes();
+            requestMessage = new RequestMessage(CMDCode.CMD_INTERNALSIGN_ECC, param);
+        } else {   //使用外部密钥
+            param = new BytesBuffer()
+                    .append(zero)
+                    .append(ConstantNumber.SGD_SM2_1)
+                    .append(zero)
+                    .append(privateKey.size())
+                    .append(privateKey.encode())
+                    .append(hashData.length)
+                    .append(hashData)
+                    .toBytes();
+            requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, param);
+        }
+        ResponseMessage responseMessage = client.send(requestMessage);
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            logger.error("SM2签名错误,错误信息:{}", responseMessage.getHeader().getErrorInfo());
+            throw new AFCryptoException("SM2签名错误,错误信息:" + responseMessage.getHeader().getErrorInfo());
+        }
+        return responseMessage.getDataBuffer().readOneData();
     }
 
     /**
@@ -209,6 +238,37 @@ public class SM2Impl implements SM2 {
      */
     @Override
     public boolean SM2Verify(int index, SM2PubKey publicKey, byte[] data, byte[] signData) throws AFCryptoException {
-        return false;
+        int begin = 1;
+        int zero = 0;
+        byte[] hashData = sm3.SM3Hash(data);
+        byte[] param;
+        RequestMessage requestMessage;
+        if (null == publicKey) {
+            param = new BytesBuffer()
+                    .append(begin)
+                    .append(index)
+                    .append(hashData.length)
+                    .append(hashData)
+                    .append(signData.length)
+                    .append(signData)
+                    .toBytes();
+            requestMessage = new RequestMessage(CMDCode.CMD_INTERNALVERIFY_ECC, param);
+        } else {
+            param = new BytesBuffer()
+                    .append(zero)
+                    .append(ConstantNumber.SGD_SM2_1)
+                    .append(zero)
+                    .append(publicKey.size())
+                    .append(publicKey.encode())
+                    .append(hashData.length)
+                    .append(hashData)
+                    .append(signData.length)
+                    .append(signData)
+                    .toBytes();
+            requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALVERIFY_ECC, param);
+        }
+
+        ResponseMessage responseMessage = client.send(requestMessage);
+        return responseMessage.getHeader().getErrorCode() == 0;
     }
 }

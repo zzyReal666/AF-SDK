@@ -24,7 +24,6 @@ class AFHsmDeviceTest {
         System.out.println(device.getDeviceInfo());
     }
 
-    //获取随机数
     @Test
     void testGetRandom() throws Exception {
         System.out.println(Arrays.toString(device.getRandom(5)));
@@ -64,7 +63,6 @@ class AFHsmDeviceTest {
         assert Arrays.equals(data, decryptCBC2);
 
     }
-
 
     @Test
     void testSM2() throws Exception {

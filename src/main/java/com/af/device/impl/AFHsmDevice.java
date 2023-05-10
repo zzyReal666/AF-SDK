@@ -446,27 +446,49 @@ public class AFHsmDevice implements IAFDevice {
     /**
      * SM2 内部密钥签名
      *
-     * @param index 密钥索引
-     * @param data  待签名数据
+     * @param length 模量长度 256/512
+     * @param index  密钥索引
+     * @param data   待签名数据
      * @throws AFCryptoException 签名异常
      */
     @Override
-    public SM2Signature SM2Signature(int index, byte[] data) throws AFCryptoException {
-        return null;
+    public SM2Signature SM2Signature(ModulusLength length, int index, byte[] data) throws AFCryptoException {
+        logger.info("SM2内部密钥签名 index: {} data: {}", index, data);
+        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
+            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
+            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
+        }
+        byte[] sign = sm2.SM2Sign(index, null, data);
+        SM2Signature sm2Signature = new SM2Signature(sign);
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            return sm2Signature.to256();
+        }
+        return sm2Signature;
     }
 
     /**
      * SM2 内部密钥验签
      *
-     * @param index     密钥索引
+     * @param length    模量长度 256/512
+     * @param index     密钥索引 0-1023
      * @param data      待验签数据
      * @param signature 签名
      * @return 验签结果 true:验签成功 false:验签失败
      * @throws AFCryptoException 验签异常
      */
     @Override
-    public boolean SM2Verify(int index, byte[] data, SM2Signature signature) throws AFCryptoException {
-        return false;
+    public boolean SM2Verify(ModulusLength length, int index, byte[] data, SM2Signature signature) throws AFCryptoException {
+        logger.info("SM2内部密钥验签 length: {} index: {} data: {} signature: {}", length, index, data, signature);
+        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
+            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
+            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
+        }
+        // 如果是256模量长度,则转换为512模量长度 后端只以512模量长度验签
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            signature = signature.to512();
+        }
+        return sm2.SM2Verify(index, null, data, signature.encode());
+
     }
 
     /**
@@ -553,9 +575,10 @@ public class AFHsmDevice implements IAFDevice {
 
     /**
      * SM4 Mac 内部密钥
+     *
      * @param index 密钥索引
-     * @param data 待计算数据
-     * @param IV 初始向量
+     * @param data  待计算数据
+     * @param IV    初始向量
      * @return 消息验证码值
      */
     @Override
@@ -566,38 +589,40 @@ public class AFHsmDevice implements IAFDevice {
 
     /**
      * SM4 Mac 外部密钥
-     * @param key 密钥
+     *
+     * @param key  密钥
      * @param data 待计算数据
-     * @param IV 初始向量
+     * @param IV   初始向量
      * @return 消息验证码值
      */
     @Override
     public byte[] SM4Mac(byte[] key, byte[] data, byte[] IV) throws AFCryptoException {
         logger.info("SM4Mac key: {} data: {} IV: {}", key, data, IV);
         return sm4.SM4Mac(key, data, IV);
-
     }
 
     /**
      * SM4 内部密钥加密
-     * @param mode 加密模式 ECB/CBC
+     *
+     * @param mode  加密模式 ECB/CBC
      * @param index 密钥索引
-     * @param data 待加密数据
-     * @param IV 初始向量
-     * @return  加密结果
+     * @param data  待加密数据
+     * @param IV    初始向量
+     * @return 加密结果
      */
     @Override
     public byte[] SM4Encrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException {
         logger.info("SM4Encrypt mode: {} index: {} data: {} IV: {}", mode, index, data, IV);
-
+        return null;
     }
 
     /**
      * SM4 内部密钥解密
-     * @param mode 加密模式 ECB/CBC
+     *
+     * @param mode  加密模式 ECB/CBC
      * @param index 密钥索引
-     * @param data 待解密数据
-     * @param IV 初始向量
+     * @param data  待解密数据
+     * @param IV    初始向量
      * @return 解密结果
      */
     @Override

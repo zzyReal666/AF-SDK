@@ -3,6 +3,17 @@
   <component name="LeetcodeEditor">
     <option name="projectConfig">
       <map>
+        <entry key="$USER_HOME$/AppData/Local/Temp/leetcode/editor/cn/[剑指 Offer 06]从尾到头打印链表.java">
+          <value>
+            <LeetcodeEditor>
+              <option name="contentPath" value="$USER_HOME$/AppData/Local/Temp/leetcode/editor/cn/doc/content/[剑指 Offer 06]从尾到头打印链表.md" />
+              <option name="frontendQuestionId" value="leetcode.cn剑指 Offer 06" />
+              <option name="host" value="leetcode.cn" />
+              <option name="path" value="$USER_HOME$/AppData/Local/Temp/leetcode/editor/cn/[剑指 Offer 06]从尾到头打印链表.java" />
+              <option name="titleSlug" value="cong-wei-dao-tou-da-yin-lian-biao-lcof" />
+            </LeetcodeEditor>
+          </value>
+        </entry>
         <entry key="$USER_HOME$/AppData/Local/Temp/leetcode/editor/cn/[剑指 Offer 20]表示数值的字符串.java">
           <value>
             <LeetcodeEditor>

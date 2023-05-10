@@ -30,7 +30,6 @@ class SM4Test {
         byte[] key = device.getRandom(16);
         byte[] bytes = device.SM4Mac(key, data, IV);
         System.out.println(Arrays.toString(bytes));
-
     }
 
 }

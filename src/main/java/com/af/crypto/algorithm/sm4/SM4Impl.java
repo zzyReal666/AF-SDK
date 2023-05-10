@@ -34,7 +34,7 @@ public class SM4Impl implements SM4 {
      * @throws AFCryptoException 加密异常
      */
     @Override
-    public byte[] encrypt(int index, byte[] data) throws AFCryptoException {
+    public  byte[] encrypt(int index, byte[] data) throws AFCryptoException {
         return new byte[0];
     }
 

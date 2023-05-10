@@ -59,7 +59,7 @@ public enum ConstantNumber {
     public static final int SGD_RSA_ENC = 0x00010020;//user-defined
 
     public static final int SGD_SM2 = 0x00020100;     //生成sm2密钥对
-    public static final int SGD_SM2_1 = 0x00020200;  //获取sm2签名公钥
+    public static final int SGD_SM2_1 = 0x00020200;  //获取sm2签名公钥    //SM2外部密钥签名
     public static final int SGD_SM2_2 = 0x00020400;  //获取sm2加密公钥
     public static final int SGD_SM2_3 = 0x00020800;  //SM2 内部加密/解密
 
