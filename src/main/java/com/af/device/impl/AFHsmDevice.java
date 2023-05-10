@@ -458,7 +458,7 @@ public class AFHsmDevice implements IAFDevice {
             logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
             throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
         }
-        byte[] sign = sm2.SM2Sign(index, null, data);
+        byte[] sign = sm2.SM2S`ign(index, null, data);
         SM2Signature sm2Signature = new SM2Signature(sign);
         if (ModulusLength.LENGTH_256.equals(length)) {
             return sm2Signature.to256();
