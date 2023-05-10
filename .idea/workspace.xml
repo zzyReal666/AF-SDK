@@ -4,19 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1fa4fd60-2579-4dd2-ba1c-f18c876934f6" name="Changes" comment="结构体构建">
-      <change afterPath="$PROJECT_DIR$/src/test/java/com/af/device/impl/SM3Test.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/constant/ConstantNumber.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/constant/ConstantNumber.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/crypto/algorithm/sm2/SM2Impl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/crypto/algorithm/sm2/SM2Impl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/crypto/algorithm/sm4/SM4Impl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/crypto/algorithm/sm4/SM4Impl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/crypto/struct/impl/sm2/SM2Signature.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/crypto/struct/impl/sm2/SM2Signature.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/device/IAFDevice.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/device/IAFDevice.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/device/impl/AFHsmDevice.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/device/impl/AFHsmDevice.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/af/netty/AFNettyClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/af/netty/AFNettyClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/af/device/impl/AFHsmDeviceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/af/device/impl/AFHsmDeviceTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/af/device/impl/SM2Test.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/af/device/impl/SM2Test.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/af/device/impl/SM4Test.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/af/device/impl/SM4Test.java" afterDir="false" />
-    </list>
+    <list default="true" id="1fa4fd60-2579-4dd2-ba1c-f18c876934f6" name="Changes" comment="结构体构建" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -68,6 +56,12 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="PUSH_TAGS">
+      <GitPushTagMode>
+        <option name="argument" value="--tags" />
+        <option name="title" value="All" />
+      </GitPushTagMode>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitToolBoxStore">
@@ -313,7 +307,7 @@
       <workItem from="1683595390245" duration="1221000" />
       <workItem from="1683597805290" duration="21121000" />
       <workItem from="1683682615759" duration="4000" />
-      <workItem from="1683682932935" duration="10514000" />
+      <workItem from="1683682932935" duration="10900000" />
     </task>
     <task id="LOCAL-00001" summary="构建安付通讯SDK">
       <created>1681812859945</created>
