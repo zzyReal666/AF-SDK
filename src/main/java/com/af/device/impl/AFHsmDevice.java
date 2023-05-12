@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -458,7 +459,7 @@ public class AFHsmDevice implements IAFDevice {
             logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
             throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
         }
-        byte[] sign = sm2.SM2S`ign(index, null, data);
+        byte[] sign = sm2.SM2Sign(index, null, data);
         SM2Signature sm2Signature = new SM2Signature(sign);
         if (ModulusLength.LENGTH_256.equals(length)) {
             return sm2Signature.to256();
@@ -613,7 +614,23 @@ public class AFHsmDevice implements IAFDevice {
     @Override
     public byte[] SM4Encrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException {
         logger.info("SM4Encrypt mode: {} index: {} data: {} IV: {}", mode, index, data, IV);
-        return null;
+        List<byte[]> singleData = splitPackage(data); //分包
+        BytesBuffer buffer = new BytesBuffer();
+        switch (mode) {
+            case ECB:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm4.encrypt(index, bytes));
+                }
+                break;
+            case CBC:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm4.encrypt(index, IV, bytes));
+                }
+                break;
+            default:
+                break;
+        }
+        return buffer.toBytes();
     }
 
     /**
@@ -627,17 +644,85 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public byte[] SM4Decrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SM4Decrypt mode: {} index: {} data: {} IV: {}", mode, index, data, IV);
+        List<byte[]> singleData = splitPackage(data); //分包
+        BytesBuffer buffer = new BytesBuffer();
+        switch (mode) {
+            case ECB:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm4.decrypt(index, bytes));
+                }
+                break;
+            case CBC:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm4.decrypt(index, bytes, IV));
+                }
+                break;
+            default:
+                break;
+        }
+        return cutting(buffer.toBytes());
     }
 
+    /**
+     * SM4 外部密钥加密
+     *
+     * @param mode 加密模式 ECB/CBC
+     * @param key  密钥
+     * @param data 待加密数据
+     * @param IV   初始向量
+     * @return 加密结果
+     */
     @Override
     public byte[] SM4Encrypt(GroupMode mode, byte[] key, byte[] data, byte[] IV) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SM4Encrypt mode: {} key: {} data: {} IV: {}", mode, key, data, IV);
+        List<byte[]> singleData = splitPackage(data); //分包
+        BytesBuffer buffer = new BytesBuffer();
+        switch (mode) {
+            case ECB:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm4.encrypt(key, bytes));
+                }
+                break;
+            case CBC:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm4.encrypt(key, IV, bytes));
+                }
+                break;
+            default:
+                break;
+        }
+        return buffer.toBytes();
     }
 
+    /**
+     * SM4 外部密钥解密
+     * @param mode 加密模式 ECB/CBC
+     * @param key  密钥
+     * @param data 待解密数据
+     * @param IV  初始向量
+     * @return 解密结果
+     */
     @Override
     public byte[] SM4Decrypt(GroupMode mode, byte[] key, byte[] data, byte[] IV) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SM4Decrypt mode: {} key: {} data: {} IV: {}", mode, key, data, IV);
+        List<byte[]> singleData = splitPackage(data); //分包
+        BytesBuffer buffer = new BytesBuffer();
+        switch (mode) {
+            case ECB:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm4.decrypt(key, bytes));
+                }
+                break;
+            case CBC:
+                for (byte[] bytes : singleData) {
+                    buffer.append(sm4.decrypt(key, bytes, IV));
+                }
+                break;
+            default:
+                break;
+        }
+        return cutting(buffer.toBytes());
     }
 
     /**
@@ -651,6 +736,7 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public int getPrivateKeyAccessRight(int keyIndex, int keyType, byte[] passwd) throws AFCryptoException {
+        logger.info("获取获取私钥访问权限 keyIndex ");
         return 0;
     }
 
@@ -728,9 +814,7 @@ public class AFHsmDevice implements IAFDevice {
         int paddingNumber = 16 - (data.length % 16);
         byte[] paddingData = new byte[paddingNumber];
 
-        for (int i = 0; i < paddingNumber; ++i) {
-            paddingData[i] = (byte) paddingNumber;
-        }
+         Arrays.fill(paddingData, (byte) paddingNumber);
         byte[] outData = new byte[data.length + paddingNumber];
         System.arraycopy(data, 0, outData, 0, data.length);
         System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
