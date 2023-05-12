@@ -206,7 +206,7 @@ public interface IAFDevice {
      * @return 签名
      * @throws AFCryptoException 签名异常
      */
-    SM2Signature SM2Signature(byte[] data, SM2PriKey privateKey) throws AFCryptoException;
+    SM2Signature SM2Signature(ModulusLength length,byte[] data, SM2PriKey privateKey) throws AFCryptoException;
 
     /**
      * SM2 外部密钥验签
@@ -217,7 +217,7 @@ public interface IAFDevice {
      * @return 验签结果 true:验签成功 false:验签失败
      * @throws AFCryptoException 验签异常
      */
-    boolean SM2Verify(byte[] data, SM2Signature signature, SM2PubKey publicKey) throws AFCryptoException;
+    boolean SM2Verify(ModulusLength length,byte[] data, SM2Signature signature, SM2PubKey publicKey) throws AFCryptoException;
 
 
     //=======================================================SM3===========================================================

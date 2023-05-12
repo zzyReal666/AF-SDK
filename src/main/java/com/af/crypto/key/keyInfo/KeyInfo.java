@@ -30,7 +30,7 @@ public interface KeyInfo {
      * @return 设备内部对称密钥状态
      * @throws AFCryptoException 获取设备内部对称密钥状态异常
      */
-    List<AFSymmetricKeyStatus> getSymmetricKeyStatus() throws AFCryptoException;
+    List<AFSymmetricKeyStatus> getSymmetricKeyStatus(byte[] agreementKey) throws AFCryptoException;
 
     /**
      * 导入非易失对称密钥

@@ -2,6 +2,7 @@ package com.af.crypto.key.keyInfo;
 
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
+import com.af.constant.CMDCode;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
@@ -46,7 +47,19 @@ public class KeyInfoImpl implements KeyInfo {
      */
     @Override
     public int getPrivateKeyAccessRight(int keyIndex, int keyType, byte[] passwd) throws AFCryptoException {
-        return 0;
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .append(keyType)
+                .append(passwd.length)
+                .append(passwd)
+                .toBytes();
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GET_PRIVATE_KEY_ACCESS_RIGHT, param);
+        ResponseMessage responseMessage = client.send(requestMessage);
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            throw new AFCryptoException("获取私钥访问权限异常");
+        }else {
+            return 0;
+        }
     }
 
     /**
@@ -56,7 +69,7 @@ public class KeyInfoImpl implements KeyInfo {
      * @throws AFCryptoException 获取设备内部对称密钥状态异常
      */
     @Override
-    public List<AFSymmetricKeyStatus> getSymmetricKeyStatus() throws AFCryptoException {
+    public List<AFSymmetricKeyStatus> getSymmetricKeyStatus(byte[] agreementKey ) throws AFCryptoException {
         return null;
     }
 
@@ -96,6 +109,7 @@ public class KeyInfoImpl implements KeyInfo {
     public List<AFKmsKeyInfo> generateKey(int keyType, int keyBits, int count) throws AFCryptoException {
         return null;
     }
+
 
     @Override
     public byte[] exportSymmKey(int index)  {

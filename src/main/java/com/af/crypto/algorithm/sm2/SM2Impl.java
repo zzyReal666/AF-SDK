@@ -141,7 +141,7 @@ public class SM2Impl implements SM2 {
      * SM2解密
      *
      * @param index      内部密钥索引
-     * @param publicKey  外部密钥
+     * @param privateKey 外部密钥
      * @param encodeData 待解密数据
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常
@@ -160,7 +160,6 @@ public class SM2Impl implements SM2 {
                     .append(encodeData.size())
                     .append(encodeData.encode())
                     .toBytes();
-
         } else {       //使用内部密钥
             param = new BytesBuffer()
                     .append(index)

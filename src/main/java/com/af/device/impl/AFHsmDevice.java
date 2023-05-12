@@ -26,6 +26,7 @@ import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +51,10 @@ public class AFHsmDevice implements IAFDevice {
     private static String host1;
     private static int port1;
     private static String passwd1;
+
+
+    @Setter
+    private byte[] agKey = null;
 
     private final AFNettyClient client;
     private final SM1 sm1;
@@ -501,8 +506,21 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 签名异常
      */
     @Override
-    public SM2Signature SM2Signature(byte[] data, SM2PriKey privateKey) throws AFCryptoException {
-        return null;
+    public SM2Signature SM2Signature(ModulusLength length,byte[] data, SM2PriKey privateKey) throws AFCryptoException {
+        logger.info("SM2外部密钥签名 data: {} privateKey: {}", data, privateKey);
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            privateKey = privateKey.to256();
+        }
+        if (ModulusLength.LENGTH_512.equals(length)) {
+            privateKey = privateKey.to512();
+        }
+        byte[] sign = sm2.SM2Sign(-1, privateKey, data);
+        SM2Signature sm2Signature = new SM2Signature(sign);
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            return sm2Signature.to256();
+        } else {
+            return sm2Signature;
+        }
     }
 
     /**
@@ -515,11 +533,18 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 验签异常
      */
     @Override
-    public boolean SM2Verify(byte[] data, SM2Signature signature, SM2PubKey publicKey) throws AFCryptoException {
-        return false;
+    public boolean SM2Verify(ModulusLength length,byte[] data, SM2Signature signature, SM2PubKey publicKey) throws AFCryptoException {
+        logger.info("SM2外部密钥验签 data: {} signature: {} publicKey: {}", data, signature, publicKey);
+        if (ModulusLength.LENGTH_256.equals(length)) {
+            publicKey = publicKey.to256();
+        }
+        if (ModulusLength.LENGTH_512.equals(length)) {
+            publicKey = publicKey.to512();
+        }
+        return sm2.SM2Verify(-1, publicKey, data, signature.encode());
     }
 
-    /**
+        /**
      * SM3哈希 杂凑算法
      *
      * @param data 待杂凑数据
@@ -736,8 +761,8 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public int getPrivateKeyAccessRight(int keyIndex, int keyType, byte[] passwd) throws AFCryptoException {
-        logger.info("获取获取私钥访问权限 keyIndex ");
-        return 0;
+        logger.info("获取获取私钥访问权限 keyIndex:{}, keyType:{}, passwd:{}", keyIndex, keyType, passwd);
+        return keyInfo.getPrivateKeyAccessRight(keyIndex, keyType, passwd);
     }
 
     /**
@@ -748,7 +773,7 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public List<AFSymmetricKeyStatus> getSymmetricKeyStatus() throws AFCryptoException {
-        return null;
+        return keyInfo.getSymmetricKeyStatus(this.agKey);
     }
 
     /**
