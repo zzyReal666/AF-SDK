@@ -172,9 +172,7 @@ public class SM2Impl implements SM2 {
         }
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALDECRYPT_ECC, param);
         ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().
-
-                getErrorCode() != 0) {
+        if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM2解密错误,错误信息:{}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM2解密错误,错误信息:" + responseMessage.getHeader().getErrorInfo());
         }

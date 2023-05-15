@@ -400,7 +400,7 @@ public class AFHsmDevice implements IAFDevice {
     @Override
     public byte[] SM2Decrypt(ModulusLength length, int index, SM2Cipher encodeData) throws AFCryptoException {
         logger.info("SM2内部密钥解密 length: {} index: {} encodeData: {}", length, index, encodeData);
-        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
+        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT)  {
             logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
             throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
         }
