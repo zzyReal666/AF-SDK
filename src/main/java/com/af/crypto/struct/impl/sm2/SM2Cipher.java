@@ -72,7 +72,7 @@ public class SM2Cipher implements IAFStruct {
         System.arraycopy(data, 64, this.y, 0, 64);
         System.arraycopy(data, 128, this.M, 0, 32);
         this.L = BytesOperate.bytes2int(data, 64 + 64 + 32);
-        System.arraycopy(data, 164, this.C, 0, 136);
+        System.arraycopy(data, 4+64+64+32, this.C, 0, 136);
 
     }
 
@@ -81,8 +81,8 @@ public class SM2Cipher implements IAFStruct {
         return new BytesBuffer()
                 .append(this.x)
                 .append(this.y)
-                .append(this.L)
                 .append(this.M)
+                .append(this.L)
                 .append(this.C)
                 .toBytes();
     }
@@ -136,6 +136,7 @@ public class SM2Cipher implements IAFStruct {
 
         return outCipher;
     }
+
 
 
 }

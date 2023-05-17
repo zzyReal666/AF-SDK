@@ -14,7 +14,7 @@ import java.util.Arrays;
 class SM2Test {
 
     static AFHsmDevice device;
-    static byte[] data = "1234567812345678".getBytes();
+    static byte[] data = "123456781234567".getBytes();
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
@@ -58,11 +58,15 @@ class SM2Test {
     @Test
     void testInside512() throws AFCryptoException {
         SM2Cipher sm2Cipher = device.SM2Encrypt(ModulusLength.LENGTH_512, 2, data);
+        System.out.println("sm2Cipher:" + sm2Cipher);
         byte[] decrypt = device.SM2Decrypt(ModulusLength.LENGTH_512, 2, sm2Cipher);
         assert Arrays.equals(data, decrypt);
     }
     /**
      * 外部加解密
+     * 256可以加密,解密失败  报错:SM2解密错误,错误信息:未知错误[0x01000023]
+     * 512加密就失败        报错:SM2加密错误,错误信息:未知错误[0x01000023]
+     *
      */
     @Test
     void testExternal256() throws AFCryptoException {
@@ -73,12 +77,15 @@ class SM2Test {
         assert Arrays.equals(data, decrypt);
     }
 
+
     @Test
     void testExternal512() throws AFCryptoException {
         //512
         SM2KeyPair sm2KeyPair2 = device.generateSM2KeyPair(ModulusLength.LENGTH_512);
+//        SM2Cipher sm2Cipher2 = device.SM2Encrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPubKey(), data);
+        //下面这句降外部key由512改为256 就可以加密
         SM2Cipher sm2Cipher2 = device.SM2Encrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPubKey(), data);
-        byte[] decrypt2 = device.SM2Decrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPriKey(), sm2Cipher2);
+        byte[] decrypt2 = device.SM2Decrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPriKey().to256(), sm2Cipher2);
         assert Arrays.equals(data, decrypt2);
     }
 

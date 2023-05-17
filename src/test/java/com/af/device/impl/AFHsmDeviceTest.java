@@ -98,11 +98,5 @@ class AFHsmDeviceTest {
         SM2Cipher sm2Cipher1 = device.SM2Encrypt(ModulusLength.LENGTH_512, sm2EncryptPublicKey1, data);
         System.out.println(sm2Cipher1);
 
-
-
-
-        //
-
-
     }
 }

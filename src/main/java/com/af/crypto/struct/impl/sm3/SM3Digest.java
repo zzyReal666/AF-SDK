@@ -1,4 +1,4 @@
-package com.af.crypto.algorithm.digest;
+package com.af.crypto.struct.impl.sm3;
 
 
 import com.af.utils.Memoable;
@@ -44,7 +44,6 @@ public class SM3Digest extends GeneralDigest {
      */
     public SM3Digest(SM3Digest t) {
         super(t);
-
         copyIn(t);
     }
 

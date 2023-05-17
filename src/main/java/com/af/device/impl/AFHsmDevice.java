@@ -21,7 +21,7 @@ import com.af.crypto.key.sm2.SM2PubKey;
 import com.af.crypto.struct.impl.sm2.SM2Cipher;
 import com.af.crypto.struct.impl.sm2.SM2Signature;
 import com.af.device.DeviceInfo;
-import com.af.device.IAFDevice;
+import com.af.device.IAFHsmDevice;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
@@ -43,9 +43,8 @@ import java.util.List;
  * 该层进行参数校验,具体调用在各个密码算法的实现中(获取设备信息和随机数在当前类中执行)<br>
  * @since 2023/4/27 14:53
  */
-public class AFHsmDevice implements IAFDevice {
+public class AFHsmDevice implements IAFHsmDevice {
 
-    //log
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
 
     private static String host1;
@@ -400,12 +399,12 @@ public class AFHsmDevice implements IAFDevice {
     @Override
     public byte[] SM2Decrypt(ModulusLength length, int index, SM2Cipher encodeData) throws AFCryptoException {
         logger.info("SM2内部密钥解密 length: {} index: {} encodeData: {}", length, index, encodeData);
-        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT)  {
+        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
             logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
             throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
         }
-        if (ModulusLength.LENGTH_512.equals(length)) {
-            encodeData = encodeData.to512();
+        if (ModulusLength.LENGTH_256.equals(length) && 256 == encodeData.getLength()) {
+            encodeData = encodeData.to512();//转换为512位 , 服务端只处理512位
         }
         return sm2.SM2Decrypt(index, null, encodeData);
     }
@@ -421,6 +420,7 @@ public class AFHsmDevice implements IAFDevice {
     @Override
     public SM2Cipher SM2Encrypt(ModulusLength length, SM2PubKey key, byte[] data) throws AFCryptoException {
         logger.info("SM2外部密钥加密 length: {} key: {} data: {}", length, key, data);
+        key = key.to256();
         byte[] bytes = sm2.sm2Encrypt(0, key, data);
         SM2Cipher sm2Cipher = new SM2Cipher(bytes);
         if (ModulusLength.LENGTH_256.equals(length)) {
@@ -440,12 +440,8 @@ public class AFHsmDevice implements IAFDevice {
     @Override
     public byte[] SM2Decrypt(ModulusLength length, SM2PriKey key, SM2Cipher encodeData) throws AFCryptoException {
         logger.info("SM2外部密钥解密 length: {} key: {} encodeData: {}", length, key, encodeData);
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            key = key.to256();
-        }
-        if (ModulusLength.LENGTH_512.equals(length)) {
-            key = key.to512();
-        }
+        key = key.to256();
+        encodeData = encodeData.to256();
         return sm2.SM2Decrypt(0, key, encodeData);
     }
 
@@ -506,7 +502,7 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 签名异常
      */
     @Override
-    public SM2Signature SM2Signature(ModulusLength length,byte[] data, SM2PriKey privateKey) throws AFCryptoException {
+    public SM2Signature SM2Signature(ModulusLength length, byte[] data, SM2PriKey privateKey) throws AFCryptoException {
         logger.info("SM2外部密钥签名 data: {} privateKey: {}", data, privateKey);
         if (ModulusLength.LENGTH_256.equals(length)) {
             privateKey = privateKey.to256();
@@ -533,7 +529,7 @@ public class AFHsmDevice implements IAFDevice {
      * @throws AFCryptoException 验签异常
      */
     @Override
-    public boolean SM2Verify(ModulusLength length,byte[] data, SM2Signature signature, SM2PubKey publicKey) throws AFCryptoException {
+    public boolean SM2Verify(ModulusLength length, byte[] data, SM2Signature signature, SM2PubKey publicKey) throws AFCryptoException {
         logger.info("SM2外部密钥验签 data: {} signature: {} publicKey: {}", data, signature, publicKey);
         if (ModulusLength.LENGTH_256.equals(length)) {
             publicKey = publicKey.to256();
@@ -544,7 +540,7 @@ public class AFHsmDevice implements IAFDevice {
         return sm2.SM2Verify(-1, publicKey, data, signature.encode());
     }
 
-        /**
+    /**
      * SM3哈希 杂凑算法
      *
      * @param data 待杂凑数据
@@ -722,10 +718,11 @@ public class AFHsmDevice implements IAFDevice {
 
     /**
      * SM4 外部密钥解密
+     *
      * @param mode 加密模式 ECB/CBC
      * @param key  密钥
      * @param data 待解密数据
-     * @param IV  初始向量
+     * @param IV   初始向量
      * @return 解密结果
      */
     @Override
@@ -785,7 +782,20 @@ public class AFHsmDevice implements IAFDevice {
      */
     @Override
     public void importKek(int index, byte[] keyData) throws AFCryptoException {
+        logger.info("导入非易失对称密钥 index:{}, keyData:{}", index, keyData);
+        if (index < 1 || index > ConstantNumber.MAX_KEK_COUNT) {
+            throw new AFCryptoException("密钥索引输入错误");
+        }
 
+        if (keyData.length < 8 || keyData.length > 32 || keyData.length % 8 != 0) {
+            throw new AFCryptoException("密钥值长度不正确，必须为8字节的倍数，最大长度32字节");
+        }
+
+        List<AFSymmetricKeyStatus> list = getSymmetricKeyStatus();
+        if (list.stream().anyMatch(afs -> afs.getIndex() == index)) {
+            throw new AFCryptoException("该索引已存在");
+        }
+        keyInfo.importKek(index, BytesOperate.hex2bytes(new String(keyData)), this.agKey);
     }
 
     /**
@@ -835,11 +845,9 @@ public class AFHsmDevice implements IAFDevice {
         if ((data.length % 16) == 0) {
             return data;
         }
-
         int paddingNumber = 16 - (data.length % 16);
         byte[] paddingData = new byte[paddingNumber];
-
-         Arrays.fill(paddingData, (byte) paddingNumber);
+        Arrays.fill(paddingData, (byte) paddingNumber);
         byte[] outData = new byte[data.length + paddingNumber];
         System.arraycopy(data, 0, outData, 0, data.length);
         System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
@@ -869,16 +877,13 @@ public class AFHsmDevice implements IAFDevice {
     private static byte[] cutting(byte[] data) {
         int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
         if (paddingNumber >= 16) paddingNumber = 0;
-
         for (int i = 0; i < paddingNumber; ++i) {
             if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
                 return null;
             }
         }
-
         byte[] outData = new byte[data.length - paddingNumber];
         System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
-
         return outData;
     }
 }

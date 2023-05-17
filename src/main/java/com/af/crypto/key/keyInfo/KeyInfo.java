@@ -37,9 +37,10 @@ public interface KeyInfo {
      *
      * @param index   密钥索引
      * @param keyData 密钥数据(16进制编码)
+     * @param agKey   协商密钥
      * @throws AFCryptoException 导入非易失对称密钥异常
      */
-    void importKek(int index, byte[] keyData) throws AFCryptoException;
+    void importKek(int index, byte[] keyData,byte[] agKey) throws AFCryptoException;
 
 
     /**

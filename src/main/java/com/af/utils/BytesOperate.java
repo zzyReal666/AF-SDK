@@ -116,4 +116,65 @@ public class BytesOperate {
         return buf;
     }
 
+
+
+    public static byte[] hex2bytes(String str) {
+        return hex2bytes(str, "");
+    }
+
+    private static byte[] hex2bytes(String str, String delimiter) {
+        str = str.toLowerCase();
+        int i;
+        if (!"".equals(delimiter)) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            String[] arr = str.split(delimiter);
+
+            for (i = 0; i < arr.length; ++i) {
+                if (!arr[i].trim().equals("")) {
+                    baos.write(hex2byte(arr[i]));
+                }
+            }
+
+            return baos.toByteArray();
+        } else {
+            byte[] buf = new byte[str.length() / 2];
+
+            for (i = 0; i < buf.length; ++i) {
+                char ch = str.charAt(i * 2);
+                if (ch >= 'a' && ch <= 'f') {
+                    buf[i] = (byte) (ch - 97 + 10 << 4);
+                } else {
+                    buf[i] = (byte) (ch - 48 << 4);
+                }
+
+                ch = str.charAt(i * 2 + 1);
+                if (ch >= 'a' && ch <= 'f') {
+                    buf[i] += (byte) (ch - 97 + 10);
+                } else {
+                    buf[i] += (byte) (ch - 48);
+                }
+            }
+
+            return buf;
+        }
+    }
+
+    private static byte hex2byte(String str) {
+        char ch = str.charAt(0);
+        byte n;
+        if (ch >= 'a' && ch <= 'f') {
+            n = (byte) (ch - 97 + 10 << 4);
+        } else {
+            n = (byte) (ch - 48 << 4);
+        }
+
+        ch = str.charAt(1);
+        if (ch >= 'a' && ch <= 'f') {
+            n += (byte) (ch - 97 + 10);
+        } else {
+            n += (byte) (ch - 48);
+        }
+
+        return n;
+    }
 }

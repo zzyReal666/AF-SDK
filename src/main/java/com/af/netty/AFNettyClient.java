@@ -4,6 +4,7 @@ import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.netty.handler.AFNettyClientHandler;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -11,6 +12,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,14 +25,14 @@ import java.io.IOException;
  * @since 2023/4/20 10:45
  */
 
-
+@Setter
 public class AFNettyClient {
     //日志
     private static final Logger logger = LoggerFactory.getLogger(AFNettyClient.class);
 
-    //重试参数
-    private static final int MAX_RETRY = 3; // 最大重试次数
-    private static final int RETRY_DELAY = 5000; // 重试间隔时间（秒）
+    //重试参数  todo 可以提取到配置文件/常量类中
+    private int MAX_RETRY = 3; // 最大重试次数
+    private int RETRY_DELAY = 5000; // 重试间隔时间（秒）
     private int retryCount = 0; // 当前重试次数
 
 
@@ -39,6 +41,7 @@ public class AFNettyClient {
 
     //netty
     private final Bootstrap bootstrap;
+    private Channel channel;
     private final String host;
     private final int port;
     private final String password;
@@ -58,7 +61,10 @@ public class AFNettyClient {
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 7000)  //连接超时时间
                 .option(ChannelOption.SO_KEEPALIVE, true); //保持连接
         login();
+
     }
+
+
 
     /**
      * 获取单例

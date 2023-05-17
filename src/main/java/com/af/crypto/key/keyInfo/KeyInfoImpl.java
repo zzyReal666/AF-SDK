@@ -6,7 +6,6 @@ import com.af.constant.CMDCode;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
-
 import java.util.List;
 
 import static com.af.constant.CmdConsts.CMD_EXPORT_KEY;
@@ -78,10 +77,16 @@ public class KeyInfoImpl implements KeyInfo {
      *
      * @param index   密钥索引
      * @param keyData 密钥数据(16进制编码)
+     * @param agKey   协商密钥
      * @throws AFCryptoException 导入非易失对称密钥异常
      */
     @Override
-    public void importKek(int index, byte[] keyData) throws AFCryptoException {
+    public void importKek(int index, byte[] keyData,byte[] agKey) throws AFCryptoException {
+        new BytesBuffer()
+                .append(index)
+                .append(keyData.length)
+                .append(keyData)
+                .toBytes();
 
     }
 

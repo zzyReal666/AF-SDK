@@ -1,6 +1,6 @@
 package com.af.crypto.algorithm.sm3;
 
-import com.af.crypto.algorithm.digest.SM3Digest;
+import com.af.crypto.struct.impl.sm3.SM3Digest;
 import com.af.crypto.key.sm2.SM2PubKey;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;

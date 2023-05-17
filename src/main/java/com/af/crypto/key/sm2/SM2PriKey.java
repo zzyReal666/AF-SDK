@@ -87,7 +87,7 @@ public class SM2PriKey implements Key {
 
     @Override
     public void decode(byte[] encodedKey) {
-        //todo 因为返回实际是64字节,长度却是0100(256位)
+        //todo 因为返回实际是64字节,长度字段却是0100(256位)
         this.length = BytesOperate.bytes2int(encodedKey, 0)+256;
         this.D = new byte[this.length / 8];
         //从encodedKey的第4个字节开始  复制到this.D的0位置 复制长度为this.length/8

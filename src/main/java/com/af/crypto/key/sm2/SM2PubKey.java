@@ -51,17 +51,16 @@ public class SM2PubKey implements Key {
     }
 
     public byte[] encode() {
-        BytesBuffer buf = new BytesBuffer();
-        buf.append(BytesOperate.int2bytes(this.length));
-        buf.append(this.x);
-        buf.append(this.y);
-        return buf.toBytes();
+        return new BytesBuffer()
+                .append(BytesOperate.int2bytes(this.length))
+                .append(this.x)
+                .append(this.y)
+                .toBytes();
     }
 
     @Override
     public void decode(byte[] pubKey) {
         //this.length = BytesOperate.bytes2int(pubKey, 0) + 256;
-        //todo
         this.length = 512;
         this.x = new byte[64];
         this.y = new byte[64];
@@ -83,12 +82,16 @@ public class SM2PubKey implements Key {
     public SM2PubKey to512() {
         if (this.length == 512) {
             return this;
+        } else if (this.length == 256) {
+            byte[] x512 = new byte[64];
+            byte[] y512 = new byte[64];
+            System.arraycopy(this.x, 0, x512, 32, 32);
+            System.arraycopy(this.y, 0, y512, 32, 32);
+            return new SM2PubKey(512, x512, y512);
+        } else {
+            throw new RuntimeException("SM2PubKey length error");
         }
-        byte[] x512 = new byte[64];
-        byte[] y512 = new byte[64];
-        System.arraycopy(this.x, 0, x512, 32, 32);
-        System.arraycopy(this.y, 0, y512, 32, 32);
-        return new SM2PubKey(512, x512, y512);
+
     }
 
     /**
@@ -99,11 +102,15 @@ public class SM2PubKey implements Key {
     public SM2PubKey to256() {
         if (this.length == 256) {
             return this;
+        }else if (this.length == 512) {
+            byte[] x256 = new byte[32];
+            byte[] y256 = new byte[32];
+            System.arraycopy(this.x, 32, x256, 0, 32);
+            System.arraycopy(this.y, 32, y256, 0, 32);
+            return new SM2PubKey(256, x256, y256);
+        } else {
+            throw new RuntimeException("SM2PubKey length error");
         }
-        byte[] x256 = new byte[32];
-        byte[] y256 = new byte[32];
-        System.arraycopy(this.x, 32, x256, 0, 32);
-        System.arraycopy(this.y, 32, y256, 0, 32);
-        return new SM2PubKey(256, x256, y256);
+
     }
 }
