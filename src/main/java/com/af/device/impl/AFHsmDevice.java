@@ -39,50 +39,31 @@ import java.util.List;
  * @author zhangzhongyuan@szanfu.cn
  * @description HSM设备实现类 用于实现HSM设备的各种算法 以及获取设备信息<br>
  * 该类为单例模式 通过getInstance方法获取实例<br>
- * 该层为对外接口层 用于对外提供各种算法的实现<br>
+ * 该层为对外接口层 用于对外提供各种算法的实现,实际message在具体算法实现类中构造<br>
  * 该层进行参数校验,具体调用在各个密码算法的实现中(获取设备信息和随机数在当前类中执行)<br>
  * @since 2023/4/27 14:53
  */
 public class AFHsmDevice implements IAFHsmDevice {
-
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
-
-    private static String host1;
-    private static int port1;
-    private static String passwd1;
-
-
     @Setter
-    private byte[] agKey = null;
-
-    private final AFNettyClient client;
-    private final SM1 sm1;
-    private final SM2 sm2;
-    private final SM3 sm3;
-    private final SM4 sm4;
-    private final KeyInfo keyInfo;
+    private byte[] agKey = null;  //协商密钥
+    private static AFNettyClient client = null;  //netty客户端
+    private final SM1 sm1= new SM1Impl(client);
+    private final SM2 sm2= new SM2Impl(client);
+    private final SM3 sm3 = new SM3Impl(client);
+    private final SM4 sm4 = new SM4Impl(client);
+    private final KeyInfo keyInfo = KeyInfoImpl.getInstance(client);
 
     //==============================单例模式===================================
-    protected AFHsmDevice(String host, int port, String passwd) {
-        this.client = AFNettyClient.getInstance(host, port, passwd);
-        this.sm1 = new SM1Impl(client);
-        this.sm2 = new SM2Impl(client);
-        this.sm3 = new SM3Impl(client);
-        this.sm4 = new SM4Impl(client);
-        this.keyInfo = KeyInfoImpl.getInstance(client);
+    protected AFHsmDevice( ) {
     }
-
     private static final class InstanceHolder {
-        static final AFHsmDevice instance = new AFHsmDevice(host1, port1, passwd1);
+        static final AFHsmDevice instance = new AFHsmDevice();
     }
-
     public static AFHsmDevice getInstance(String host, int port, String passwd) {
-        host1 = host;
-        port1 = port;
-        passwd1 = passwd;
+        client = AFNettyClient.getInstance(host, port, passwd);
         return InstanceHolder.instance;
     }
-
 
     //==============================API===================================
 

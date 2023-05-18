@@ -2,6 +2,7 @@ package com.af.device;
 
 import com.af.device.impl.AFCryptoDevice;
 import com.af.device.impl.AFHsmDevice;
+import com.af.device.impl.AFTSDevice;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -36,5 +37,9 @@ public class AFDeviceFactory {
         return AFCryptoDevice.getInstance(host, port, passwd);
     }
 
+    //时间戳服务器
+    public static AFTSDevice getAFTSDevice(String host, int port, String passwd) {
+        return AFTSDevice.getInstance(host, port, passwd);
+    }
 
 }

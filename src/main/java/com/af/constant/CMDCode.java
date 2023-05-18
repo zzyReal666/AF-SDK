@@ -56,4 +56,21 @@ public enum CMDCode {
     public static final int CMD_GENERATE_KEY_PAIR_RSA = 0x00040002;
     public static final int CMD_GENERATE_KEY_PAIR_SM2 = 0x00040002;
     public static final int CMD_GET_PRIVATE_KEY_ACCESS_RIGHT = 0x00040007;
+
+
+    // -------------------公用----------------------
+
+    public static final int CMD_LOGIN = 0x00000000;  //登录
+    public static final int CMD_EXCHANGE_PUBLIC_KEY = 0x0102002b;  //交换公钥
+    public static final int CMD_EXCHANGE_RANDOM = 0x0102002c;  //交换随机数
+
+    // -------------------时间戳服务器----------------------
+
+    public static final int CMD_CREATE_TS_REQUEST = 0x04000001; //创建时间戳请求
+    public static final int CMD_TS_RESPONSE = 0x04000002; //时间戳回复
+    public static final int CMD_TS_VERIFY = 0x04000003;   //验证时间戳
+    public static final int CMD_GET_TS_INFO = 0x04000004;         //获取时间戳主要信息
+    public static final int CMD_GET_TS_DETAIL = 0x04000005;      //获取时间戳详细信息
+
+    // -------------------签名验签服务器----------------------
 }

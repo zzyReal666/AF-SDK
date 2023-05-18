@@ -1,6 +1,7 @@
 package com.af.device.impl;
 
 import com.af.exception.AFCryptoException;
+import com.af.netty.AFNettyClient;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -9,22 +10,23 @@ import com.af.exception.AFCryptoException;
  */
 public class AFCryptoDevice extends AFHsmDevice {
 
-    private static volatile AFCryptoDevice instance;
+    private static AFNettyClient client = null;
 
-    private AFCryptoDevice(String host, int port, String passwd) {
-        super(host, port, passwd);
+    //私有化构造方法
+    private AFCryptoDevice(AFNettyClient client) {
+        super();
     }
-
+    //静态内部类单例
+    private static class SingletonHolder {
+        private static final AFCryptoDevice INSTANCE = new AFCryptoDevice(client);
+    }
+    //获取单例
     public static AFCryptoDevice getInstance(String host, int port, String passwd) {
-        if (instance == null) {
-            synchronized (AFCryptoDevice.class) {
-                if (instance == null) {
-                    instance = new AFCryptoDevice(host, port, passwd);
-                }
-            }
-        }
-        return instance;
+        client = AFNettyClient.getInstance(host, port, passwd);
+        return SingletonHolder.INSTANCE;
     }
+
+
 
     /**
      * 获取随机数

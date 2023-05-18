@@ -5,6 +5,8 @@ plugins {
 group = 'com.af'
 version = '1.0-SNAPSHOT'
 
+
+
 repositories {
     mavenLocal()
     maven { url 'https://plugins.gradle.org/m2/' }
@@ -12,6 +14,7 @@ repositories {
     maven { url 'https://maven.aliyun.com/nexus/content/groups/public' }
     maven { url 'https://maven.aliyun.com/nexus/content/repositories/jcenter' }
 }
+
 
 allprojects {
     repositories {
@@ -26,12 +29,15 @@ allprojects {
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.9.1') // 单元测试
     testImplementation 'org.junit.jupiter:junit-jupiter'     // 单元测试
-    implementation 'ch.qos.logback:logback-classic:1.2.6'    // 日志
+    implementation 'ch.qos.logback:logback-classic:1.2.9'    // 日志
     compileOnly 'org.projectlombok:lombok:1.18.20'           // lombok
     annotationProcessor 'org.projectlombok:lombok:1.18.20'   // lombok
     implementation 'io.netty:netty-all:4.1.91.Final'         // netty
     implementation group: 'cn.hutool', name: 'hutool-core', version: '5.8.18' // hutool
     implementation group: 'cn.hutool', name: 'hutool-crypto', version: '5.8.18' // hutool
+    // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
+    implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.70'
+
 
 }
 
