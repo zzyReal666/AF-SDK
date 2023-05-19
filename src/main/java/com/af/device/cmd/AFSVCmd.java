@@ -1,40 +1,35 @@
-package com.af.device.impl;
+package com.af.device.cmd;
 
 import com.af.crypto.struct.impl.signAndVerify.*;
 import com.af.device.DeviceInfo;
-import com.af.device.IAFSVDevice;
 import com.af.exception.AFCryptoException;
-import com.af.netty.AFNettyClient;
-import lombok.Getter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
- * @description 签名验签服务器 设备实现类
- * @since 2023/5/16 9:12
+ * @description
+ * @since 2023/5/19 12:02
  */
-public class AFSVDevice implements IAFSVDevice {
+public class AFSVCmd {
 
-    private static final Logger logger = LoggerFactory.getLogger(AFSVDevice.class);
     /**
-     * 通信客户端
+     * 获取设备信息
+     *
+     * @return 设备信息
+     * 获取设备信息异常
      */
-    @Getter
-    private static AFNettyClient client = null;
-
-
-    //私有构造
-    private AFSVDevice() {
+    public DeviceInfo getDeviceInfo() throws AFCryptoException {
+        return null;
     }
-    //静态内部类单例
-    private static class SingletonHolder {
-        private static final AFSVDevice INSTANCE = new AFSVDevice();
-    }
-    //获取单例
-    public static AFSVDevice getInstance(String host, int port, String passwd) {
-        client = AFNettyClient.getInstance(host, port, passwd);
-        return SingletonHolder.INSTANCE;
+
+    /**
+     * 获取随机数
+     *
+     * @param length 随机数长度
+     * @return 随机数
+     * 获取随机数异常
+     */
+    public byte[] getRandom(int length) throws AFCryptoException {
+        return new byte[0];
     }
 
     /**
@@ -45,7 +40,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param base64Certificate : 待验证的证书--BASE64编码格式
      * @return ：返回证书验证结果，0为验证通过
      */
-    @Override
+
     public int validateCertificate(byte[] base64Certificate) throws AFCryptoException {
         return 0;
     }
@@ -58,7 +53,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param crlData           :           待验证证书的CRL文件数据 --BASE64编码格式
      * @return ：返回证书验证结果，true ：当前证书已被吊销, false ：当前证书未被吊销
      */
-    @Override
+
     public boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws AFCryptoException {
         return false;
     }
@@ -71,7 +66,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param base64CaCertificate ： 待导入的CA证书--BASE64编码格式
      * @return ：返回CA证书导入结果，0为导入成功
      */
-    @Override
+
     public int addCaCertificate(byte[] caAltName, byte[] base64CaCertificate) throws AFCryptoException {
         return 0;
     }
@@ -84,7 +79,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param keyUsage ：密钥用途，0：签名公钥；1：加密公钥
      * @return : 返回Base64编码的公钥数据
      */
-    @Override
+
     public byte[] getRSAPublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
         return new byte[0];
     }
@@ -97,7 +92,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData   ：待签名的原始数据
      * @return : 返回Base64编码的签名数据
      */
-    @Override
+
     public byte[] rsaSignature(int keyIndex, byte[] inData) throws AFCryptoException {
         return new byte[0];
     }
@@ -122,7 +117,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData     ：待签名的原始数据
      * @return : 返回Base64编码的签名数据
      */
-    @Override
+
     public byte[] rsaSignature(byte[] privateKey, byte[] inData) throws AFCryptoException {
         return new byte[0];
     }
@@ -135,7 +130,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param fileName ：待签名的文件名称
      * @return : 返回Base64编码的签名数据
      */
-    @Override
+
     public byte[] rsaSignFile(int keyIndex, byte[] fileName) throws AFCryptoException {
         return new byte[0];
     }
@@ -160,7 +155,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param fileName   ：待签名的文件名称
      * @return : 返回Base64编码的签名数据
      */
-    @Override
+
     public byte[] rsaSignFile(byte[] privateKey, byte[] fileName) throws AFCryptoException {
         return new byte[0];
     }
@@ -174,7 +169,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param signatureData ：Base64编码的签名数据
      * @return : true : 验证成功，false ：验证失败
      */
-    @Override
+
     public boolean rsaVerify(int keyIndex, byte[] inData, byte[] signatureData) throws AFCryptoException {
         return false;
     }
@@ -192,7 +187,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param signatureData ：Base64编码的签名数据
      * @return : true : 验证成功，false ：验证失败
      */
-    @Override
+
     public boolean rsaVerify(byte[] publicKey, byte[] inData, byte[] signatureData) throws AFCryptoException {
         return false;
     }
@@ -206,7 +201,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param signatureData ：Base64编码的签名数据
      * @return : true : 验证成功，false ：验证失败
      */
-    @Override
+
     public boolean rsaVerifyByCertificate(byte[] certificate, byte[] inData, byte[] signatureData) throws AFCryptoException {
         return false;
     }
@@ -220,7 +215,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param signatureData ：Base64编码的签名数据
      * @return : true : 验证成功，false ：验证失败
      */
-    @Override
+
     public boolean rsaVerifyFile(int keyIndex, byte[] fileName, byte[] signatureData) throws AFCryptoException {
         return false;
     }
@@ -238,7 +233,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param signatureData ：Base64编码的签名数据
      * @return : true : 验证成功，false ：验证失败
      */
-    @Override
+
     public boolean rsaVerifyFile(byte[] publicKey, byte[] fileName, byte[] signatureData) throws AFCryptoException {
         return false;
     }
@@ -252,7 +247,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param signatureData ：Base64编码的签名数据
      * @return : true : 验证成功，false ：验证失败
      */
-    @Override
+
     public boolean rsaVerifyFileByCertificate(byte[] certificate, byte[] fileName, byte[] signatureData) throws AFCryptoException {
         return false;
     }
@@ -265,7 +260,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData   ：待加密的原始数据
      * @return ：Base64编码的加密数据
      */
-    @Override
+
     public byte[] rsaEncrypt(int keyIndex, byte[] inData) throws AFCryptoException {
         return new byte[0];
     }
@@ -282,7 +277,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData    ：待加密的原始数据
      * @return ：Base64编码的加密数据
      */
-    @Override
+
     public byte[] rsaEncrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
         return new byte[0];
     }
@@ -295,7 +290,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData      ：待加密的原始数据
      * @return ：Base64编码的加密数据
      */
-    @Override
+
     public byte[] rsaEncryptByCertificate(byte[] certificate, byte[] inData) throws AFCryptoException {
         return new byte[0];
     }
@@ -308,7 +303,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param encData  ：Base64编码的加密数据
      * @return ：原始数据
      */
-    @Override
+
     public byte[] rsaDecrypt(int keyIndex, byte[] encData) throws AFCryptoException {
         return new byte[0];
     }
@@ -333,7 +328,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param encData    ：Base64编码的加密数据
      * @return ：原始数据
      */
-    @Override
+
     public byte[] rsaDecrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
         return new byte[0];
     }
@@ -346,7 +341,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data  ：待签名的数据
      * @return ： base64编码的签名数据
      */
-    @Override
+
     public byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {
         return new byte[0];
     }
@@ -360,7 +355,7 @@ public class AFSVDevice implements IAFSVDevice {
      *                   <p>SM2PrivateKey ::= INTEGER</p>
      * @return ： base64编码的签名数据
      */
-    @Override
+
     public byte[] sm2Signature(byte[] data, byte[] privateKey) throws AFCryptoException {
         return new byte[0];
     }
@@ -375,7 +370,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param base64Certificate : 签名的外部证书---BASE64编码
      * @return ： base64编码的签名数据
      */
-    @Override
+
     public byte[] sm2SignatureByCertificate(byte[] data, byte[] privateKey, byte[] base64Certificate) throws AFCryptoException {
         return new byte[0];
     }
@@ -388,7 +383,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param fileName ：待签名的文件名称
      * @return ： base64编码的签名数据
      */
-    @Override
+
     public byte[] sm2SignFile(int index, byte[] fileName) throws AFCryptoException {
         return new byte[0];
     }
@@ -402,7 +397,7 @@ public class AFSVDevice implements IAFSVDevice {
      *                   <p>SM2PrivateKey ::= INTEGER</p>
      * @return ： base64编码的签名数据
      */
-    @Override
+
     public byte[] sm2SignFile(byte[] fileName, byte[] privateKey) throws AFCryptoException {
         return new byte[0];
     }
@@ -417,7 +412,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param base64Certificate : 签名的外部证书---BASE64编码
      * @return ： base64编码的签名数据
      */
-    @Override
+
     public byte[] sm2SignFileByCertificate(byte[] fileName, byte[] privateKey, byte[] base64Certificate) throws AFCryptoException {
         return new byte[0];
     }
@@ -435,7 +430,7 @@ public class AFSVDevice implements IAFSVDevice {
      *                  <p>}</p>
      * @return : true ：验证签名成功，false ：验证签名失败
      */
-    @Override
+
     public boolean sm2Verify(int keyIndex, byte[] data, byte[] signature) throws AFCryptoException {
         return false;
     }
@@ -453,7 +448,7 @@ public class AFSVDevice implements IAFSVDevice {
      *                          <p>}</p>
      * @return : true ：验证签名成功，false ：验证签名失败
      */
-    @Override
+
     public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] data, byte[] signature) throws AFCryptoException {
         return false;
     }
@@ -472,7 +467,7 @@ public class AFSVDevice implements IAFSVDevice {
      *                          <p>}</p>
      * @return : true ：验证签名成功，false ：验证签名失败
      */
-    @Override
+
     public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] crlData, byte[] data, byte[] signature) throws AFCryptoException {
         return false;
     }
@@ -490,7 +485,7 @@ public class AFSVDevice implements IAFSVDevice {
      *                  <p>}</p>
      * @return : true ：验证签名成功，false ：验证签名失败
      */
-    @Override
+
     public boolean sm2VerifyFile(int keyIndex, byte[] fileName, byte[] signature) throws AFCryptoException {
         return false;
     }
@@ -508,7 +503,7 @@ public class AFSVDevice implements IAFSVDevice {
      *                          <p>}</p>
      * @return : true ：验证签名成功，false ：验证签名失败
      */
-    @Override
+
     public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] fileName, byte[] signature) throws AFCryptoException {
         return false;
     }
@@ -527,7 +522,7 @@ public class AFSVDevice implements IAFSVDevice {
      *                          <p>}</p>
      * @return : true ：验证签名成功，false ：验证签名失败
      */
-    @Override
+
     public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] crlData, byte[] fileName, byte[] signature) throws AFCryptoException {
         return false;
     }
@@ -540,7 +535,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData   ：待加密的数据原文
      * @return ：Base64编码的密文数据
      */
-    @Override
+
     public byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException {
         return new byte[0];
     }
@@ -554,7 +549,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData    ：待加密的数据原文
      * @return ：Base64编码的密文数据
      */
-    @Override
+
     public byte[] sm2Encrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
         return new byte[0];
     }
@@ -567,7 +562,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData      ：待加密的数据原文
      * @return ：Base64编码的密文数据
      */
-    @Override
+
     public byte[] sm2EncryptByCertificate(byte[] certificate, byte[] inData) throws AFCryptoException {
         return new byte[0];
     }
@@ -586,7 +581,7 @@ public class AFSVDevice implements IAFSVDevice {
      *                 <p>}</p>
      * @return ：原文数据
      */
-    @Override
+
     public byte[] sm2Decrypt(int keyIndex, byte[] encData) throws AFCryptoException {
         return new byte[0];
     }
@@ -606,7 +601,7 @@ public class AFSVDevice implements IAFSVDevice {
      *                   <p>}</p>
      * @return ：原文数据
      */
-    @Override
+
     public byte[] sm2Decrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
         return new byte[0];
     }
@@ -619,7 +614,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param keyUsage ：密钥用途，0：签名公钥；1：加密公钥
      * @return : 返回Base64编码的公钥数据
      */
-    @Override
+
     public byte[] getSm2PublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
         return new byte[0];
     }
@@ -630,7 +625,7 @@ public class AFSVDevice implements IAFSVDevice {
      *
      * @return 信任列表别名组合，如： CA001|CA002|CA003
      */
-    @Override
+
     public certAltNameTrustList getCertTrustListAltName() throws AFCryptoException {
         return null;
     }
@@ -642,7 +637,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param altName ：证书别名
      * @return ：证书的个数
      */
-    @Override
+
     public int getCertCountByAltName(byte[] altName) throws AFCryptoException {
         return 0;
     }
@@ -655,7 +650,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param certIndex ：证书索引号(与函数getCertCountByAltName中获取到的值相匹配)
      * @return ：Base64编码的证书文件
      */
-    @Override
+
     public byte[] getCertByAltName(byte[] altName, int certIndex) throws AFCryptoException {
         return new byte[0];
     }
@@ -666,7 +661,7 @@ public class AFSVDevice implements IAFSVDevice {
      *
      * @param policyName ：策略名称
      */
-    @Override
+
     public void getInstance(byte[] policyName) throws AFCryptoException {
 
     }
@@ -677,7 +672,7 @@ public class AFSVDevice implements IAFSVDevice {
      *
      * @param altName ：证书列表别名
      */
-    @Override
+
     public void deleteCertList(byte[] altName) throws AFCryptoException {
 
     }
@@ -688,7 +683,7 @@ public class AFSVDevice implements IAFSVDevice {
      *
      * @return ：Base64编码的服务器证书
      */
-    @Override
+
     public byte[] getServerCert() throws AFCryptoException {
         return new byte[0];
     }
@@ -700,7 +695,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param usage ：证书用途 1：服务器加密证书，2：服务器签名证书
      * @return ：Base64编码的证书
      */
-    @Override
+
     public byte[] getServerCertByUsage(int usage) throws AFCryptoException {
         return new byte[0];
     }
@@ -713,7 +708,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param certType   : 证书类型 1：加密证书，2：签名证书
      * @return : Base64编码的证书
      */
-    @Override
+
     public byte[] getCertByPolicyName(byte[] policyName, int certType) throws AFCryptoException {
         return new byte[0];
     }
@@ -725,7 +720,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param base64Certificate ： Base64编码的证书
      * @return ： OCSP URL地址
      */
-    @Override
+
     public byte[] getOcspUrl(byte[] base64Certificate) throws AFCryptoException {
         return new byte[0];
     }
@@ -738,7 +733,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param certInfoType      : 用户待获取的证书内容类型 : 类型定义在类 certParseInfoType 中
      * @return ：用户获取到的证书信息内容
      */
-    @Override
+
     public byte[] getCertInfo(byte[] base64Certificate, int certInfoType) throws AFCryptoException {
         return new byte[0];
     }
@@ -751,7 +746,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param certInfoOid       : 用户待获取的证书内容类型OID值 : OID值定义在类 certParseInfoType 中
      * @return ：用户获取到的证书信息内容
      */
-    @Override
+
     public byte[] getCertInfoByOid(byte[] base64Certificate, byte[] certInfoOid) throws AFCryptoException {
         return new byte[0];
     }
@@ -769,7 +764,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data              : 原始数据
      * @return : Base64编码的数字信封数据
      */
-    @Override
+
     public byte[] encodeDataForPkcs7(int keyIndex, int signKeyUsage, byte[] signerCertificate, int digestAlgorithms, byte[] encCertificate, int symmAlgorithm, byte[] data) throws AFCryptoException {
         return new byte[0];
     }
@@ -783,7 +778,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param encodeData     : Base64编码的pkcs7格式的数字信封数据
      * @return : 解码后的数据，包括原始数据、签名证书、签名值等
      */
-    @Override
+
     public AFPkcs7DecodeData decodeDataForPkcs7(int keyIndex, int decodeKeyUsage, byte[] encodeData) throws AFCryptoException {
         return null;
     }
@@ -799,7 +794,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data              ：待签名的数据
      * @return ：Base64编码的签名数据
      */
-    @Override
+
     public byte[] encodeSignedDataForPkcs7(int keyIndex, int signKeyUsage, byte[] signerCertificate, int digestAlgorithms, byte[] data) throws AFCryptoException {
         return new byte[0];
     }
@@ -811,7 +806,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param encodeData ：Base64编码的pkcs7格式的签名数据
      * @return : 解码后的数据，包括原始数据、签名证书、签名值等
      */
-    @Override
+
     public AFPkcs7DecodeSignedData decodeSignedDataForPkcs7(byte[] encodeData) throws AFCryptoException {
         return null;
     }
@@ -825,7 +820,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param symmAlgorithm     ：对称算法参数
      * @return ：Base64编码的数字信封数据
      */
-    @Override
+
     public byte[] encodeEnvelopedDataForPkcs7(byte[] data, byte[] encodeCertificate, int symmAlgorithm) throws AFCryptoException {
         return new byte[0];
     }
@@ -839,7 +834,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param envelopedData  ：Base64编码的数字信封数据
      * @return ：数据原文
      */
-    @Override
+
     public byte[] decodeEnvelopedDataForPkcs7(int keyIndex, int decodeKeyUsage, byte[] envelopedData) throws AFCryptoException {
         return new byte[0];
     }
@@ -852,7 +847,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data            ：原文数据
      * @return ：Base64编码的摘要数据
      */
-    @Override
+
     public byte[] encodeDigestDataForPkcs7(int digestAlgorithm, byte[] data) throws AFCryptoException {
         return new byte[0];
     }
@@ -865,7 +860,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param digestData      ：Base64编码的摘要数据
      * @return ：解码后的数据，包括原文和摘要值
      */
-    @Override
+
     public AFPkcs7DecodeDigestData decodeDigestDataForPkcs7(int digestAlgorithm, byte[] digestData) throws AFCryptoException {
         return null;
     }
@@ -883,7 +878,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data              ：原文数据
      * @return ：Base64编码的数字信封数据
      */
-    @Override
+
     public byte[] encodeSignedAndEnvelopedDataForSM2(int keyIndex, int signKeyUsage, byte[] signerCertificate, int digestAlgorithms, byte[] encodeCertificate, int symmAlgorithm, byte[] data) throws AFCryptoException {
         return new byte[0];
     }
@@ -897,7 +892,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param signedAndEnvelopedData ：Base64编码的数字信封数据，其格式应符合GM/T 0010《SM2密码算法加密签名消息语法规范》中SignedAndEnvelopedData的数据类型定义
      * @return ：解码后的数据，包括原文、签名者证书以及HASH算法标识
      */
-    @Override
+
     public AFSM2DecodeSignedAndEnvelopedData decodeSignedAndEnvelopedDataForSM2(int keyIndex, int decodeKeyUsage, byte[] signedAndEnvelopedData) throws AFCryptoException {
         return null;
     }
@@ -913,7 +908,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data              ：需要签名的数据
      * @return ：Base64编码的签名数据
      */
-    @Override
+
     public byte[] encodeSignedDataForSM2(int keyType, byte[] privateKey, byte[] signerCertificate, byte[] data) throws AFCryptoException {
         return new byte[0];
     }
@@ -925,7 +920,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param signedData ：Base64编码的签名数据，其格式应符合GM/T 0010《SM2密码算法加密签名消息语法规范》中SignedData的数据类型定义
      * @return ：解码后的数据，包括签名者证书，HASH算法标识，被签名的数据以及签名值
      */
-    @Override
+
     public AFSM2DecodeSignedData decodeSignedDataForSM2(byte[] signedData) throws AFCryptoException {
         return null;
     }
@@ -938,7 +933,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param rawData    : 数据原文，若签名消息为patch，则此处为null
      * @return ：验证结果，true：验证通过，false：验证失败
      */
-    @Override
+
     public boolean verifySignedDataForSM2(byte[] signedData, byte[] rawData) throws AFCryptoException {
         return false;
     }
@@ -952,7 +947,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param symmAlgorithm     ：对称算法标识
      * @return ：Base64编码的数字信封数据
      */
-    @Override
+
     public byte[] encodeEnvelopedDataForSM2(byte[] data, byte[] encodeCertificate, int symmAlgorithm) throws AFCryptoException {
         return new byte[0];
     }
@@ -966,36 +961,8 @@ public class AFSVDevice implements IAFSVDevice {
      * @param envelopedData  ：Base64编码的数字信封数据，其格式应符合GM/T 0010《SM2密码算法加密签名消息语法规范》中EnvelopedData的数据类型定义
      * @return : 数据原文
      */
-    @Override
+
     public byte[] decodeEnvelopedDataForSM2(int keyIndex, int decodeKeyUsage, byte[] envelopedData) throws AFCryptoException {
         return new byte[0];
     }
-
-
-
-
-    /**
-     * 获取设备信息
-     *
-     * @return 设备信息
-     * 获取设备信息异常
-     */
-    @Override
-    public DeviceInfo getDeviceInfo() throws AFCryptoException {
-        return null;
-    }
-
-    /**
-     * 获取随机数
-     *
-     * @param length 随机数长度
-     * @return 随机数
-     * 获取随机数异常
-     */
-    @Override
-    public byte[] getRandom(int length) throws AFCryptoException {
-        return new byte[0];
-    }
-
-
 }
