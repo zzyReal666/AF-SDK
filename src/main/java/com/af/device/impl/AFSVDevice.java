@@ -3,11 +3,13 @@ package com.af.device.impl;
 import com.af.crypto.struct.impl.signAndVerify.*;
 import com.af.device.DeviceInfo;
 import com.af.device.IAFSVDevice;
+import com.af.device.cmd.AFSVCmd;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.af.utils.BytesOperate;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -21,20 +23,59 @@ public class AFSVDevice implements IAFSVDevice {
      * 通信客户端
      */
     @Getter
-    private static AFNettyClient client = null;
-
+    private static AFNettyClient client;
+    private static final AFSVCmd cmd = new AFSVCmd(client);
 
     //私有构造
     private AFSVDevice() {
     }
+
     //静态内部类单例
+
     private static class SingletonHolder {
         private static final AFSVDevice INSTANCE = new AFSVDevice();
     }
+
     //获取单例
     public static AFSVDevice getInstance(String host, int port, String passwd) {
         client = AFNettyClient.getInstance(host, port, passwd);
         return SingletonHolder.INSTANCE;
+    }
+
+
+    //=====================================API=====================================
+
+    /**
+     * 获取设备信息
+     *
+     * @return 设备信息
+     * 获取设备信息异常
+     */
+    @Override
+    public DeviceInfo getDeviceInfo() throws AFCryptoException {
+        return null;
+    }
+
+    /**
+     * 获取随机数
+     *
+     * @param length 随机数长度
+     * @return 随机数
+     * 获取随机数异常
+     */
+    @Override
+    public byte[] getRandom(int length) throws AFCryptoException {
+        int RAN_MAX_LEN = 4096;
+        byte[] output = new byte[length];
+        byte[] buff;
+        int stepLen;
+        for (stepLen = length; stepLen > RAN_MAX_LEN; stepLen -= RAN_MAX_LEN) {
+            buff = cmd.getRandom(RAN_MAX_LEN);
+            System.arraycopy(buff, 0, output, output.length - stepLen, RAN_MAX_LEN);
+        }
+        buff = cmd.getRandom(stepLen);
+        System.arraycopy(buff, 0, output, output.length - stepLen, stepLen);
+        return BytesOperate.base64EncodeData(output);
     }
 
     /**
@@ -968,32 +1009,6 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] decodeEnvelopedDataForSM2(int keyIndex, int decodeKeyUsage, byte[] envelopedData) throws AFCryptoException {
-        return new byte[0];
-    }
-
-
-
-
-    /**
-     * 获取设备信息
-     *
-     * @return 设备信息
-     * 获取设备信息异常
-     */
-    @Override
-    public DeviceInfo getDeviceInfo() throws AFCryptoException {
-        return null;
-    }
-
-    /**
-     * 获取随机数
-     *
-     * @param length 随机数长度
-     * @return 随机数
-     * 获取随机数异常
-     */
-    @Override
-    public byte[] getRandom(int length) throws AFCryptoException {
         return new byte[0];
     }
 

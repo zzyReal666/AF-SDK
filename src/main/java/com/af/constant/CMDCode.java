@@ -11,7 +11,7 @@ public enum CMDCode {
     public static final int CMD_DECRYPT = 0x00100002;
 
     public static final int CMD_DEVICEINFO = 0x00020001;
-    public static final int CMD_GENERATERANDOM = 0x00020002;
+    public static final int CMD_GENERATERANDOM = 0x00020002;   //生成随机数
 
     public static final int CMD_EXPORTSIGNPUBLICKEY_RSA = 0x00040001;
     public static final int CMD_EXPORTENCPUBLICKEY_RSA = 0x00040001;

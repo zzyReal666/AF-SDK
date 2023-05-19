@@ -1,6 +1,8 @@
 package com.af.utils;
 
 
+import com.af.utils.base64.Base64;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -158,7 +160,6 @@ public class BytesOperate {
             return buf;
         }
     }
-
     private static byte hex2byte(String str) {
         char ch = str.charAt(0);
         byte n;
@@ -167,14 +168,20 @@ public class BytesOperate {
         } else {
             n = (byte) (ch - 48 << 4);
         }
-
         ch = str.charAt(1);
         if (ch >= 'a' && ch <= 'f') {
             n += (byte) (ch - 97 + 10);
         } else {
             n += (byte) (ch - 48);
         }
-
         return n;
     }
+
+
+
+    public static byte[] base64EncodeData(byte[] data)
+    {
+        return Base64.encode(data);
+    }
+
 }

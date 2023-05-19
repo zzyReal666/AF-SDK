@@ -1,8 +1,15 @@
 package com.af.device.cmd;
 
+import com.af.bean.RequestMessage;
+import com.af.bean.ResponseMessage;
+import com.af.constant.CMDCode;
 import com.af.crypto.struct.impl.signAndVerify.*;
 import com.af.device.DeviceInfo;
 import com.af.exception.AFCryptoException;
+import com.af.netty.AFNettyClient;
+import com.af.utils.BytesBuffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -10,6 +17,13 @@ import com.af.exception.AFCryptoException;
  * @since 2023/5/19 12:02
  */
 public class AFSVCmd {
+
+    private static final Logger logger = LoggerFactory.getLogger(AFSVCmd.class);
+    private final AFNettyClient client;
+
+    public AFSVCmd(AFNettyClient client) {
+        this.client = client;
+    }
 
     /**
      * 获取设备信息
@@ -29,7 +43,16 @@ public class AFSVCmd {
      * 获取随机数异常
      */
     public byte[] getRandom(int length) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SV-获取随机数, length:{}", length);
+        byte[] param = new BytesBuffer().append(length).toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATERANDOM, param);
+        ResponseMessage res = client.send(req);
+
+        if (res.getHeader().getErrorCode()!=0) {
+            logger.error("SV-获取随机数失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-获取随机数失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**

@@ -2,6 +2,7 @@ package com.af.device;
 
 import com.af.device.impl.AFCryptoDevice;
 import com.af.device.impl.AFHsmDevice;
+import com.af.device.impl.AFSVDevice;
 import com.af.device.impl.AFTSDevice;
 
 /**
@@ -12,27 +13,11 @@ import com.af.device.impl.AFTSDevice;
 public class AFDeviceFactory {
 
 
-    /**
-     * HSM
-     *
-     * @param host   主机地址
-     * @param port   端口
-     * @param passwd 密码
-     * @return HSM设备
-     */
     public static AFHsmDevice getAFHsmDevice(String host, int port, String passwd) {
         return AFHsmDevice.getInstance(host, port, passwd);
     }
 
 
-    /**
-     * Crypto
-     *
-     * @param host   主机地址
-     * @param port   端口
-     * @param passwd 密码
-     * @return Crypto设备
-     */
     public static AFCryptoDevice getAFCryptoDevice(String host, int port, String passwd) {
         return AFCryptoDevice.getInstance(host, port, passwd);
     }
@@ -40,6 +25,12 @@ public class AFDeviceFactory {
     //时间戳服务器
     public static AFTSDevice getAFTSDevice(String host, int port, String passwd) {
         return AFTSDevice.getInstance(host, port, passwd);
+    }
+
+
+    //签名验签服务器
+    public static AFSVDevice getAFSVDevice(String host, int port, String passwd) {
+        return AFSVDevice.getInstance(host, port, passwd);
     }
 
 }

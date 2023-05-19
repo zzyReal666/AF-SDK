@@ -47,19 +47,21 @@ public class AFHsmDevice implements IAFHsmDevice {
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
     @Setter
     private byte[] agKey = null;  //协商密钥
-    private static AFNettyClient client = null;  //netty客户端
-    private final SM1 sm1= new SM1Impl(client);
-    private final SM2 sm2= new SM2Impl(client);
+    private static AFNettyClient client;  //netty客户端
+    private final SM1 sm1 = new SM1Impl(client);
+    private final SM2 sm2 = new SM2Impl(client);
     private final SM3 sm3 = new SM3Impl(client);
     private final SM4 sm4 = new SM4Impl(client);
     private final KeyInfo keyInfo = KeyInfoImpl.getInstance(client);
 
     //==============================单例模式===================================
-    protected AFHsmDevice( ) {
+    protected AFHsmDevice() {
     }
+
     private static final class InstanceHolder {
         static final AFHsmDevice instance = new AFHsmDevice();
     }
+
     public static AFHsmDevice getInstance(String host, int port, String passwd) {
         client = AFNettyClient.getInstance(host, port, passwd);
         return InstanceHolder.instance;
