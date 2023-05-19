@@ -15,7 +15,7 @@ import com.af.exception.AFCryptoException;
 import com.af.exception.DeviceException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
-import com.af.utils.Sm2Utils;
+import com.af.utils.Sm2Util;
 
 import java.security.KeyPair;
 
@@ -58,7 +58,7 @@ public interface IAFDevice {
          */
         KeyPair pair = SecureUtil.generateKeyPair("SM2");
         SM2 sm2 = SmUtil.sm2(pair.getPrivate(), pair.getPublic());
-        byte[] pubKey = Sm2Utils.changePublicKeyQTo512(sm2.getQ(false));
+        byte[] pubKey = Sm2Util.changePublicKeyQTo512(sm2.getQ(false));
         byte[] priKey = sm2.getD();
         priKey = priKey.length == 32 ? priKey : ArrayUtil.sub(priKey, priKey.length - 32, priKey.length);
 
@@ -81,8 +81,8 @@ public interface IAFDevice {
          * 3、产生随机数ra，私钥签名，公钥加密
          */
         byte[] ra = RandomUtil.getSecureRandom().generateSeed(16);
-        byte[] raSign = Sm2Utils.sign(priKey, ra); // 使用私钥对ra签名
-        byte[] raCipher = Sm2Utils.encrypt(serverPubKey, ra); // 使用服务器公钥对ra加密
+        byte[] raSign = Sm2Util.sign(priKey, ra); // 使用私钥对ra签名
+        byte[] raCipher = Sm2Util.encrypt(serverPubKey, ra); // 使用服务器公钥对ra加密
 
         /*
          * 4、交换随机数，得到rab，私钥解密，公钥验签
@@ -93,12 +93,12 @@ public interface IAFDevice {
 
         byte[] rabCipher = res.getDataBuffer().readOneData();
         byte[] rbSign = res.getDataBuffer().readOneData();
-        byte[] rab = Sm2Utils.decrypt(priKey, rabCipher); // 使用私钥解密rab
+        byte[] rab = Sm2Util.decrypt(priKey, rabCipher); // 使用私钥解密rab
         if (!ArrayUtil.equals(ra, ArrayUtil.sub(rab, 0, 16))) { // 对比ra
             throw new DeviceException("密钥协商失败，对比客户端随机数不一致");
         }
         byte[] rb = ArrayUtil.sub(rab, 16, 32);
-        if (!Sm2Utils.verify(serverPubKey, rb, rbSign)) { // 验证rb签名
+        if (!Sm2Util.verify(serverPubKey, rb, rbSign)) { // 验证rb签名
             throw new DeviceException("密钥协商失败，验证服务端随机数不通过");
         }
 
