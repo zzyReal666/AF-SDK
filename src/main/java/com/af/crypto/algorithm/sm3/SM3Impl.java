@@ -1,7 +1,7 @@
 package com.af.crypto.algorithm.sm3;
 
 import com.af.crypto.struct.impl.sm3.SM3Digest;
-import com.af.crypto.key.sm2.SM2PubKey;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 
@@ -48,7 +48,7 @@ public class SM3Impl implements SM3 {
      * @throws AFCryptoException hash异常
      */
     @Override
-    public  byte[] SM3HashWithPublicKey256(byte[] data, SM2PubKey publicKey, byte[] userID) throws AFCryptoException {
+    public  byte[] SM3HashWithPublicKey256(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException {
         SM3Digest digest = new SM3Digest();
         byte[] sm3SignHash = SM3SignerHash(publicKey.encode(), userID);
         byte[] newData = new byte[sm3SignHash.length + data.length];

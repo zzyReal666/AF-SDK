@@ -5,8 +5,8 @@ import com.af.constant.ModulusLength;
 import com.af.crypto.key.keyInfo.AFKmsKeyInfo;
 import com.af.crypto.key.keyInfo.AFSymmetricKeyStatus;
 import com.af.crypto.key.sm2.SM2KeyPair;
-import com.af.crypto.key.sm2.SM2PriKey;
-import com.af.crypto.key.sm2.SM2PubKey;
+import com.af.crypto.key.sm2.SM2PrivateKey;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.struct.impl.sm2.SM2Cipher;
 import com.af.crypto.struct.impl.sm2.SM2Signature;
 import com.af.exception.AFCryptoException;
@@ -85,16 +85,16 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return SM2签名公钥
      * @throws AFCryptoException 获取SM2签名公钥异常
      */
-    SM2PubKey getSM2SignPublicKey(int index, ModulusLength length) throws AFCryptoException;
+    SM2PublicKey getSM2SignPublicKey(int index, ModulusLength length) throws AFCryptoException;
 
     /**
      * 获取SM2加密公钥
      *
      * @param index 索引
-     * @return SM2加密公钥 默认512位, 如果需要256位, 请调用{@link com.af.crypto.key.sm2.SM2PubKey#to256()}
+     * @return SM2加密公钥 默认512位, 如果需要256位, 请调用{@link SM2PublicKey#to256()}
      * @throws AFCryptoException 获取SM2加密公钥异常
      */
-    SM2PubKey getSM2EncryptPublicKey(int index,ModulusLength length) throws AFCryptoException;
+    SM2PublicKey getSM2EncryptPublicKey(int index, ModulusLength length) throws AFCryptoException;
 
 
     /**
@@ -137,7 +137,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 加密后的数据
      * @throws AFCryptoException 加密异常
      */
-    SM2Cipher SM2Encrypt(ModulusLength length,SM2PubKey key, byte[] data) throws AFCryptoException;
+    SM2Cipher SM2Encrypt(ModulusLength length, SM2PublicKey key, byte[] data) throws AFCryptoException;
 
     /**
      * SM2外部密钥解密
@@ -146,7 +146,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常
      */
-    byte[] SM2Decrypt(ModulusLength length, SM2PriKey privateKey, SM2Cipher encodeData) throws AFCryptoException;
+    byte[] SM2Decrypt(ModulusLength length, SM2PrivateKey privateKey, SM2Cipher encodeData) throws AFCryptoException;
 
 
     //===================================SM2签名验签===================================
@@ -179,7 +179,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 签名
      * @throws AFCryptoException 签名异常
      */
-    SM2Signature SM2Signature(ModulusLength length,byte[] data, SM2PriKey privateKey) throws AFCryptoException;
+    SM2Signature SM2Signature(ModulusLength length,byte[] data, SM2PrivateKey privateKey) throws AFCryptoException;
 
     /**
      * SM2 外部密钥验签
@@ -190,7 +190,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 验签结果 true:验签成功 false:验签失败
      * @throws AFCryptoException 验签异常
      */
-    boolean SM2Verify(ModulusLength length,byte[] data, SM2Signature signature, SM2PubKey publicKey) throws AFCryptoException;
+    boolean SM2Verify(ModulusLength length,byte[] data, SM2Signature signature, SM2PublicKey publicKey) throws AFCryptoException;
 
 
     //=======================================================SM3===========================================================
@@ -214,7 +214,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 杂凑值
      * @throws AFCryptoException 杂凑异常
      */
-    byte[] SM3HashWithPubKey(byte[] data, SM2PubKey publicKey, byte[] userID) throws AFCryptoException;
+    byte[] SM3HashWithPubKey(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException;
 
 
     /**

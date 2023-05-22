@@ -4,17 +4,23 @@ import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
 import com.af.crypto.struct.impl.signAndVerify.*;
+import com.af.crypto.struct.impl.sm2.SM2Signature;
 import com.af.device.DeviceInfo;
 import com.af.device.IAFSVDevice;
 import com.af.device.cmd.AFSVCmd;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.utils.BytesOperate;
 import lombok.Getter;
 import lombok.Setter;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.pkcs.RSAPublicKey;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.af.utils.BytesOperate;
 
+import java.io.IOException;
 import java.security.cert.CertificateException;
 
 /**
@@ -153,7 +159,19 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getRSAPublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
-        return BytesOperate.base64EncodeData(cmd.getRSAPublicKey(keyIndex, keyUsage));
+        byte[] encoded ;
+        byte[] sequenceBytes = cmd.getRSAPublicKey(keyIndex, keyUsage);
+        //解析公钥
+        try (ASN1InputStream asn1InputStream = new ASN1InputStream(sequenceBytes)) {
+            ASN1Sequence asn1Sequence = ASN1Sequence.getInstance(asn1InputStream.readObject()); //
+            RSAPublicKey rsaPublicKey = RSAPublicKey.getInstance(asn1Sequence); //RSA公钥
+            SubjectPublicKeyInfo subjectPublicKeyInfo = SubjectPublicKeyInfo.getInstance(rsaPublicKey.getEncoded()); //公钥信息
+            encoded = subjectPublicKeyInfo.getEncoded();
+        } catch (IOException e) {
+            logger.error("获取RSA公钥异常", e);
+            throw new AFCryptoException("获取RSA公钥异常");
+        }
+        return BytesOperate.base64EncodeData(encoded);
     }
 
     /**
@@ -415,7 +433,9 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {
-        return new byte[0];
+        byte[] bytes = cmd.sm2Signature(index, data);
+        SM2Signature sm2Signature = new SM2Signature(bytes).to256();
+        return BytesOperate.base64EncodeData(bytes);
     }
 
     /**

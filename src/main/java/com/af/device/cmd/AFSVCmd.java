@@ -3,6 +3,7 @@ package com.af.device.cmd;
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
+import com.af.constant.ConstantNumber;
 import com.af.constant.GroupMode;
 import com.af.crypto.struct.impl.signAndVerify.*;
 import com.af.device.AFDeviceFactory;
@@ -10,13 +11,14 @@ import com.af.device.DeviceInfo;
 import com.af.device.impl.AFHsmDevice;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
-import com.af.securityAccess.device.securityAccessCmd;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
+import com.af.utils.SM4Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.cert.*;
 
 /**
@@ -131,18 +133,14 @@ public class AFSVCmd {
                 .append(base64CaCertificate.length)
                 .append(base64CaCertificate)
                 .toBytes();
-        try {
-            RequestMessage req = new RequestMessage(CMDCode.CMD_ADD_CA_CERT, securityAccessCmd.encrypt(agkey, param));
-            ResponseMessage res = client.send(req);
-            if (res.getHeader().getErrorCode() != 0) {
-                logger.error("SV-导入CA证书失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-                throw new AFCryptoException("SV-导入CA证书失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
-            } else {
-                return 0;
-            }
-        } catch (com.af.securityAccess.exception.AFCryptoException e) {
-            logger.error("SV-导入CA证书失败, 报文加密失败，错误信息:{}", e.getMessage());
-            throw new RuntimeException(e);
+
+        RequestMessage req = new RequestMessage(CMDCode.CMD_ADD_CA_CERT, SM4Utils.encrypt(agkey, param));
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-导入CA证书失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-导入CA证书失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+        } else {
+            return 0;
         }
     }
 
@@ -156,7 +154,25 @@ public class AFSVCmd {
      */
 
     public byte[] getRSAPublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SV-导出RSA公钥, keyIndex:{}, keyUsage:{}", keyIndex, keyUsage);
+        int type = ConstantNumber.SGD_RSA_SIGN;
+        int cmdID = CMDCode.CMD_EXPORTSIGNPUBLICKEY_RSA;
+        if (keyUsage == ConstantNumber.ENC_PUBLIC_KEY) {
+            type = ConstantNumber.SGD_RSA_ENC;
+        }
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .append(type)
+                .toBytes();
+        RequestMessage requestMessage = new RequestMessage(cmdID, param);
+        ResponseMessage responseMessage = client.send(requestMessage);
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            logger.error("SV-导出RSA公钥失败, 错误码:{}, 错误信息:{}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-导出RSA公钥失败, 错误码:" + responseMessage.getHeader().getErrorCode() + ", 错误信息:" + responseMessage.getHeader().getErrorInfo());
+        } else {
+            return responseMessage.getDataBuffer().readOneData();
+        }
+
     }
 
     /**
@@ -418,7 +434,41 @@ public class AFSVCmd {
      */
 
     public byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SM2内部密钥签名, index: {}, data: {}", index, data);
+        getPrivateAccess(index);
+        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
+        byte[] hash = afHsmDevice.SM3Hash(data);
+        int begin = 1;
+        byte[] param = new BytesBuffer()
+                .append(begin)
+                .append(index)
+                .append(hash.length)
+                .append(hash)
+                .toBytes();
+       // param = SM4Utils.encrypt(param, agkey);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_INTERNALSIGN_ECC, param);
+        ResponseMessage responseMessage = client.send(requestMessage);
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            logger.error("SM2内部密钥签名失败, 错误码: {}, 错误信息: {}",  responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+            throw new AFCryptoException("SM2内部密钥签名失败");
+        }
+        return responseMessage.getDataBuffer().readOneData();
+    }
+
+    private  void getPrivateAccess(int index) throws AFCryptoException {
+        String pwd = "12345678";
+        byte[] param = new BytesBuffer()
+                .append(index)
+                .append(pwd.length())
+                .append(pwd.getBytes(StandardCharsets.UTF_8))
+                .toBytes();
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, param);
+        ResponseMessage responseMessage = client.send(requestMessage);
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}",  responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+            throw new AFCryptoException("获取私钥访问权限失败");
+        }
+
     }
 
     /**

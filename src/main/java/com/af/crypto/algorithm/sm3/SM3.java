@@ -1,6 +1,6 @@
 package com.af.crypto.algorithm.sm3;
 
-import com.af.crypto.key.sm2.SM2PubKey;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.exception.AFCryptoException;
 
 /**
@@ -26,7 +26,7 @@ public interface SM3 {
      * @return hash结果
      * @throws AFCryptoException hash异常
      */
-    byte[] SM3HashWithPublicKey256(byte[] data, SM2PubKey publicKey, byte[] userID) throws AFCryptoException;
+    byte[] SM3HashWithPublicKey256(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException;
 
     /**
      * SM3 HMAC

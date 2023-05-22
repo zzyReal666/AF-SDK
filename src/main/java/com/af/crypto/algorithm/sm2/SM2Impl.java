@@ -8,8 +8,8 @@ import com.af.constant.SM2KeyType;
 import com.af.crypto.algorithm.sm3.SM3;
 import com.af.crypto.algorithm.sm3.SM3Impl;
 import com.af.crypto.key.sm2.SM2KeyPair;
-import com.af.crypto.key.sm2.SM2PriKey;
-import com.af.crypto.key.sm2.SM2PubKey;
+import com.af.crypto.key.sm2.SM2PrivateKey;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.struct.impl.sm2.SM2Cipher;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
@@ -43,7 +43,7 @@ public class SM2Impl implements SM2 {
      * @throws AFCryptoException 获取SM2公钥异常
      */
     @Override
-    public SM2PubKey getPublicKey(int index, SM2KeyType type) throws AFCryptoException {
+    public SM2PublicKey getPublicKey(int index, SM2KeyType type) throws AFCryptoException {
         BytesBuffer buffer = new BytesBuffer();
         byte[] param = buffer.append(index).append(type.equals(SM2KeyType.SIGN) ?
                 ConstantNumber.SGD_SM2_1
@@ -61,7 +61,7 @@ public class SM2Impl implements SM2 {
         }
         int dataLength = BytesOperate.bytes2int(responseMessage.getData());
         byte[] outData = BytesOperate.subBytes(responseMessage.getData(), 4, dataLength);
-        return new SM2PubKey(outData);
+        return new SM2PublicKey(outData);
     }
 
     /**
@@ -91,7 +91,7 @@ public class SM2Impl implements SM2 {
         int priKeyLen = BytesOperate.bytes2int(BytesOperate.subBytes(responseMessage.getData(), 4 + pubKeyLen, 4));
         byte[] priKeyData = BytesOperate.subBytes(responseMessage.getData(), 8 + pubKeyLen, priKeyLen);
 
-        return new SM2KeyPair(512, new SM2PubKey(pubKeyData), new SM2PriKey(priKeyData));
+        return new SM2KeyPair(512, new SM2PublicKey(pubKeyData), new SM2PrivateKey(priKeyData));
     }
 
     /**
@@ -104,7 +104,7 @@ public class SM2Impl implements SM2 {
      * @throws AFCryptoException 加密异常
      */
     @Override
-    public byte[] sm2Encrypt(int index, SM2PubKey publicKey, byte[] data) throws AFCryptoException {
+    public byte[] sm2Encrypt(int index, SM2PublicKey publicKey, byte[] data) throws AFCryptoException {
         int Zero = 0;
         byte[] param;
         if (null != publicKey) {  //使用外部密钥
@@ -147,7 +147,7 @@ public class SM2Impl implements SM2 {
      * @throws AFCryptoException 解密异常
      */
     @Override
-    public byte[] SM2Decrypt(int index, SM2PriKey privateKey, SM2Cipher encodeData) throws AFCryptoException {
+    public byte[] SM2Decrypt(int index, SM2PrivateKey privateKey, SM2Cipher encodeData) throws AFCryptoException {
         int Zero = 0;
         byte[] param;
         if (null != privateKey) {  // 使用外部密钥
@@ -189,7 +189,7 @@ public class SM2Impl implements SM2 {
      * @throws AFCryptoException 签名异常
      */
     @Override
-    public byte[] SM2Sign(int index, SM2PriKey privateKey, byte[] data) throws AFCryptoException {
+    public byte[] SM2Sign(int index, SM2PrivateKey privateKey, byte[] data) throws AFCryptoException {
         int begin = 1;
         int zero = 0;
         byte[] hashData = sm3.SM3Hash(data);
@@ -234,7 +234,7 @@ public class SM2Impl implements SM2 {
      * @throws AFCryptoException 验签异常
      */
     @Override
-    public boolean SM2Verify(int index, SM2PubKey publicKey, byte[] data, byte[] signData) throws AFCryptoException {
+    public boolean SM2Verify(int index, SM2PublicKey publicKey, byte[] data, byte[] signData) throws AFCryptoException {
         int begin = 1;
         int zero = 0;
         byte[] hashData = sm3.SM3Hash(data);

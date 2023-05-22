@@ -2,7 +2,7 @@ package com.af.device.impl;
 
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
-import com.af.crypto.key.sm2.SM2PubKey;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.struct.impl.sm2.SM2Cipher;
 import com.af.crypto.struct.impl.sm2.SM2Signature;
 import com.af.exception.AFCryptoException;
@@ -26,15 +26,15 @@ class SM2Test {
     void testSM2() throws Exception {
 
         //SM2 签名公钥
-        SM2PubKey sm2SignPublicKey = device.getSM2SignPublicKey(4, ModulusLength.LENGTH_256);
+        SM2PublicKey sm2SignPublicKey = device.getSM2SignPublicKey(4, ModulusLength.LENGTH_256);
         System.out.println(sm2SignPublicKey);
-        SM2PubKey sm2SignPublicKey2 = device.getSM2SignPublicKey(4, ModulusLength.LENGTH_512);
+        SM2PublicKey sm2SignPublicKey2 = device.getSM2SignPublicKey(4, ModulusLength.LENGTH_512);
         System.out.println(sm2SignPublicKey2);
 
         //SM2 加密公钥
-        SM2PubKey sm2EncryptPublicKey = device.getSM2EncryptPublicKey(2, ModulusLength.LENGTH_256);
+        SM2PublicKey sm2EncryptPublicKey = device.getSM2EncryptPublicKey(2, ModulusLength.LENGTH_256);
         System.out.println(sm2EncryptPublicKey);
-        SM2PubKey sm2EncryptPublicKey1 = device.getSM2EncryptPublicKey(2, ModulusLength.LENGTH_512);
+        SM2PublicKey sm2EncryptPublicKey1 = device.getSM2EncryptPublicKey(2, ModulusLength.LENGTH_512);
         System.out.println(sm2EncryptPublicKey1);
 
         //SM2 密钥对

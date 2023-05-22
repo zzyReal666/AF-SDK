@@ -14,16 +14,16 @@ import lombok.NoArgsConstructor;
  */
 @Getter
 @NoArgsConstructor
-public class SM2PriKey implements Key {
+public class SM2PrivateKey implements Key {
 
     private int length; //密钥长度 256/512
     private byte[] D;   //私钥D
 
-    public SM2PriKey(byte[] data) {
+    public SM2PrivateKey(byte[] data) {
         this.decode(data);
     }
 
-    public SM2PriKey(int length, byte[] d) {
+    public SM2PrivateKey(int length, byte[] d) {
         //如果length不是256或者512位 抛出异常
         if (length != 256 && length != 512) {
             throw new IllegalArgumentException("SM2PriKey长度(length)必须是256或者512,当前长度为:" + length + "位");
@@ -105,13 +105,13 @@ public class SM2PriKey implements Key {
      *
      * @return SM2PriKey
      */
-    public SM2PriKey to256() {
+    public SM2PrivateKey to256() {
         if (this.length == 256) {
             return this;
         }
         byte [] D = new byte[32];
         System.arraycopy(this.D, 32, D, 0, D.length);
-        return new SM2PriKey(256, D);
+        return new SM2PrivateKey(256, D);
     }
 
     /**
@@ -119,12 +119,12 @@ public class SM2PriKey implements Key {
      *
      * @return SM2PriKey
      */
-    public SM2PriKey to512() {
+    public SM2PrivateKey to512() {
         if (this.length == 512) {
             return this;
         }
         byte[] d = new byte[64];
         System.arraycopy(D, 0, d, 32, D.length);
-        return new SM2PriKey(512, d);
+        return new SM2PrivateKey(512, d);
     }
 }

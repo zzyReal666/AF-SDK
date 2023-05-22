@@ -2,8 +2,8 @@ package com.af.crypto.algorithm.sm2;
 
 import com.af.constant.SM2KeyType;
 import com.af.crypto.key.sm2.SM2KeyPair;
-import com.af.crypto.key.sm2.SM2PriKey;
-import com.af.crypto.key.sm2.SM2PubKey;
+import com.af.crypto.key.sm2.SM2PrivateKey;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.struct.impl.sm2.SM2Cipher;
 import com.af.exception.AFCryptoException;
 
@@ -25,7 +25,7 @@ public interface SM2 {
      * @return SM2公钥
      * @throws AFCryptoException 获取SM2公钥异常
      */
-    SM2PubKey getPublicKey(int index, SM2KeyType type) throws AFCryptoException;
+    SM2PublicKey getPublicKey(int index, SM2KeyType type) throws AFCryptoException;
 
 
 
@@ -52,7 +52,7 @@ public interface SM2 {
      * @return 加密后的数据 SM2Cipher 512位 需要256位调用{@link SM2Cipher#to256()}
      * @throws AFCryptoException 加密异常
      */
-    byte[] sm2Encrypt(int index, SM2PubKey publicKey, byte[] data) throws AFCryptoException;
+    byte[] sm2Encrypt(int index, SM2PublicKey publicKey, byte[] data) throws AFCryptoException;
 
     /**
      * SM2解密
@@ -63,7 +63,7 @@ public interface SM2 {
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常
      */
-    byte[] SM2Decrypt(int index, SM2PriKey privateKey, SM2Cipher encodeData) throws AFCryptoException;
+    byte[] SM2Decrypt(int index, SM2PrivateKey privateKey, SM2Cipher encodeData) throws AFCryptoException;
     //===================签名验签相关===================
 
 
@@ -76,7 +76,7 @@ public interface SM2 {
      * @return 签名后的数据
      * @throws AFCryptoException 签名异常
      */
-    byte[] SM2Sign(int index, SM2PriKey privateKey, byte[] data) throws AFCryptoException;
+    byte[] SM2Sign(int index, SM2PrivateKey privateKey, byte[] data) throws AFCryptoException;
 
     /**
      * SM2验签
@@ -88,6 +88,6 @@ public interface SM2 {
      * @return 验签结果
      * @throws AFCryptoException 验签异常
      */
-    boolean SM2Verify(int index, SM2PubKey publicKey, byte[] data, byte[] signData) throws AFCryptoException;
+    boolean SM2Verify(int index, SM2PublicKey publicKey, byte[] data, byte[] signData) throws AFCryptoException;
 
 }

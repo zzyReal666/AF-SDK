@@ -16,8 +16,8 @@ import com.af.crypto.key.keyInfo.AFSymmetricKeyStatus;
 import com.af.crypto.key.keyInfo.KeyInfo;
 import com.af.crypto.key.keyInfo.KeyInfoImpl;
 import com.af.crypto.key.sm2.SM2KeyPair;
-import com.af.crypto.key.sm2.SM2PriKey;
-import com.af.crypto.key.sm2.SM2PubKey;
+import com.af.crypto.key.sm2.SM2PrivateKey;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.struct.impl.sm2.SM2Cipher;
 import com.af.crypto.struct.impl.sm2.SM2Signature;
 import com.af.device.DeviceInfo;
@@ -298,12 +298,12 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @throws AFCryptoException 获取SM2签名公钥异常
      */
     @Override
-    public SM2PubKey getSM2SignPublicKey(int index, ModulusLength length) throws AFCryptoException {
+    public SM2PublicKey getSM2SignPublicKey(int index, ModulusLength length) throws AFCryptoException {
         if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
             logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
             throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
         }
-        SM2PubKey publicKey = sm2.getPublicKey(index, SM2KeyType.SIGN);
+        SM2PublicKey publicKey = sm2.getPublicKey(index, SM2KeyType.SIGN);
         if (ModulusLength.LENGTH_256.equals(length)) {
             return publicKey.to256();
         }
@@ -314,17 +314,17 @@ public class AFHsmDevice implements IAFHsmDevice {
      * 获取SM2加密公钥
      *
      * @param index 索引
-     * @return SM2加密公钥 默认512位, 如果需要256位, 请调用{@link SM2PubKey#to256()}
+     * @return SM2加密公钥 默认512位, 如果需要256位, 请调用{@link SM2PublicKey#to256()}
      * @throws AFCryptoException 获取SM2加密公钥异常
      */
     @Override
-    public SM2PubKey getSM2EncryptPublicKey(int index, ModulusLength length) throws AFCryptoException {
+    public SM2PublicKey getSM2EncryptPublicKey(int index, ModulusLength length) throws AFCryptoException {
         logger.info("获取SM2加密公钥 index: {} length: {}", index, length);
         if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
             logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
             throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
         }
-        SM2PubKey publicKey = sm2.getPublicKey(index, SM2KeyType.ENCRYPT);
+        SM2PublicKey publicKey = sm2.getPublicKey(index, SM2KeyType.ENCRYPT);
         if (ModulusLength.LENGTH_256.equals(length)) {
             return publicKey.to256();
         }
@@ -400,7 +400,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @throws AFCryptoException 加密异常
      */
     @Override
-    public SM2Cipher SM2Encrypt(ModulusLength length, SM2PubKey key, byte[] data) throws AFCryptoException {
+    public SM2Cipher SM2Encrypt(ModulusLength length, SM2PublicKey key, byte[] data) throws AFCryptoException {
         logger.info("SM2外部密钥加密 length: {} key: {} data: {}", length, key, data);
         key = key.to256();
         byte[] bytes = sm2.sm2Encrypt(0, key, data);
@@ -420,7 +420,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @throws AFCryptoException 解密异常
      */
     @Override
-    public byte[] SM2Decrypt(ModulusLength length, SM2PriKey key, SM2Cipher encodeData) throws AFCryptoException {
+    public byte[] SM2Decrypt(ModulusLength length, SM2PrivateKey key, SM2Cipher encodeData) throws AFCryptoException {
         logger.info("SM2外部密钥解密 length: {} key: {} encodeData: {}", length, key, encodeData);
         key = key.to256();
         encodeData = encodeData.to256();
@@ -484,7 +484,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @throws AFCryptoException 签名异常
      */
     @Override
-    public SM2Signature SM2Signature(ModulusLength length, byte[] data, SM2PriKey privateKey) throws AFCryptoException {
+    public SM2Signature SM2Signature(ModulusLength length, byte[] data, SM2PrivateKey privateKey) throws AFCryptoException {
         logger.info("SM2外部密钥签名 data: {} privateKey: {}", data, privateKey);
         if (ModulusLength.LENGTH_256.equals(length)) {
             privateKey = privateKey.to256();
@@ -511,7 +511,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @throws AFCryptoException 验签异常
      */
     @Override
-    public boolean SM2Verify(ModulusLength length, byte[] data, SM2Signature signature, SM2PubKey publicKey) throws AFCryptoException {
+    public boolean SM2Verify(ModulusLength length, byte[] data, SM2Signature signature, SM2PublicKey publicKey) throws AFCryptoException {
         logger.info("SM2外部密钥验签 data: {} signature: {} publicKey: {}", data, signature, publicKey);
         if (ModulusLength.LENGTH_256.equals(length)) {
             publicKey = publicKey.to256();
@@ -546,8 +546,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @throws AFCryptoException 杂凑异常
      */
     @Override
-    public byte[] SM3HashWithPubKey(byte[] data, SM2PubKey publicKey, byte[] userID) throws AFCryptoException {
-        SM2PubKey publicKey256 = publicKey.to256();
+    public byte[] SM3HashWithPubKey(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException {
+        SM2PublicKey publicKey256 = publicKey.to256();
         return sm3.SM3HashWithPublicKey256(data, publicKey256, userID);
     }
 

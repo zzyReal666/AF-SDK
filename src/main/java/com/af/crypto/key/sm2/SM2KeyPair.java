@@ -19,9 +19,9 @@ public class SM2KeyPair {
 
     private int length; //密钥长度 256/512
     //公钥
-    private SM2PubKey pubKey;
+    private SM2PublicKey pubKey;
     //私钥
-    private SM2PriKey priKey;
+    private SM2PrivateKey priKey;
 
 
     public SM2KeyPair to256() {

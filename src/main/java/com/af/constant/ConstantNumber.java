@@ -119,4 +119,10 @@ public enum ConstantNumber {
     public static final int AF_LEN_2048 = 2048;
     public static final int AF_LEN_4096 = 4096;
     public static final int AF_LEN_MAX = 4096 + 4096;
+
+
+
+    //签名验签服务器
+    public static int SIGN_PUBLIC_KEY = 0;
+    public static int ENC_PUBLIC_KEY = 1;
 }
