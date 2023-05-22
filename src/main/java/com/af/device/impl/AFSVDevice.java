@@ -1,5 +1,8 @@
 package com.af.device.impl;
 
+import com.af.bean.RequestMessage;
+import com.af.bean.ResponseMessage;
+import com.af.constant.CMDCode;
 import com.af.crypto.struct.impl.signAndVerify.*;
 import com.af.device.DeviceInfo;
 import com.af.device.IAFSVDevice;
@@ -7,31 +10,41 @@ import com.af.device.cmd.AFSVCmd;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.af.utils.BytesOperate;
+
+import java.security.cert.CertificateException;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description 签名验签服务器 设备实现类
  * @since 2023/5/16 9:12
  */
+@Getter
+@Setter
 public class AFSVDevice implements IAFSVDevice {
-
     private static final Logger logger = LoggerFactory.getLogger(AFSVDevice.class);
+
+    /**
+     * 协商密钥
+     */
+    private byte[] agKey;
     /**
      * 通信客户端
      */
-    @Getter
     private static AFNettyClient client;
-    private static final AFSVCmd cmd = new AFSVCmd(client);
+    /**
+     * 命令对象
+     */
+    private final AFSVCmd cmd = new AFSVCmd(client, agKey);
 
     //私有构造
     private AFSVDevice() {
     }
 
     //静态内部类单例
-
     private static class SingletonHolder {
         private static final AFSVDevice INSTANCE = new AFSVDevice();
     }
@@ -53,7 +66,18 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public DeviceInfo getDeviceInfo() throws AFCryptoException {
-        return null;
+        logger.info("获取设备信息-签名验签服务器");
+        RequestMessage req = new RequestMessage(CMDCode.CMD_DEVICEINFO, null);
+        //发送请求
+        ResponseMessage resp = client.send(req);
+        if (resp.getHeader().getErrorCode() != 0) {
+            logger.error("获取设备信息错误,无响应或者响应码错误,错误码{},错误信息{}", resp.getHeader().getErrorCode(), resp.getHeader().getErrorInfo());
+            throw new AFCryptoException("获取设备信息错误");
+        }
+        //解析响应
+        DeviceInfo info = new DeviceInfo();
+        info.decode(resp.getDataBuffer().readOneData());
+        return info;
     }
 
     /**
@@ -88,7 +112,8 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public int validateCertificate(byte[] base64Certificate) throws AFCryptoException {
-        return 0;
+        byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
+        return cmd.validateCertificate(derCert);
     }
 
     /**
@@ -98,10 +123,11 @@ public class AFSVDevice implements IAFSVDevice {
      * @param base64Certificate ： 待验证的证书--BASE64编码格式
      * @param crlData           :           待验证证书的CRL文件数据 --BASE64编码格式
      * @return ：返回证书验证结果，true ：当前证书已被吊销, false ：当前证书未被吊销
+     * @throws CertificateException ：证书异常
      */
     @Override
-    public boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws AFCryptoException {
-        return false;
+    public boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws CertificateException, AFCryptoException {
+        return cmd.isCertificateRevoked(base64Certificate, crlData);
     }
 
     /**
@@ -114,7 +140,7 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public int addCaCertificate(byte[] caAltName, byte[] base64CaCertificate) throws AFCryptoException {
-        return 0;
+        return cmd.addCaCertificate(caAltName, base64CaCertificate);
     }
 
     /**
@@ -127,7 +153,7 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getRSAPublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
-        return new byte[0];
+        return BytesOperate.base64EncodeData(cmd.getRSAPublicKey(keyIndex, keyUsage));
     }
 
     /**

@@ -3,6 +3,8 @@ package com.af.device;
 import com.af.crypto.struct.impl.signAndVerify.*;
 import com.af.exception.AFCryptoException;
 
+import java.security.cert.CertificateException;
+
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
@@ -30,7 +32,7 @@ public interface IAFSVDevice extends IAFDevice{
      * @return ：返回证书验证结果，true ：当前证书已被吊销, false ：当前证书未被吊销
      * @throws AFCryptoException
      */
-    boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws AFCryptoException;
+    boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws AFCryptoException, CertificateException;
 
     /**
      * <p>导入CA证书</p>

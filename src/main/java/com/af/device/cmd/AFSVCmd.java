@@ -3,13 +3,21 @@ package com.af.device.cmd;
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
+import com.af.constant.GroupMode;
 import com.af.crypto.struct.impl.signAndVerify.*;
+import com.af.device.AFDeviceFactory;
 import com.af.device.DeviceInfo;
+import com.af.device.impl.AFHsmDevice;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.securityAccess.device.securityAccessCmd;
 import com.af.utils.BytesBuffer;
+import com.af.utils.BytesOperate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.security.cert.*;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -20,9 +28,11 @@ public class AFSVCmd {
 
     private static final Logger logger = LoggerFactory.getLogger(AFSVCmd.class);
     private final AFNettyClient client;
+    private byte[] agkey;
 
-    public AFSVCmd(AFNettyClient client) {
+    public AFSVCmd(AFNettyClient client, byte[] agkey) {
         this.client = client;
+        this.agkey = agkey;
     }
 
     /**
@@ -47,8 +57,7 @@ public class AFSVCmd {
         byte[] param = new BytesBuffer().append(length).toBytes();
         RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATERANDOM, param);
         ResponseMessage res = client.send(req);
-
-        if (res.getHeader().getErrorCode()!=0) {
+        if (res.getHeader().getErrorCode() != 0) {
             logger.error("SV-获取随机数失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("SV-获取随机数失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
         }
@@ -65,7 +74,18 @@ public class AFSVCmd {
      */
 
     public int validateCertificate(byte[] base64Certificate) throws AFCryptoException {
-        return 0;
+        logger.info("SV-验证证书有效性, base64Certificate:{}", base64Certificate);
+        byte[] param = new BytesBuffer().append(base64Certificate.length)
+                .append(base64Certificate)
+                .toBytes();
+        AFHsmDevice device = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
+        RequestMessage req = new RequestMessage(CMDCode.CMD_VERIFY_CERT, device.SM4Encrypt(GroupMode.ECB, agkey, param, null));
+        ResponseMessage res = client.send(req);
+        if (null == res || res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-验证证书有效性失败, 错误码:{}, 错误信息:{}", res != null ? res.getHeader().getErrorCode() : 0, res != null ? res.getHeader().getErrorInfo() : null);
+            throw new AFCryptoException("SV-验证证书有效性失败, 错误码:" + (res != null ? res.getHeader().getErrorCode() : 0) + ", 错误信息:" + (res != null ? res.getHeader().getErrorInfo() : null));
+        }
+        return null == res.getDataBuffer() ? -1 : res.getHeader().getErrorCode();
     }
 
     /**
@@ -77,8 +97,22 @@ public class AFSVCmd {
      * @return ：返回证书验证结果，true ：当前证书已被吊销, false ：当前证书未被吊销
      */
 
-    public boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws AFCryptoException {
-        return false;
+    public boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws CertificateException, AFCryptoException {
+        logger.info("SV-验证证书是否被吊销, base64Certificate:{}, crlData:{}", base64Certificate, crlData);
+        ByteArrayInputStream inputCertificate = new ByteArrayInputStream(BytesOperate.base64DecodeCert(new String(base64Certificate)));
+        CertificateFactory certCf = CertificateFactory.getInstance("X.509");
+        X509Certificate x509Cert = (X509Certificate) certCf.generateCertificate(inputCertificate);
+        ByteArrayInputStream inputCrl = new ByteArrayInputStream(BytesOperate.base64DecodeCRL(new String(crlData)));
+        CertificateFactory crlCf = CertificateFactory.getInstance("X.509");
+        X509CRL x509Crl;
+        try {
+            x509Crl = (X509CRL) crlCf.generateCRL(inputCrl);
+        } catch (CRLException e) {
+            logger.error("SV-验证证书是否被吊销失败, 错误信息:{}", e.getMessage());
+            throw new AFCryptoException(e.getMessage());
+        }
+        return x509Crl.isRevoked(x509Cert);
+
     }
 
     /**
@@ -91,7 +125,25 @@ public class AFSVCmd {
      */
 
     public int addCaCertificate(byte[] caAltName, byte[] base64CaCertificate) throws AFCryptoException {
-        return 0;
+        logger.info("SV-导入CA证书, caAltName:{}, base64CaCertificate:{}", caAltName, base64CaCertificate);
+        byte[] param = new BytesBuffer().append(caAltName.length)
+                .append(caAltName)
+                .append(base64CaCertificate.length)
+                .append(base64CaCertificate)
+                .toBytes();
+        try {
+            RequestMessage req = new RequestMessage(CMDCode.CMD_ADD_CA_CERT, securityAccessCmd.encrypt(agkey, param));
+            ResponseMessage res = client.send(req);
+            if (res.getHeader().getErrorCode() != 0) {
+                logger.error("SV-导入CA证书失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+                throw new AFCryptoException("SV-导入CA证书失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+            } else {
+                return 0;
+            }
+        } catch (com.af.securityAccess.exception.AFCryptoException e) {
+            logger.error("SV-导入CA证书失败, 报文加密失败，错误信息:{}", e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     /**

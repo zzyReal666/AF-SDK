@@ -94,8 +94,6 @@ public class BytesOperate {
     /**
      * 封装数据 输入一个字节数组,返回一个封装好的字节数组
      */
-
-
     public byte[] packData(Set<byte[]> set) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         for (byte[] bytes : set) {
@@ -119,11 +117,23 @@ public class BytesOperate {
     }
 
 
-
+    /**
+     * 十六进制字符串转换为byte
+     *
+     * @param str    十六进制字符串
+     * @return byte
+     */
     public static byte[] hex2bytes(String str) {
         return hex2bytes(str, "");
     }
 
+    /**
+     * 十六进制字符串转换为byte
+     *
+     * @param str       十六进制字符串
+     * @param delimiter 分隔符
+     * @return byte
+     */
     private static byte[] hex2bytes(String str, String delimiter) {
         str = str.toLowerCase();
         int i;
@@ -160,6 +170,13 @@ public class BytesOperate {
             return buf;
         }
     }
+
+    /**
+     * 十六进制字符串转换为byte
+     *
+     * @param str 十六进制字符串
+     * @return byte
+     */
     private static byte hex2byte(String str) {
         char ch = str.charAt(0);
         byte n;
@@ -177,11 +194,56 @@ public class BytesOperate {
         return n;
     }
 
-
-
-    public static byte[] base64EncodeData(byte[] data)
-    {
+    /**
+     * base64编码
+     *
+     * @param data 待编码数据
+     * @return String
+     */
+    public static byte[] base64EncodeData(byte[] data) {
         return Base64.encode(data);
+    }
+
+
+    /**
+     * base64编码证书
+     *
+     * @param base64Cert base64编码证书文件
+     * @return byte[]
+     */
+    public static byte[] base64DecodeCert(String base64Cert) {
+        String begin = "-----BEGIN CERTIFICATE-----";
+        String end = "-----END CERTIFICATE-----";
+        String outCert;
+        outCert = base64Cert.replaceAll(begin, "");
+        outCert = outCert.replaceAll(end, "");
+        return base64DecodeData(outCert);
+    }
+
+    /**
+     * base64编码数据
+     *
+     * @param data base64编码数据
+     * @return byte[]
+     */
+    public static byte[] base64DecodeData(String data) {
+        return Base64.decode(data);
+    }
+
+
+    /**
+     * base64编码CRL
+     *
+     * @param base64CRL base64编码CRL文件
+     * @return byte[]
+     */
+    public static byte[] base64DecodeCRL(String base64CRL) {
+        String begin = "-----BEGIN X509 CRL-----";
+        String end = "-----END X509 CRL-----";
+        String outCRL = "";
+        outCRL = base64CRL.replaceAll(begin, "");
+        outCRL = outCRL.replaceAll(end, "");
+        return base64DecodeData(outCRL);
     }
 
 }

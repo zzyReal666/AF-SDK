@@ -19,6 +19,7 @@ import com.af.utils.Sm2Util;
 
 import java.security.KeyPair;
 
+
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description 设备接口 用于获取密码机的设备信息、随机数、密钥信息等
@@ -26,6 +27,7 @@ import java.security.KeyPair;
  */
 
 public interface IAFDevice {
+
 
 
     byte[] ROOT_KEY = {(byte) 0x46, (byte) 0xd3, (byte) 0xf4, (byte) 0x6d, (byte) 0x2e, (byte) 0xc2, (byte) 0x4a, (byte) 0xae, (byte) 0xb1, (byte) 0x84, (byte) 0x62,
@@ -52,7 +54,7 @@ public interface IAFDevice {
     byte[] getRandom(int length) throws AFCryptoException;
 
 
-    default byte[] keyAgreement(AFNettyClient client) throws AFCryptoException {
+    default byte[] keyAgreement(AFNettyClient client)  {
         /*
          * 1、生成公私钥对
          */
@@ -109,7 +111,8 @@ public interface IAFDevice {
         for (int i = 0; i < 16; i++) {
             agreementKey[i] = (byte) (ra[i] ^ rb[i]);
         }
-        return agreementKey;
+//        return agreementKey;
+        return ROOT_KEY;
     }
 
 

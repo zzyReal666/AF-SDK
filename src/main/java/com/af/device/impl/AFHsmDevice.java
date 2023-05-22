@@ -26,7 +26,7 @@ import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
-import lombok.Setter;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,8 +45,10 @@ import java.util.List;
  */
 public class AFHsmDevice implements IAFHsmDevice {
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
-    @Setter
     private byte[] agKey = null;  //协商密钥
+    //set agKey
+
+    @Getter
     private static AFNettyClient client;  //netty客户端
     private final SM1 sm1 = new SM1Impl(client);
     private final SM2 sm2 = new SM2Impl(client);
@@ -67,6 +69,10 @@ public class AFHsmDevice implements IAFHsmDevice {
         return InstanceHolder.instance;
     }
 
+    public AFHsmDevice setAgKey() {
+        this.agKey = this.keyAgreement(client);
+        return this;
+    }
     //==============================API===================================
 
     /**
@@ -79,23 +85,16 @@ public class AFHsmDevice implements IAFHsmDevice {
     public DeviceInfo getDeviceInfo() throws AFCryptoException {
         logger.info("获取设备信息");
         RequestMessage req = new RequestMessage(CMDCode.CMD_DEVICEINFO, null);
-        ResponseMessage resp;
         //发送请求
-        try {
-            resp = client.send(req);
-        } catch (Exception e) {
-            logger.error("获取设备信息错误", e);
-            throw new AFCryptoException("获取设备信息异常", e);
-        }
+        ResponseMessage resp = client.send(req);
         if (resp == null || resp.getHeader().getErrorCode() != 0) {
             logger.error("获取设备信息错误,无响应或者响应码错误 response:{} ErrorCode:{}", resp == null ? "null" : resp.toString(), resp == null ? "null" : resp.getHeader().getErrorCode());
             throw new AFCryptoException("获取设备信息错误");
         }
         //解析响应
-        int retLen = BytesOperate.bytes2int(resp.getData());
-        byte[] outData = BytesOperate.subBytes(resp.getData(), 4, retLen);
+
         DeviceInfo info = new DeviceInfo();
-        info.decode(outData);
+        info.decode(resp.getDataBuffer().readOneData());
         return info;
     }
 
