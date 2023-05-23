@@ -18,6 +18,8 @@ import com.af.utils.BytesOperate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
@@ -150,6 +152,7 @@ public class SM2Impl implements SM2 {
     public byte[] SM2Decrypt(int index, SM2PrivateKey privateKey, SM2Cipher encodeData) throws AFCryptoException {
         int Zero = 0;
         byte[] param;
+        getPrivateAccess(index);
         if (null != privateKey) {  // 使用外部密钥
             param = new BytesBuffer()
                     .append(Zero)
@@ -161,6 +164,7 @@ public class SM2Impl implements SM2 {
                     .append(encodeData.encode())
                     .toBytes();
         } else {       //使用内部密钥
+
             param = new BytesBuffer()
                     .append(index)
                     .append(ConstantNumber.SGD_SM2_3)
@@ -178,6 +182,21 @@ public class SM2Impl implements SM2 {
         }
         return responseMessage.getDataBuffer().readOneData();
     }
+
+    private void getPrivateAccess(int index) throws AFCryptoException {
+        String pwd = "12345678";
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, new BytesBuffer()
+                .append(index)
+                .append(pwd.length())
+                .append(pwd.getBytes(StandardCharsets.UTF_8))
+                .toBytes());
+        ResponseMessage responseMessage = client.send(requestMessage);
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            logger.error("获取私钥访问权限错误,错误信息:{}", responseMessage.getHeader().getErrorInfo());
+            throw new AFCryptoException("获取私钥访问权限错误,错误信息:" + responseMessage.getHeader().getErrorInfo());
+        }
+    }
+
 
     /**
      * SM2签名

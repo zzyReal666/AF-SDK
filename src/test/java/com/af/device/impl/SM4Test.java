@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 class SM4Test {
     static AFHsmDevice device;
-    static byte[] data = "12345678123456".getBytes();
+    static byte[] data = "1234567812345678".getBytes();
     byte[] key = "1234567812345678".getBytes();
     byte[] IV = "1234567812345678".getBytes();
 

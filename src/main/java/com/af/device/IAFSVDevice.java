@@ -1,6 +1,6 @@
 package com.af.device;
 
-import com.af.crypto.struct.impl.signAndVerify.*;
+import com.af.crypto.struct.signAndVerify.*;
 import com.af.exception.AFCryptoException;
 
 import java.security.cert.CertificateException;

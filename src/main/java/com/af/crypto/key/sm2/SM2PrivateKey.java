@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
- * @description
+ * @description     SM2私钥
  * @since 2023/4/26 16:52
  */
 @Getter

@@ -4,15 +4,18 @@ import com.af.constant.GroupMode;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PublicKey;
-import com.af.crypto.struct.impl.sm2.SM2Cipher;
+import com.af.crypto.struct.impl.sm2.SM2Signature;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 class AFHsmDeviceTest {
 
     static AFHsmDevice device;
+    static byte[] data = "1234560abcdefgh0".getBytes(StandardCharsets.UTF_8);
+
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
@@ -84,19 +87,15 @@ class AFHsmDeviceTest {
         System.out.println(sm2KeyPair);
         SM2KeyPair sm2KeyPair1 = device.generateSM2KeyPair(ModulusLength.LENGTH_512);
         System.out.println(sm2KeyPair1);
+        //todo 加解密
 
-
-        //SM2 内部加解密
-        byte[] data = "12345678123456".getBytes();
-        SM2Cipher sm2Cipher = device.SM2Encrypt(ModulusLength.LENGTH_512, 2, data);
-        System.out.println(sm2Cipher);
-        byte[] decrypt = device.SM2Decrypt(ModulusLength.LENGTH_512, 2, sm2Cipher);
-        assert Arrays.equals(data, decrypt);
-
-
-        //SM2 外部加解密
-        SM2Cipher sm2Cipher1 = device.SM2Encrypt(ModulusLength.LENGTH_512, sm2EncryptPublicKey1, data);
-        System.out.println(sm2Cipher1);
+        //todo 签名验签
+        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_256, 1, data);
+        boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, 1, data, sm2Signature);
+        assert verify;
+        SM2Signature sm2Signature1 = device.SM2Signature(ModulusLength.LENGTH_512, 1, data);
+        boolean b = device.SM2Verify(ModulusLength.LENGTH_512, 1, data, sm2Signature1);
+        assert b;
 
     }
 }

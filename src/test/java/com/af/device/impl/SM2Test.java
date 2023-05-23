@@ -2,6 +2,7 @@ package com.af.device.impl;
 
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
+import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.struct.impl.sm2.SM2Cipher;
 import com.af.crypto.struct.impl.sm2.SM2Signature;
@@ -14,7 +15,7 @@ import java.util.Arrays;
 class SM2Test {
 
     static AFHsmDevice device;
-    static byte[] data = "123456781234567".getBytes();
+    static byte[] data = "1234560abcdefgh0".getBytes();
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
@@ -22,6 +23,9 @@ class SM2Test {
     }
 
 
+    /**
+     * 获取密钥
+     */
     @Test
     void testSM2() throws Exception {
 
@@ -55,6 +59,7 @@ class SM2Test {
         byte[] decrypt = device.SM2Decrypt(ModulusLength.LENGTH_256, 2, sm2Cipher);
         assert Arrays.equals(data, decrypt);
     }
+
     @Test
     void testInside512() throws AFCryptoException {
         SM2Cipher sm2Cipher = device.SM2Encrypt(ModulusLength.LENGTH_512, 2, data);
@@ -62,11 +67,11 @@ class SM2Test {
         byte[] decrypt = device.SM2Decrypt(ModulusLength.LENGTH_512, 2, sm2Cipher);
         assert Arrays.equals(data, decrypt);
     }
+
     /**
      * 外部加解密
      * 256可以加密,解密失败  报错:SM2解密错误,错误信息:未知错误[0x01000023]
      * 512加密就失败        报错:SM2加密错误,错误信息:未知错误[0x01000023]
-     *
      */
     @Test
     void testExternal256() throws AFCryptoException {
@@ -91,21 +96,47 @@ class SM2Test {
 
 
     /**
-     * 内部签名验签
+     * 内部签名验签256
      */
     @Test
     void testInSign256() throws AFCryptoException {
-        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_256, 4, data);
-        boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, 4, data, sm2Signature);
+        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_256, 1, data);
+        boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, 1, data, sm2Signature);
         assert verify;
     }
 
 
+    /**
+     * 内部签名验签512
+     */
     @Test
     void testInSign512() throws AFCryptoException {
-        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_512, 4, data);
-        boolean verify = device.SM2Verify(ModulusLength.LENGTH_512, 4, data, sm2Signature);
+        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_512, 1, data);
+        boolean verify = device.SM2Verify(ModulusLength.LENGTH_512, 1, data, sm2Signature);
+        System.out.println(verify);
         assert verify;
     }
 
+    /**
+     * 外部签名验签256
+     */
+    @Test
+    void testExSign256() throws AFCryptoException {
+        SM2KeyPair sm2KeyPair1 = device.generateSM2KeyPair(ModulusLength.LENGTH_256);
+        SM2PrivateKey priKey = sm2KeyPair1.getPriKey();
+        SM2PublicKey pubKey = sm2KeyPair1.getPubKey();
+        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_256, data, priKey);
+        boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, data,sm2Signature,pubKey);
+        assert verify;
+    }
+    /**
+     * 外部签名验签512
+     */
+    @Test
+    void testExSign512() throws AFCryptoException {
+        SM2KeyPair sm2KeyPair2 = device.generateSM2KeyPair(ModulusLength.LENGTH_512);
+        SM2Signature sm2Signature2 = device.SM2Signature(ModulusLength.LENGTH_512, data, sm2KeyPair2.getPriKey());
+        boolean verify2 = device.SM2Verify(ModulusLength.LENGTH_512, data,sm2Signature2, sm2KeyPair2.getPubKey());
+        assert verify2;
+    }
 }

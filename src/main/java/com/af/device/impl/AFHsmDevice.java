@@ -486,12 +486,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     @Override
     public SM2Signature SM2Signature(ModulusLength length, byte[] data, SM2PrivateKey privateKey) throws AFCryptoException {
         logger.info("SM2外部密钥签名 data: {} privateKey: {}", data, privateKey);
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            privateKey = privateKey.to256();
-        }
-        if (ModulusLength.LENGTH_512.equals(length)) {
-            privateKey = privateKey.to512();
-        }
+        privateKey = privateKey.to512();
         byte[] sign = sm2.SM2Sign(-1, privateKey, data);
         SM2Signature sm2Signature = new SM2Signature(sign);
         if (ModulusLength.LENGTH_256.equals(length)) {
@@ -504,6 +499,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     /**
      * SM2 外部密钥验签
      *
+     * @param length    模量长度 256/512
      * @param data      待验签数据
      * @param signature 签名
      * @param publicKey 公钥

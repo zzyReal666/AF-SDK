@@ -5,7 +5,7 @@ import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
 import com.af.constant.ConstantNumber;
 import com.af.constant.GroupMode;
-import com.af.crypto.struct.impl.signAndVerify.*;
+import com.af.crypto.struct.signAndVerify.*;
 import com.af.device.AFDeviceFactory;
 import com.af.device.DeviceInfo;
 import com.af.device.impl.AFHsmDevice;
