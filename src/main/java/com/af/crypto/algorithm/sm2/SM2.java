@@ -4,7 +4,7 @@ import com.af.constant.SM2KeyType;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
-import com.af.crypto.struct.impl.sm2.SM2Cipher;
+import com.af.struct.impl.sm2.SM2Cipher;
 import com.af.exception.AFCryptoException;
 
 /**

@@ -4,20 +4,24 @@ import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
 import com.af.constant.ConstantNumber;
-import com.af.constant.GroupMode;
-import com.af.crypto.struct.signAndVerify.*;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.device.AFDeviceFactory;
 import com.af.device.DeviceInfo;
 import com.af.device.impl.AFHsmDevice;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.struct.signAndVerify.*;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import com.af.utils.SM4Utils;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.x509.X509CertificateStructure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.*;
 
@@ -57,6 +61,7 @@ public class AFSVCmd {
     public byte[] getRandom(int length) throws AFCryptoException {
         logger.info("SV-获取随机数, length:{}", length);
         byte[] param = new BytesBuffer().append(length).toBytes();
+
         RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATERANDOM, param);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
@@ -80,8 +85,9 @@ public class AFSVCmd {
         byte[] param = new BytesBuffer().append(base64Certificate.length)
                 .append(base64Certificate)
                 .toBytes();
-        AFHsmDevice device = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        RequestMessage req = new RequestMessage(CMDCode.CMD_VERIFY_CERT, device.SM4Encrypt(GroupMode.ECB, agkey, param, null));
+
+        param = SM4Utils.encrypt(param, agkey);
+        RequestMessage req = new RequestMessage(CMDCode.CMD_VERIFY_CERT, param);
         ResponseMessage res = client.send(req);
         if (null == res || res.getHeader().getErrorCode() != 0) {
             logger.error("SV-验证证书有效性失败, 错误码:{}, 错误信息:{}", res != null ? res.getHeader().getErrorCode() : 0, res != null ? res.getHeader().getErrorInfo() : null);
@@ -164,6 +170,8 @@ public class AFSVCmd {
                 .append(keyIndex)
                 .append(type)
                 .toBytes();
+
+
         RequestMessage requestMessage = new RequestMessage(cmdID, param);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
@@ -445,27 +453,33 @@ public class AFSVCmd {
                 .append(hash.length)
                 .append(hash)
                 .toBytes();
-       // param = SM4Utils.encrypt(param, agkey);
+
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_INTERNALSIGN_ECC, param);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("SM2内部密钥签名失败, 错误码: {}, 错误信息: {}",  responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+            logger.error("SM2内部密钥签名失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM2内部密钥签名失败");
         }
         return responseMessage.getDataBuffer().readOneData();
     }
 
-    private  void getPrivateAccess(int index) throws AFCryptoException {
+    /**
+     * 获取私钥访问权限
+     *
+     * @param index 索引
+     */
+    private void getPrivateAccess(int index) throws AFCryptoException {
         String pwd = "12345678";
         byte[] param = new BytesBuffer()
                 .append(index)
                 .append(pwd.length())
                 .append(pwd.getBytes(StandardCharsets.UTF_8))
                 .toBytes();
+
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, param);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}",  responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+            logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("获取私钥访问权限失败");
         }
 
@@ -482,7 +496,26 @@ public class AFSVCmd {
      */
 
     public byte[] sm2Signature(byte[] data, byte[] privateKey) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SM2外部密钥签名, data: {}, privateKey: {}", data, privateKey);
+        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
+        byte[] hash = afHsmDevice.SM3Hash(data);
+        int zero = 0;
+        byte[] param = new BytesBuffer()
+                .append(zero)
+                .append(ConstantNumber.SGD_SM2_1)
+                .append(zero)
+                .append(privateKey.length)
+                .append(privateKey)
+                .append(hash.length)
+                .append(hash)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SM2外部密钥签名失败, 错误码: {}, 错误信息: {}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SM2外部密钥签名失败");
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
@@ -504,42 +537,99 @@ public class AFSVCmd {
      * <p>SM2文件签名</p>
      * <p>使用签名服务器内部密钥对文件进行 SM2签名运算</p>
      *
-     * @param index    ：待签名的签名服务器内部密钥索引
-     * @param fileName ：待签名的文件名称
+     * @param index ：待签名的签名服务器内部密钥索引
+     * @param data  ：待签名的文件
      * @return ： base64编码的签名数据
      */
 
-    public byte[] sm2SignFile(int index, byte[] fileName) throws AFCryptoException {
-        return new byte[0];
+    public byte[] sm2SignFile(int index, byte[] data) throws AFCryptoException {
+        logger.info("SM2文件签名, index: {}, data: {}", index, data);
+        getPrivateAccess(index);
+        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
+        byte[] hash = afHsmDevice.SM3Hash(data);
+        int begin = 1;
+        byte[] param = new BytesBuffer()
+                .append(begin)
+                .append(index)
+                .append(hash.length)
+                .append(hash)
+                .toBytes();
+
+        RequestMessage req = new RequestMessage(CMDCode.CMD_INTERNALSIGN_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SM2内部密钥文件签名失败, 错误码: {}, 错误信息: {}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SM2文件签名失败");
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
      * <p>SM2文件签名</p>
      * <p>使用外部密钥对文件进行 SM2签名运算</p>
      *
-     * @param fileName   ：待签名的文件名称
+     * @param data       ：待签名的文件
      * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
      *                   <p>SM2PrivateKey ::= INTEGER</p>
      * @return ： base64编码的签名数据
      */
 
-    public byte[] sm2SignFile(byte[] fileName, byte[] privateKey) throws AFCryptoException {
-        return new byte[0];
+    public byte[] sm2SignFile(byte[] data, byte[] privateKey) throws AFCryptoException {
+        logger.info("SM2文件签名, data: {}, privateKey: {}", data, privateKey);
+        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
+        byte[] hash = afHsmDevice.SM3Hash(data);
+        int zero = 0;
+        byte[] param = new BytesBuffer()
+                .append(zero)
+                .append(ConstantNumber.SGD_SM2_1)
+                .append(zero)
+                .append(privateKey.length)
+                .append(privateKey)
+                .append(hash.length)
+                .append(hash)
+                .toBytes();
+
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SM2外部密钥文件签名失败, 错误码: {}, 错误信息: {}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SM2文件签名失败");
+        }
+        return res.getDataBuffer().readOneData();
+
     }
 
+
     /**
-     * <p>SM2文件签名</p>
      * <p>基于证书的SM2文件签名</p>
      *
-     * @param fileName          ：待签名的文件名称
-     * @param privateKey        ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                          <p>SM2PrivateKey ::= INTEGER</p>
-     * @param base64Certificate : 签名的外部证书---BASE64编码
-     * @return ： base64编码的签名数据
+     * @param data         待签名的文件
+     * @param privateKey   签名的私钥
+     * @param sm2PublicKey 签名的公钥
+     * @return 签名数据
      */
+    public byte[] sm2SignFileByCertificate(byte[] data, byte[] privateKey, byte[] sm2PublicKey) throws AFCryptoException {
+        logger.info("基于证书的SM2文件签名, data: {}, privateKey: {}, sm2PublicKey: {}", data, privateKey, sm2PublicKey);
+        int zero = 0;
+        //hash
+        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
+        byte[] hash = afHsmDevice.SM3HashWithPubKey(data, new SM2PublicKey(sm2PublicKey), ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
 
-    public byte[] sm2SignFileByCertificate(byte[] fileName, byte[] privateKey, byte[] base64Certificate) throws AFCryptoException {
-        return new byte[0];
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, new BytesBuffer()
+                .append(zero)
+                .append(ConstantNumber.SGD_SM2_1)
+                .append(zero)
+                .append(privateKey.length)
+                .append(privateKey)
+                .append(hash.length)
+                .append(hash)
+                .toBytes());
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("基于证书的SM2文件签名失败, 错误码: {}, 错误信息: {}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("基于证书的SM2文件签名失败");
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
@@ -557,7 +647,26 @@ public class AFSVCmd {
      */
 
     public boolean sm2Verify(int keyIndex, byte[] data, byte[] signature) throws AFCryptoException {
-        return false;
+        logger.info("SV-SM2内部密钥验证签名");
+        getPrivateAccess(keyIndex);
+        int begin = 1;
+        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
+        byte[] hash = afHsmDevice.SM3Hash(data);
+        byte[] param = new BytesBuffer()
+                .append(begin)
+                .append(keyIndex)
+                .append(hash.length)
+                .append(hash)
+                .append(signature.length)
+                .append(signature)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_INTERNALVERIFY_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SM2内部密钥验证签名失败，错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -575,8 +684,61 @@ public class AFSVCmd {
      */
 
     public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] data, byte[] signature) throws AFCryptoException {
-        return false;
+        logger.info("基于证书的SM2验证签名");
+        //读取证书数据
+        byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
+        InputStream input = new ByteArrayInputStream(derCert);
+        ASN1Sequence seq = null;
+        try (ASN1InputStream aln = new ASN1InputStream(input)) {
+            seq = (ASN1Sequence) aln.readObject();
+            X509CertificateStructure cert = new X509CertificateStructure(seq);
+            byte[] encodePubKey = cert.getSubjectPublicKeyInfo().getPublicKeyData().getEncoded();
+
+            SM2PublicKey sm2PublicKey = new SM2PublicKey();
+            byte[] sm2PubKey = new byte[4 + 32 + 32];
+            System.arraycopy(BytesOperate.int2bytes(256), 0, sm2PubKey, 0, 4);
+            System.arraycopy(encodePubKey, 4, sm2PubKey, 4, 64);
+            sm2PublicKey.decode(sm2PubKey);
+            return this.SM2VerifyByCertPubKey(data, signature, sm2PublicKey);
+        } catch (Exception e) {
+            logger.error("基于证书的SM2验证签名失败，错误信息:{}", e.getMessage());
+            throw new AFCryptoException("基于证书的SM2验证签名失败");
+        }
     }
+
+    /**
+     * SM2验证签名 外部公钥
+     * @param data 待验证签名的原始数据
+     * @param signature 待验证签名的签名数据
+     * @param sm2PublicKey 外部公钥
+     * @return true ：验证签名成功，false ：验证签名失败
+     * @throws AFCryptoException AFCryptoException
+     */
+    public boolean SM2VerifyByCertPubKey(byte[] data, byte[] signature, SM2PublicKey sm2PublicKey) throws AFCryptoException {
+        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
+        byte[] hash = afHsmDevice.SM3HashWithPubKey(data, sm2PublicKey,ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
+        int zero = 0;
+        byte[] param = new BytesBuffer()
+                .append(zero)
+                .append(ConstantNumber.SGD_SM2_1)
+                .append(zero)
+                .append(sm2PublicKey.size())
+                .append(sm2PublicKey.encode())
+                .append(hash.length)
+                .append(hash)
+                .append(signature.length)
+                .append(signature)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALVERIFY_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SM2外部公钥验证签名失败，错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            return false;
+        }
+        return true;
+
+    }
+
 
     /**
      * <p>基于证书的SM2验证签名</p>

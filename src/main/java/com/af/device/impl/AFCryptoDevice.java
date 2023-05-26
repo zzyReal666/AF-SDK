@@ -12,6 +12,7 @@ public class AFCryptoDevice extends AFHsmDevice {
 
     private static AFNettyClient client = null;
 
+
     //私有化构造方法
     private AFCryptoDevice(AFNettyClient client) {
         super();
@@ -25,6 +26,8 @@ public class AFCryptoDevice extends AFHsmDevice {
         client = AFNettyClient.getInstance(host, port, passwd);
         return SingletonHolder.INSTANCE;
     }
+
+
 
 
 

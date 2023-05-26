@@ -7,8 +7,8 @@ import com.af.crypto.key.keyInfo.AFSymmetricKeyStatus;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
-import com.af.crypto.struct.impl.sm2.SM2Cipher;
-import com.af.crypto.struct.impl.sm2.SM2Signature;
+import com.af.struct.impl.sm2.SM2Cipher;
+import com.af.struct.impl.sm2.SM2Signature;
 import com.af.exception.AFCryptoException;
 
 import java.util.List;

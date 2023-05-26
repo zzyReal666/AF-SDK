@@ -90,8 +90,11 @@ public interface IAFDevice {
          * 4、交换随机数，得到rab，私钥解密，公钥验签
          */
         data = new BytesBuffer().append(raCipher.length).append(raCipher).append(raSign.length).append(raSign).toBytes();
-        res = client.send(new RequestMessage(CMDCode.CMD_EXCHANGE_RANDOM, data));
-
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXCHANGE_RANDOM, data);
+        res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            throw new DeviceException("密钥协商失败，交换随机数过程错误码:" + res.getHeader().getErrorCode() + "，错误信息:" + res.getHeader().getErrorInfo());
+        }
 
         byte[] rabCipher = res.getDataBuffer().readOneData();
         byte[] rbSign = res.getDataBuffer().readOneData();

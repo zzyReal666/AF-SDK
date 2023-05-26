@@ -6,6 +6,9 @@ import com.af.constant.CMDCode;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 import static com.af.constant.CmdConsts.CMD_EXPORT_KEY;
@@ -16,7 +19,7 @@ import static com.af.constant.CmdConsts.CMD_EXPORT_KEY;
  * @since 2023/5/6 10:02
  */
 public class KeyInfoImpl implements KeyInfo {
-
+    private static final Logger logger = LoggerFactory.getLogger(KeyInfoImpl.class);
 
     private final AFNettyClient client;
     private static KeyInfoImpl instance = null;
@@ -33,8 +36,6 @@ public class KeyInfoImpl implements KeyInfo {
     }
 
 
-
-
     /**
      * 获取私钥访问权限
      *
@@ -46,6 +47,7 @@ public class KeyInfoImpl implements KeyInfo {
      */
     @Override
     public int getPrivateKeyAccessRight(int keyIndex, int keyType, byte[] passwd) throws AFCryptoException {
+        logger.info("获取私钥访问权限");
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
                 .append(keyType)
@@ -56,7 +58,7 @@ public class KeyInfoImpl implements KeyInfo {
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             throw new AFCryptoException("获取私钥访问权限异常");
-        }else {
+        } else {
             return 0;
         }
     }
@@ -68,7 +70,7 @@ public class KeyInfoImpl implements KeyInfo {
      * @throws AFCryptoException 获取设备内部对称密钥状态异常
      */
     @Override
-    public List<AFSymmetricKeyStatus> getSymmetricKeyStatus(byte[] agreementKey ) throws AFCryptoException {
+    public List<AFSymmetricKeyStatus> getSymmetricKeyStatus(byte[] agreementKey) throws AFCryptoException {
         return null;
     }
 
@@ -81,7 +83,7 @@ public class KeyInfoImpl implements KeyInfo {
      * @throws AFCryptoException 导入非易失对称密钥异常
      */
     @Override
-    public void importKek(int index, byte[] keyData,byte[] agKey) throws AFCryptoException {
+    public void importKek(int index, byte[] keyData, byte[] agKey) throws AFCryptoException {
         new BytesBuffer()
                 .append(index)
                 .append(keyData.length)
@@ -117,7 +119,8 @@ public class KeyInfoImpl implements KeyInfo {
 
 
     @Override
-    public byte[] exportSymmKey(int index)  {
+    public byte[] exportSymmKey(int index) {
+        logger.info("exportSymmKey");
         RequestMessage req = new RequestMessage(CMD_EXPORT_KEY, new BytesBuffer().append(index).toBytes());
         ResponseMessage res = client.send(req);
         return res.getDataBuffer().readOneData();

@@ -40,7 +40,13 @@ public class RequestMessage {
             logger.warn("请求数据为空,只包含请求头");
         }
         this.header = new RequestHeader(data.length, cmd);
-        this.data = data;
+        if (cmd == 0x00000000) {
+            this.data = data;   //登录请求不加密
+        } else {
+//            this.data = SM4Utils.encrypt(data, SM4Utils.ROOT_KEY);
+            this.data = data;
+        }
+
     }
 
     public RequestMessage(int cmd) {

@@ -4,22 +4,34 @@ import com.af.constant.GroupMode;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PublicKey;
-import com.af.crypto.struct.impl.sm2.SM2Signature;
+import com.af.struct.impl.sm2.SM2Signature;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-class AFHsmDeviceTest {
+class
+AFHsmDeviceTest {
 
     static AFHsmDevice device;
     static byte[] data = "1234560abcdefgh0".getBytes(StandardCharsets.UTF_8);
 
+//    static byte[] data = FileUtil.readBytes("D:\\test.zip");
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
         device = AFHsmDevice.getInstance("192.168.1.224", 8008, "abcd1234");
+    }
+
+
+    /**
+     * 密钥协商
+     */
+    @Test
+    void testAgreeKey() throws Exception {
+        AFHsmDevice afHsmDevice = device.setAgKey();
+        System.out.println(afHsmDevice);
     }
 
     @Test
@@ -33,6 +45,7 @@ class AFHsmDeviceTest {
 
     }
 
+
     /**
      * SM1加解密<br>
      * Todo 1.测试16倍数/非倍数 <br>
@@ -45,7 +58,6 @@ class AFHsmDeviceTest {
         byte[] iv = device.getRandom(16);
 
         //内部 ECB
-        byte[] data = "12345678123456".getBytes();
         byte[] encryptECB = device.SM1Encrypt(GroupMode.ECB, 2, null, data);
         byte[] decryptECB = device.SM1Decrypt(GroupMode.ECB, 2, null, encryptECB);
         assert Arrays.equals(data, decryptECB);

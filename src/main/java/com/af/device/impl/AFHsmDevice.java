@@ -18,8 +18,8 @@ import com.af.crypto.key.keyInfo.KeyInfoImpl;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
-import com.af.crypto.struct.impl.sm2.SM2Cipher;
-import com.af.crypto.struct.impl.sm2.SM2Signature;
+import com.af.struct.impl.sm2.SM2Cipher;
+import com.af.struct.impl.sm2.SM2Signature;
 import com.af.device.DeviceInfo;
 import com.af.device.IAFHsmDevice;
 import com.af.exception.AFCryptoException;
@@ -59,16 +59,13 @@ public class AFHsmDevice implements IAFHsmDevice {
     //==============================单例模式===================================
     protected AFHsmDevice() {
     }
-
     private static final class InstanceHolder {
         static final AFHsmDevice instance = new AFHsmDevice();
     }
-
     public static AFHsmDevice getInstance(String host, int port, String passwd) {
         client = AFNettyClient.getInstance(host, port, passwd);
         return InstanceHolder.instance;
     }
-
     public AFHsmDevice setAgKey() {
         this.agKey = this.keyAgreement(client);
         return this;
@@ -87,12 +84,9 @@ public class AFHsmDevice implements IAFHsmDevice {
         RequestMessage req = new RequestMessage(CMDCode.CMD_DEVICEINFO, null);
         //发送请求
         ResponseMessage resp = client.send(req);
-        if (resp == null || resp.getHeader().getErrorCode() != 0) {
-            logger.error("获取设备信息错误,无响应或者响应码错误 response:{} ErrorCode:{}", resp == null ? "null" : resp.toString(), resp == null ? "null" : resp.getHeader().getErrorCode());
-            throw new AFCryptoException("获取设备信息错误");
+        if (resp.getHeader().getErrorCode() != 0) {
+            logger.error("获取设备信息错误,错误码:{},错误信息:{}", resp.getHeader().getErrorCode(), resp.getHeader().getErrorInfo());
         }
-        //解析响应
-
         DeviceInfo info = new DeviceInfo();
         info.decode(resp.getDataBuffer().readOneData());
         return info;
@@ -101,6 +95,8 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 获取随机数
+     * todo  增强
+     *
      *
      * @param length 随机数长度 字节数
      * @return 随机数
@@ -486,7 +482,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     @Override
     public SM2Signature SM2Signature(ModulusLength length, byte[] data, SM2PrivateKey privateKey) throws AFCryptoException {
         logger.info("SM2外部密钥签名 data: {} privateKey: {}", data, privateKey);
-        privateKey = privateKey.to512();
+        privateKey = privateKey.to256();
         byte[] sign = sm2.SM2Sign(-1, privateKey, data);
         SM2Signature sm2Signature = new SM2Signature(sign);
         if (ModulusLength.LENGTH_256.equals(length)) {
@@ -509,12 +505,13 @@ public class AFHsmDevice implements IAFHsmDevice {
     @Override
     public boolean SM2Verify(ModulusLength length, byte[] data, SM2Signature signature, SM2PublicKey publicKey) throws AFCryptoException {
         logger.info("SM2外部密钥验签 data: {} signature: {} publicKey: {}", data, signature, publicKey);
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            publicKey = publicKey.to256();
-        }
-        if (ModulusLength.LENGTH_512.equals(length)) {
-            publicKey = publicKey.to512();
-        }
+//        if (ModulusLength.LENGTH_256.equals(length)) {
+//            publicKey = publicKey.to256();
+//        }
+//        if (ModulusLength.LENGTH_512.equals(length)) {
+//            publicKey = publicKey.to512();
+//        }
+        publicKey = publicKey.to256();
         return sm2.SM2Verify(-1, publicKey, data, signature.encode());
     }
 

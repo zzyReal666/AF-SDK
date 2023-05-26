@@ -1,6 +1,6 @@
 package com.af.crypto.key;
 
-import com.af.crypto.struct.IAFStruct;
+import com.af.struct.IAFStruct;
 
 /**
  * @author zhangzhongyuan@szanfu.cn

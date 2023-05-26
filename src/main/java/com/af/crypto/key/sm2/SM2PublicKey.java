@@ -17,7 +17,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SM2PublicKey implements Key {
 
-    private int length; //密钥长度 256/512
+    private int length; //  256/512 模长
     private byte[] x;   //公钥x
     private byte[] y;   //公钥y
 
@@ -52,7 +52,7 @@ public class SM2PublicKey implements Key {
 
     public byte[] encode() {
         return new BytesBuffer()
-                .append(BytesOperate.int2bytes(this.length))
+                .append(length)
                 .append(this.x)
                 .append(this.y)
                 .toBytes();
@@ -60,15 +60,13 @@ public class SM2PublicKey implements Key {
 
     @Override
     public void decode(byte[] pubKey) {
-        //this.length = BytesOperate.bytes2int(pubKey, 0) + 256;
-        this.length = 512;
-        this.x = new byte[64];
-        this.y = new byte[64];
+        int tempLen = (pubKey.length - 4) / 2;  //前四位表示长度,后面的数据分成两份,分别表示x,y
+        this.length = tempLen * 8;
+        this.x = new byte[tempLen];
+        this.y = new byte[tempLen];
         System.arraycopy(pubKey, 4, this.x, 0, this.x.length);
         System.arraycopy(pubKey, 4 + this.x.length, this.y, 0, this.y.length);
     }
-
-    //size
     public int size() {
         return 4 + this.x.length + this.y.length;
     }
@@ -102,7 +100,7 @@ public class SM2PublicKey implements Key {
     public SM2PublicKey to256() {
         if (this.length == 256) {
             return this;
-        }else if (this.length == 512) {
+        } else if (this.length == 512) {
             byte[] x256 = new byte[32];
             byte[] y256 = new byte[32];
             System.arraycopy(this.x, 32, x256, 0, 32);

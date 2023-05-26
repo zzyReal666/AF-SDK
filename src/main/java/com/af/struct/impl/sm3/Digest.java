@@ -1,4 +1,4 @@
-package com.af.crypto.struct.impl.sm3;
+package com.af.struct.impl.sm3;
 
 /**
  * interface that a message digest conforms to.

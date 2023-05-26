@@ -1,4 +1,4 @@
-package com.af.crypto.struct.signAndVerify;
+package com.af.struct.signAndVerify;
 
 import com.af.utils.BytesOperate;
 import lombok.AllArgsConstructor;

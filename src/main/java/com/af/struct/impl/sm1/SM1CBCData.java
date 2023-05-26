@@ -1,4 +1,4 @@
-package com.af.crypto.struct.impl.sm1;
+package com.af.struct.impl.sm1;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

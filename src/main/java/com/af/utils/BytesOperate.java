@@ -3,7 +3,10 @@ package com.af.utils;
 
 import com.af.utils.base64.Base64;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Set;
@@ -120,7 +123,7 @@ public class BytesOperate {
     /**
      * 十六进制字符串转换为byte
      *
-     * @param str    十六进制字符串
+     * @param str 十六进制字符串
      * @return byte
      */
     public static byte[] hex2bytes(String str) {
@@ -223,7 +226,7 @@ public class BytesOperate {
     /**
      * base64编码数据
      *
-     * @param data base64编码数据
+     * @param data base64解码数据
      * @return byte[]
      */
     public static byte[] base64DecodeData(String data) {
@@ -244,6 +247,43 @@ public class BytesOperate {
         outCRL = base64CRL.replaceAll(begin, "");
         outCRL = outCRL.replaceAll(end, "");
         return base64DecodeData(outCRL);
+    }
+
+
+    /**
+     * base64 解码公钥
+     *
+     * @param base64PrivateKey base64编码公钥文件
+     * @return byte[]
+     */
+    public static byte[] base64DecodePrivateKey(String base64PrivateKey) {
+        String begin = "-----BEGIN EC PRIVATE KEY-----\n";
+        String end = "\n-----END EC PRIVATE KEY-----";
+        String outPubKey = "";
+        outPubKey = base64PrivateKey.replaceAll(begin, "");
+        outPubKey = outPubKey.replaceAll(end, "");
+        return base64DecodeData(outPubKey);
+    }
+
+
+    /**
+     * 读取文件
+     *
+     * @param filePath 文件路径
+     */
+    public static String readFileByLine(String filePath) {
+        StringBuilder strLine = new StringBuilder();
+        try {
+            File file = new File(filePath);
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            String tempStrLine = "";
+            while (null != (tempStrLine = reader.readLine())) {
+                strLine.append(tempStrLine);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return strLine.toString();
     }
 
 }

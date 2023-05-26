@@ -12,7 +12,7 @@ class BytesOperateTest {
 
     @Test
     void bytes2int() {
-        byte[] bytes = new byte[]{-124,0,0,0};
+        byte[] bytes = new byte[]{0,0,8,0};
         int i = BytesOperate.bytes2int(bytes, 0);
         System.out.println(i);
 

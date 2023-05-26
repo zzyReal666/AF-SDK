@@ -12,8 +12,6 @@ import com.af.utils.BytesOperate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
@@ -57,11 +55,8 @@ public class SM1Impl implements SM1 {
 
                 .append(data.length)
                 .append(data).toBytes();
-        logger.debug("dataLength: {},data:{}", data.length, Arrays.toString(data));
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param);
-        logger.debug("requestMessage: {}", requestMessage);
         ResponseMessage responseMessage = client.send(requestMessage);
-        logger.debug("responseMessage: {}", responseMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM1EncryptECB failed, ErrorCode: {} ,ErrorInfo: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM1EncryptECB failed, ErrorInfo: " + responseMessage.getHeader().getErrorInfo());
@@ -86,17 +81,13 @@ public class SM1Impl implements SM1 {
 
                 .append(data.length)
                 .append(data).toBytes();
-        logger.debug("dataLength: {},data:{}", data.length, Arrays.toString(data));
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param);
-        logger.debug("requestMessage: {}", requestMessage);
         ResponseMessage responseMessage = client.send(requestMessage);
-        logger.debug("responseMessage: {}", responseMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM1EncryptECB failed, ErrorCode: {} ,ErrorInfo: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM1EncryptECB failed, ErrorInfo: " + responseMessage.getHeader().getErrorInfo());
         }
-        int dataLen = BytesOperate.bytes2int(responseMessage.getData());
-        return BytesOperate.subBytes(responseMessage.getData(), 4, dataLen);
+        return responseMessage.getDataBuffer().readOneData();
     }
 
     /**

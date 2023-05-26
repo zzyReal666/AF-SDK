@@ -3,24 +3,34 @@ package com.af.device.impl;
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
-import com.af.crypto.struct.impl.sm2.SM2Signature;
-import com.af.crypto.struct.signAndVerify.*;
+import com.af.crypto.key.sm2.SM2PrivateKey;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.device.DeviceInfo;
 import com.af.device.IAFSVDevice;
 import com.af.device.cmd.AFSVCmd;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.struct.impl.sm2.SM2Signature;
+import com.af.struct.signAndVerify.*;
+import com.af.struct.signAndVerify.sm2.SM2PrivateKeyStructure;
+import com.af.struct.signAndVerify.sm2.SM2SignStructure;
+import com.af.utils.BigIntegerUtil;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
 import lombok.Setter;
 import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.pkcs.RSAPublicKey;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.asn1.x509.X509CertificateStructure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 
 /**
@@ -59,6 +69,11 @@ public class AFSVDevice implements IAFSVDevice {
     public static AFSVDevice getInstance(String host, int port, String passwd) {
         client = AFNettyClient.getInstance(host, port, passwd);
         return SingletonHolder.INSTANCE;
+    }
+
+    public AFSVDevice setAgKey() {
+        this.agKey = this.keyAgreement(client);
+        return this;
     }
 
 
@@ -159,7 +174,7 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getRSAPublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
-        byte[] encoded ;
+        byte[] encoded;
         byte[] sequenceBytes = cmd.getRSAPublicKey(keyIndex, keyUsage);
         //解析公钥
         try (ASN1InputStream asn1InputStream = new ASN1InputStream(sequenceBytes)) {
@@ -435,7 +450,14 @@ public class AFSVDevice implements IAFSVDevice {
     public byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {
         byte[] bytes = cmd.sm2Signature(index, data);
         SM2Signature sm2Signature = new SM2Signature(bytes).to256();
-        return BytesOperate.base64EncodeData(bytes);
+        SM2SignStructure structure = new SM2SignStructure(sm2Signature);
+        try {
+            byte[] encoded = structure.toASN1Primitive().getEncoded("DER");  // DER编码
+            return BytesOperate.base64EncodeData(encoded);                     // base64编码
+        } catch (IOException e) {
+            logger.error("SM2内部密钥签名失败", e);
+            throw new AFCryptoException(e);
+        }
     }
 
     /**
@@ -449,11 +471,28 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2Signature(byte[] data, byte[] privateKey) throws AFCryptoException {
-        return new byte[0];
+        byte[] decodeKey = BytesOperate.base64DecodePrivateKey(new String(privateKey));
+        InputStream inputData = new ByteArrayInputStream(decodeKey);
+        ASN1InputStream inputStream = new ASN1InputStream(inputData);
+        try {
+            // 读取私钥数据
+            ASN1Primitive obj = inputStream.readObject();
+            SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
+
+            //自定义私钥结构
+            SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(256,BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey()));
+            byte[] encodeKey = sm2PrivateKey.encode();
+            //
+            SM2Signature sm2Signature = new SM2Signature(cmd.sm2Signature(data, encodeKey)).to256();
+            SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);                              // 转换为ASN1结构
+            return BytesOperate.base64EncodeData(sm2SignStructure.toASN1Primitive().getEncoded("DER"));       // DER编码 base64编码
+        } catch (IOException e) {
+            logger.error("SM2外部密钥签名失败", e);
+            throw new AFCryptoException(e);
+        }
     }
 
     /**
-     * <p>基于证书的SM2签名</p>
      * <p>基于证书的SM2签名</p>
      *
      * @param data              ：待签名的数据
@@ -464,7 +503,20 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2SignatureByCertificate(byte[] data, byte[] privateKey, byte[] base64Certificate) throws AFCryptoException {
-        return new byte[0];
+        byte[] decodeKey = BytesOperate.base64DecodePrivateKey(new String(privateKey));
+        InputStream inputData = new ByteArrayInputStream(decodeKey);
+        ASN1InputStream inputStream = new ASN1InputStream(inputData);
+        try {
+            ASN1Primitive obj = inputStream.readObject();
+            SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
+            SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey())).to512();
+            SM2Signature sm2Signature = new SM2Signature(cmd.sm2Signature(data, sm2PrivateKey.encode())).to256();
+            SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);
+            return BytesOperate.base64EncodeData(sm2SignStructure.toASN1Primitive().getEncoded("DER"));
+        } catch (IOException e) {
+            logger.error("基于证书的SM2签名失败", e);
+            throw new AFCryptoException(e);
+        }
     }
 
     /**
@@ -477,7 +529,18 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2SignFile(int index, byte[] fileName) throws AFCryptoException {
-        return new byte[0];
+        String fileData = BytesOperate.readFileByLine(new String(fileName));
+        byte[] bytes = cmd.sm2SignFile(index, fileData.getBytes());
+        SM2Signature sm2Signature = new SM2Signature(bytes).to256();
+        SM2SignStructure structure = new SM2SignStructure(sm2Signature);
+        try {
+            byte[] encoded = structure.toASN1Primitive().getEncoded("DER");  // DER编码
+            return BytesOperate.base64EncodeData(encoded);                     // base64编码
+        } catch (IOException e) {
+            logger.error("SM2内部密钥签名失败,结构转换为ASN.1结构错误", e);
+            throw new AFCryptoException(e);
+        }
+
     }
 
     /**
@@ -491,7 +554,22 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2SignFile(byte[] fileName, byte[] privateKey) throws AFCryptoException {
-        return new byte[0];
+        byte[] decodeKey = BytesOperate.base64DecodePrivateKey(new String(privateKey));
+        InputStream inputData = new ByteArrayInputStream(decodeKey);
+        ASN1InputStream inputStream = new ASN1InputStream(inputData);
+        try {
+            ASN1Primitive obj = inputStream.readObject();
+            SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
+            SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey())).to512();
+            String fileData = BytesOperate.readFileByLine(new String(fileName));
+            byte[] bytes = cmd.sm2SignFile(sm2PrivateKey.encode(), fileData.getBytes());
+            SM2Signature sm2Signature = new SM2Signature(bytes).to256();
+            SM2SignStructure structure = new SM2SignStructure(sm2Signature);
+            return BytesOperate.base64EncodeData(structure.toASN1Primitive().getEncoded("DER"));
+        } catch (IOException e) {
+            logger.error("SM2外部密钥签名失败", e);
+            throw new AFCryptoException(e);
+        }
     }
 
     /**
@@ -506,7 +584,39 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2SignFileByCertificate(byte[] fileName, byte[] privateKey, byte[] base64Certificate) throws AFCryptoException {
-        return new byte[0];
+        byte[] decodeKey = BytesOperate.base64DecodePrivateKey(new String(privateKey));
+        InputStream inputData = new ByteArrayInputStream(decodeKey);
+        ASN1InputStream inputStream = new ASN1InputStream(inputData);
+        try {
+            // 读取私钥数据
+            ASN1Primitive obj = inputStream.readObject();
+            SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
+            SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey())).to512();
+            // 读取文件数据
+            String fileData = BytesOperate.readFileByLine(new String(fileName));
+
+            //读取证书数据
+            String certData = BytesOperate.readFileByLine(new String(base64Certificate));
+            byte[] derCert = BytesOperate.base64DecodeCert(new String(certData.getBytes(StandardCharsets.UTF_8)));
+            InputStream input = new ByteArrayInputStream(derCert);
+            ASN1InputStream certStream = new ASN1InputStream(input);
+            ASN1Primitive certObj = certStream.readObject();
+            X509CertificateStructure cert = new X509CertificateStructure((ASN1Sequence) certObj);
+            byte[] encodePubkey = cert.getSubjectPublicKeyInfo().getPublicKeyData().getEncoded();
+            byte[] sm2PubKey = new byte[4 + 32 + 32];
+            System.arraycopy(BytesOperate.int2bytes(256), 0, sm2PubKey, 0, 4);
+            System.arraycopy(encodePubkey, 4, sm2PubKey, 4, 64);
+            SM2PublicKey sm2PublicKey = new SM2PublicKey(sm2PubKey);
+
+            // 签名
+            byte[] bytes = cmd.sm2SignFileByCertificate(fileData.getBytes(StandardCharsets.UTF_8), sm2PrivateKey.encode(), sm2PublicKey.encode());
+            SM2Signature sm2Signature = new SM2Signature(bytes).to256();
+            SM2SignStructure structure = new SM2SignStructure(sm2Signature);
+            return BytesOperate.base64EncodeData(structure.toASN1Primitive().getEncoded("DER"));
+        } catch (IOException e) {
+            logger.error("基于证书的SM2文件签名失败", e);
+            throw new AFCryptoException(e);
+        }
     }
 
     /**
@@ -524,7 +634,24 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public boolean sm2Verify(int keyIndex, byte[] data, byte[] signature) throws AFCryptoException {
-        return false;
+        byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
+        byte[] signatureData = new byte[64];
+        try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
+            SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
+            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
+            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
+            SM2Signature sm2Signature = new SM2Signature();
+            sm2Signature.decode(signatureData);
+            return cmd.sm2Verify(keyIndex, data, sm2Signature.to512().encode());
+        } catch (IOException e) {
+            // 处理异常
+            logger.error("SM2内部密钥验证签名失败,序列化失败", e);
+            throw new AFCryptoException(e);
+        }
+
+//        return cmd.sm2Verify(keyIndex, data, signature);
+
+//        return cmd.sm2Verify(keyIndex, data, new SM2Signature(signature).to512().encode());
     }
 
     /**
@@ -542,7 +669,27 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] data, byte[] signature) throws AFCryptoException {
-        return false;
+        logger.info("基于证书的SM2验证签名(外部密钥验签)");
+        if (this.validateCertificate(base64Certificate) != 0) {
+            throw new AFCryptoException("验证签名失败 ----> 当前证书验证未通过，不可使用，请更换证书后重试！！！");
+        } else {
+            //读取签名数据
+            byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
+            byte[] signatureData = new byte[64];
+            try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
+                SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
+                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
+                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
+
+                SM2Signature sm2Signature = new SM2Signature(signatureData).to512();
+                return cmd.sm2VerifyByCertificate(base64Certificate, data, sm2Signature.encode());
+            } catch (IOException e) {
+                // 处理异常
+                logger.error("基于证书的SM2验证签名失败,序列化失败", e);
+                throw new AFCryptoException(e);
+            }
+
+        }
     }
 
     /**

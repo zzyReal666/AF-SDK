@@ -1,6 +1,6 @@
 package com.af.crypto.key.RSA;
 
-import com.af.crypto.struct.IAFStruct;
+import com.af.struct.IAFStruct;
 import com.af.exception.AFCryptoException;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;

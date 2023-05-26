@@ -1,12 +1,13 @@
 package com.af.device.impl;
 
+import cn.hutool.core.codec.Base64;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
-import com.af.crypto.struct.impl.sm2.SM2Cipher;
-import com.af.crypto.struct.impl.sm2.SM2Signature;
 import com.af.exception.AFCryptoException;
+import com.af.struct.impl.sm2.SM2Cipher;
+import com.af.struct.impl.sm2.SM2Signature;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -100,7 +101,18 @@ class SM2Test {
      */
     @Test
     void testInSign256() throws AFCryptoException {
+
         SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_256, 1, data);
+        //签名结果
+        System.out.println("内部密钥签名结果=" + Base64.encode(sm2Signature.encode()));
+
+        String s = "orAMoqjQVEKlaiMly0fXdlYfjIH5gzhyAPWKEUS7PTBi9IMYF/eT6bVwTzpGINRPPCRcYvzFIJLOQ6evzj8oQQ==";
+        byte[] decode = Base64.decode(s);
+
+
+
+
+        sm2Signature.decode(decode);
         boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, 1, data, sm2Signature);
         assert verify;
     }
@@ -126,9 +138,10 @@ class SM2Test {
         SM2PrivateKey priKey = sm2KeyPair1.getPriKey();
         SM2PublicKey pubKey = sm2KeyPair1.getPubKey();
         SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_256, data, priKey);
-        boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, data,sm2Signature,pubKey);
+        boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, data, sm2Signature, pubKey);
         assert verify;
     }
+
     /**
      * 外部签名验签512
      */
@@ -136,7 +149,8 @@ class SM2Test {
     void testExSign512() throws AFCryptoException {
         SM2KeyPair sm2KeyPair2 = device.generateSM2KeyPair(ModulusLength.LENGTH_512);
         SM2Signature sm2Signature2 = device.SM2Signature(ModulusLength.LENGTH_512, data, sm2KeyPair2.getPriKey());
-        boolean verify2 = device.SM2Verify(ModulusLength.LENGTH_512, data,sm2Signature2, sm2KeyPair2.getPubKey());
+        boolean verify2 = device.SM2Verify(ModulusLength.LENGTH_512, data, sm2Signature2, sm2KeyPair2.getPubKey());
         assert verify2;
+
     }
 }

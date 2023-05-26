@@ -1,8 +1,12 @@
 package com.af.device.impl;
 
+import com.af.constant.ModulusLength;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.exception.AFCryptoException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
 
 class SM3Test {
 
@@ -25,6 +29,15 @@ class SM3Test {
 
     @Test
     void SM3HMac() {
+    }
+
+
+    @Test
+    void testSM3HashWithPublicKey256() throws Exception{
+        //获取公钥
+        SM2PublicKey sm2EncryptPublicKey = device.getSM2EncryptPublicKey(2, ModulusLength.LENGTH_256);
+        byte[] bytes = device.SM3HashWithPubKey(data, sm2EncryptPublicKey, "1".getBytes());
+        System.out.println(Arrays.toString(bytes));
     }
 
 }

@@ -1,6 +1,6 @@
-package com.af.crypto.struct.impl.sm2;
+package com.af.struct.impl.sm2;
 
-import com.af.crypto.struct.IAFStruct;
+import com.af.struct.IAFStruct;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
@@ -44,8 +44,8 @@ public class SM2Signature implements IAFStruct {
 
     @Override
     public void decode(byte[] data)  {
-        this.r = new byte[64];
-        this.s = new byte[64];
+        this.r = new byte[(data.length+1)/2];
+        this.s = new byte[(data.length+1)/2];
         System.arraycopy(data, 0, this.r, 0, this.r.length);
         System.arraycopy(data, this.r.length, this.s, 0, this.r.length);
 

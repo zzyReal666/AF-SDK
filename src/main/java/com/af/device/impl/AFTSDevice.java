@@ -22,13 +22,13 @@ import java.nio.charset.StandardCharsets;
  */
 public class AFTSDevice implements IAFTSDevice {
     private static final Logger logger = LoggerFactory.getLogger(AFTSDevice.class);
+
+
     /**
      * 通信客户端
      */
     @Getter
     private static AFNettyClient client = null;
-
-
 
     //私有化构造方法
     private AFTSDevice() {
@@ -44,6 +44,8 @@ public class AFTSDevice implements IAFTSDevice {
         client = AFNettyClient.getInstance(host, port, passwd);
         return SingletonHolder.INSTANCE;
     }
+
+
 
     /**
      * 获取设备信息

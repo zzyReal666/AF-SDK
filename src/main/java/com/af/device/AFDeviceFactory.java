@@ -14,9 +14,8 @@ public class AFDeviceFactory {
 
 
     public static AFHsmDevice getAFHsmDevice(String host, int port, String passwd) {
-        return AFHsmDevice.getInstance(host, port, passwd).setAgKey();
+        return AFHsmDevice.getInstance(host, port, passwd);
     }
-
 
 
     public static AFCryptoDevice getAFCryptoDevice(String host, int port, String passwd) {
@@ -33,5 +32,7 @@ public class AFDeviceFactory {
     public static AFSVDevice getAFSVDevice(String host, int port, String passwd) {
         return AFSVDevice.getInstance(host, port, passwd);
     }
+
+
 
 }

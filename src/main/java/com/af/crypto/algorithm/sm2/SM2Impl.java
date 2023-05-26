@@ -10,7 +10,7 @@ import com.af.crypto.algorithm.sm3.SM3Impl;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
-import com.af.crypto.struct.impl.sm2.SM2Cipher;
+import com.af.struct.impl.sm2.SM2Cipher;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
@@ -259,7 +259,7 @@ public class SM2Impl implements SM2 {
         byte[] hashData = sm3.SM3Hash(data);
         byte[] param;
         RequestMessage requestMessage;
-        if (null == publicKey) {
+        if (null == publicKey) {  //使用内部密钥
             param = new BytesBuffer()
                     .append(begin)
                     .append(index)
@@ -269,7 +269,7 @@ public class SM2Impl implements SM2 {
                     .append(signData)
                     .toBytes();
             requestMessage = new RequestMessage(CMDCode.CMD_INTERNALVERIFY_ECC, param);
-        } else {
+        } else { //使用外部密钥
             param = new BytesBuffer()
                     .append(zero)
                     .append(ConstantNumber.SGD_SM2_1)
@@ -285,6 +285,10 @@ public class SM2Impl implements SM2 {
         }
 
         ResponseMessage responseMessage = client.send(requestMessage);
-        return responseMessage.getHeader().getErrorCode() == 0;
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            logger.error("SM2验签错误,错误信息:{}", responseMessage.getHeader().getErrorInfo());
+            return false;
+        }
+        return true;
     }
 }

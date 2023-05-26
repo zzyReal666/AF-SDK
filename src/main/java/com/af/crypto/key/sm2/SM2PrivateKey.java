@@ -6,17 +6,19 @@ import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
- * @description     SM2私钥
+ * @description SM2私钥
  * @since 2023/4/26 16:52
  */
 @Getter
+@Setter
 @NoArgsConstructor
 public class SM2PrivateKey implements Key {
 
-    private int length; //密钥长度 256/512
+    private int length; //模长 256/512
     private byte[] D;   //私钥D
 
     public SM2PrivateKey(byte[] data) {
@@ -80,15 +82,14 @@ public class SM2PrivateKey implements Key {
     @Override
     public byte[] encode() {
         BytesBuffer buf = new BytesBuffer();
-        buf.append(BytesOperate.int2bytes(this.length));
+        buf.append(this.length);
         buf.append(this.D);
         return buf.toBytes();
     }
 
     @Override
     public void decode(byte[] encodedKey) {
-        //todo 因为返回实际是64字节,长度字段却是0100(256位)
-        this.length = BytesOperate.bytes2int(encodedKey, 0)+256;
+        this.length = (encodedKey.length - 4) * 8;  //前4个字节是length 后面的是D,此变量为模长 256/512
         this.D = new byte[this.length / 8];
         //从encodedKey的第4个字节开始  复制到this.D的0位置 复制长度为this.length/8
         System.arraycopy(encodedKey, 4, this.D, 0, this.length / 8);
@@ -96,7 +97,7 @@ public class SM2PrivateKey implements Key {
 
     //size
     public int size() {
-        return 4 + this.length / 8;
+        return 4 + this.D.length;
     }
 
 
@@ -109,7 +110,7 @@ public class SM2PrivateKey implements Key {
         if (this.length == 256) {
             return this;
         }
-        byte [] D = new byte[32];
+        byte[] D = new byte[32];
         System.arraycopy(this.D, 32, D, 0, D.length);
         return new SM2PrivateKey(256, D);
     }
