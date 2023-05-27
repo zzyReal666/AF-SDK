@@ -120,9 +120,14 @@ public enum ConstantNumber {
     public static final int AF_LEN_4096 = 1024 * 512;
     public static final int AF_LEN_MAX = 4096 + 4096;
 
+    public static final int LiteRSARef_MAX_BITS = 2048;
+    public static final int LiteRSARef_MAX_LEN = ((LiteRSARef_MAX_BITS + 7) / 8);
+    public static final int LiteRSARef_MAX_PBITS = ((LiteRSARef_MAX_BITS + 1) / 2);
+    public static final int LiteRSARef_MAX_PLEN = ((LiteRSARef_MAX_PBITS + 7) / 8);
+
 
     //签名验签服务器
-    public static int SIGN_PUBLIC_KEY = 0;
-    public static int ENC_PUBLIC_KEY = 1;
-    public static String DEFAULT_USER_ID = "1234567812345678";
+    public static final int SIGN_PUBLIC_KEY = 0;
+    public static final  int ENC_PUBLIC_KEY = 1;
+    public static final String DEFAULT_USER_ID = "1234567812345678";
 }

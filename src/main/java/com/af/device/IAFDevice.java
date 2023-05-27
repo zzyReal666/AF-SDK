@@ -1,5 +1,6 @@
 package com.af.device;
 
+
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.crypto.Mode;
@@ -29,9 +30,8 @@ import java.security.KeyPair;
 public interface IAFDevice {
 
 
-
-    byte[] ROOT_KEY = {(byte) 0x46, (byte) 0xd3, (byte) 0xf4, (byte) 0x6d, (byte) 0x2e, (byte) 0xc2, (byte) 0x4a, (byte) 0xae, (byte) 0xb1, (byte) 0x84, (byte) 0x62,
-            (byte) 0xdd, (byte) 0x86, (byte) 0x23, (byte) 0x71, (byte) 0xed};
+     byte[] ROOT_KEY = { (byte) 0x46, (byte) 0xd3, (byte) 0xf4, (byte) 0x6d, (byte) 0x2e, (byte) 0xc2, (byte) 0x4a, (byte) 0xae, (byte) 0xb1, (byte) 0x84, (byte) 0x62,
+            (byte) 0xdd, (byte) 0x86, (byte) 0x23, (byte) 0x71, (byte) 0xed };
 
     //=======================================================设备信息=======================================================
 
@@ -54,7 +54,7 @@ public interface IAFDevice {
     byte[] getRandom(int length) throws AFCryptoException;
 
 
-    default byte[] keyAgreement(AFNettyClient client)  {
+    default byte[] keyAgreement(AFNettyClient client) {
         /*
          * 1、生成公私钥对
          */
@@ -70,10 +70,9 @@ public interface IAFDevice {
         SM4 sm4Padding = new SM4(Mode.ECB, Padding.PKCS5Padding, ROOT_KEY);
         byte[] cPubKey = sm4Padding.encrypt(pubKey);
         byte[] data = new BytesBuffer().append(cPubKey.length).append(cPubKey).toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_EXCHANGE_PUBLIC_KEY, data);
-        ResponseMessage res = client.send(requestMessage);
+        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_EXCHANGE_PUBLIC_KEY, data));
         if (res.getHeader().getErrorCode() != 0) {
-            throw new DeviceException("密钥协商失败，错误码:" + res.getHeader().getErrorCode() + "，错误信息:" + res.getHeader().getErrorInfo());
+            throw new DeviceException("密钥协商失败，交换公钥服错误,错误码：" + res.getHeader().getErrorCode() + ",错误信息：" + res.getHeader().getErrorInfo());
         }
         byte[] cServerPubKey = res.getDataBuffer().readOneData();
         SM4 sm4NoPadding = new SM4(Mode.ECB, Padding.NoPadding, ROOT_KEY);
@@ -90,14 +89,14 @@ public interface IAFDevice {
          * 4、交换随机数，得到rab，私钥解密，公钥验签
          */
         data = new BytesBuffer().append(raCipher.length).append(raCipher).append(raSign.length).append(raSign).toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXCHANGE_RANDOM, data);
-        res = client.send(req);
+        res = client.send(new RequestMessage(CMDCode.CMD_EXCHANGE_RANDOM, data));
         if (res.getHeader().getErrorCode() != 0) {
-            throw new DeviceException("密钥协商失败，交换随机数过程错误码:" + res.getHeader().getErrorCode() + "，错误信息:" + res.getHeader().getErrorInfo());
+            throw new DeviceException("密钥协商失败，交换随机数错误,错误码：" + res.getHeader().getErrorCode() + ",错误信息：" + res.getHeader().getErrorInfo());
         }
 
-        byte[] rabCipher = res.getDataBuffer().readOneData();
-        byte[] rbSign = res.getDataBuffer().readOneData();
+        BytesBuffer dataBuffer = res.getDataBuffer();
+        byte[] rabCipher =dataBuffer.readOneData();
+        byte[] rbSign = dataBuffer.readOneData();
         byte[] rab = Sm2Util.decrypt(priKey, rabCipher); // 使用私钥解密rab
         if (!ArrayUtil.equals(ra, ArrayUtil.sub(rab, 0, 16))) { // 对比ra
             throw new DeviceException("密钥协商失败，对比客户端随机数不一致");
@@ -114,7 +113,6 @@ public interface IAFDevice {
         for (int i = 0; i < 16; i++) {
             agreementKey[i] = (byte) (ra[i] ^ rb[i]);
         }
-//        return agreementKey;
         return ROOT_KEY;
     }
 

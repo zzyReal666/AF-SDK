@@ -1,6 +1,8 @@
 package com.af.struct.signAndVerify.sm2;
 
 
+import com.af.struct.impl.sm2.SM2Cipher;
+import com.af.utils.BigIntegerUtil;
 import lombok.Getter;
 import org.bouncycastle.asn1.*;
 
@@ -35,6 +37,15 @@ public class SM2CipherStructure implements ASN1Encodable {
         this.y = y;
         this.C = C;
         this.M = M;
+    }
+
+    public SM2CipherStructure(SM2Cipher cipher) {
+        this.x = BigIntegerUtil.toPositiveInteger(cipher.getX());
+        this.y = BigIntegerUtil.toPositiveInteger(cipher.getY());
+        byte[] c= new byte[cipher.getLength()];
+        System.arraycopy(cipher.getC(), 0, c, 0, c.length);
+        this.C = c;
+        this.M = cipher.getM();
     }
 
     public SM2CipherStructure(ASN1Sequence seq) {

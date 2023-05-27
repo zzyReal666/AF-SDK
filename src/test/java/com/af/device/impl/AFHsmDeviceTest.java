@@ -21,7 +21,7 @@ AFHsmDeviceTest {
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-        device = AFHsmDevice.getInstance("192.168.1.224", 8008, "abcd1234");
+        device = AFHsmDevice.getInstance("192.168.1.232", 6001, "abcd1234");
     }
 
 

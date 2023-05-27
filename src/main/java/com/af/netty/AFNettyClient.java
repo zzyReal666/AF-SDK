@@ -132,8 +132,10 @@ public class AFNettyClient {
      * 发送数据
      */
     public ResponseMessage send(RequestMessage requestMessage) {
+        logger.info("==> {}", requestMessage);
         byte[] req = requestMessage.encode();
         byte[] res = send(req);
+        logger.info("<== {}", new ResponseMessage(res));
         return new ResponseMessage(res);
     }
 
@@ -141,7 +143,6 @@ public class AFNettyClient {
         if (channel == null || !channel.isActive()) {
             connect();
         }
-        logger.info("channelId:{}", channel.id());
         try {
             //msg 转为 ByteBuf
             ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);

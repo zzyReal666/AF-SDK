@@ -1,39 +1,39 @@
-package com.af.crypto.key.RSA;
+package com.af.struct.impl.RSA;
 
 
 import com.af.struct.IAFStruct;
-import com.af.exception.AFCryptoException;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Setter
 @Getter
-public class RSAPublicKey implements IAFStruct {
+@NoArgsConstructor
+public class RSAPubKey implements IAFStruct {
     private int bits;
     private byte[] m = new byte[LiteRSARef_MAX_LEN];
     private byte[] e = new byte[LiteRSARef_MAX_LEN];
 
     //构造
-    public RSAPublicKey(byte[] data) {
-        try {
-            this.decode(data);
-        } catch (AFCryptoException e) {
-            e.printStackTrace();
-        }
+    public RSAPubKey(byte[] data) {
+        this.decode(data);
+
     }
 
     @Override
     public int size() {
         return 4 + LiteRSARef_MAX_LEN * 2;
     }
+
     @Override
-    public void decode(byte[] expPubKey) throws AFCryptoException {
+    public void decode(byte[] expPubKey) {
         this.bits = BytesOperate.bytes2int(expPubKey, 0);
         System.arraycopy(expPubKey, 4, this.m, 0, LiteRSARef_MAX_LEN);
         System.arraycopy(expPubKey, 4 + LiteRSARef_MAX_LEN, this.e, 0, LiteRSARef_MAX_LEN);
     }
+
     @Override
     public byte[] encode() {
         return new BytesBuffer()
@@ -42,6 +42,7 @@ public class RSAPublicKey implements IAFStruct {
                 .append(this.e)
                 .toBytes();
     }
+
     public String toString() {
         StringBuilder builder = new StringBuilder();
         String nl = System.getProperty("line.separator");

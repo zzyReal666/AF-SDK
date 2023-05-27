@@ -3,6 +3,7 @@ package com.af.device;
 import com.af.exception.AFCryptoException;
 import com.af.struct.signAndVerify.*;
 
+import java.io.IOException;
 import java.security.cert.CertificateException;
 
 /**
@@ -394,7 +395,7 @@ public interface IAFSVDevice extends IAFDevice{
      * @return : true ：验证签名成功，false ：验证签名失败
      * @throws AFCryptoException
      */
-    boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] crlData, byte[] data, byte[] signature) throws AFCryptoException;
+    boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] crlData, byte[] data, byte[] signature) throws AFCryptoException, CertificateException;
 
     /**
      * <p>SM2内部密钥验证w文件签名</p>
@@ -443,7 +444,7 @@ public interface IAFSVDevice extends IAFDevice{
      * @return : true ：验证签名成功，false ：验证签名失败
      * @throws AFCryptoException
      */
-    boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] crlData, byte[] fileName, byte[] signature) throws AFCryptoException;
+    boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] crlData, byte[] fileName, byte[] signature) throws AFCryptoException, CertificateException;
 
     /**
      * <p>sm2加密</p>
@@ -454,7 +455,7 @@ public interface IAFSVDevice extends IAFDevice{
      * @return ：Base64编码的密文数据
      * @throws AFCryptoException
      */
-    byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException;
+    byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException, IOException;
 
     /**
      * <p>sm2加密</p>

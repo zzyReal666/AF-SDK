@@ -10,6 +10,8 @@ import com.af.device.DeviceInfo;
 import com.af.device.impl.AFHsmDevice;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.struct.impl.RSA.RSAPriKey;
+import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.signAndVerify.*;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
@@ -24,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.*;
+import java.util.Arrays;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -170,17 +173,13 @@ public class AFSVCmd {
                 .append(keyIndex)
                 .append(type)
                 .toBytes();
-
-
         RequestMessage requestMessage = new RequestMessage(cmdID, param);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SV-导出RSA公钥失败, 错误码:{}, 错误信息:{}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SV-导出RSA公钥失败, 错误码:" + responseMessage.getHeader().getErrorCode() + ", 错误信息:" + responseMessage.getHeader().getErrorInfo());
-        } else {
-            return responseMessage.getDataBuffer().readOneData();
         }
-
+        return responseMessage.getDataBuffer().readOneData();
     }
 
     /**
@@ -193,7 +192,23 @@ public class AFSVCmd {
      */
 
     public byte[] rsaSignature(int keyIndex, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SV-RSA签名, keyIndex:{}, inDataLen:{}", keyIndex, inData.length);
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .append(ConstantNumber.SGD_RSA_SIGN)
+                .append(0)
+                .append(0)
+                .append(inData.length)
+                .append(inData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_INTERNALPRIVATEKEYOPERATION_RSA, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-RSA签名失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-RSA签名失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
+
     }
 
     /**
@@ -217,47 +232,27 @@ public class AFSVCmd {
      * @return : 返回Base64编码的签名数据
      */
 
-    public byte[] rsaSignature(byte[] privateKey, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+    public byte[] rsaSignature(RSAPriKey privateKey, byte[] inData) throws AFCryptoException {
+        logger.info("SV-RSA签名, privateKeyLen:{}, inDataLen:{}", privateKey, inData.length);
+        byte[] param = new BytesBuffer()
+                .append(0)
+                .append(0)
+                .append(0)
+                .append(privateKey.size())
+                .append(privateKey.encode())
+                .append(inData.length)
+                .append(inData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPRIVATEKEYOPERATION_RSA, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-RSA签名失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-RSA签名失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
-    /**
-     * <p>对文件进行RSA签名运算</p>
-     * <p>使用RSA内部密钥对文件内容进行签名运算</p>
-     *
-     * @param keyIndex ：密码设备内部存储的RSA索引号
-     * @param fileName ：待签名的文件名称
-     * @return : 返回Base64编码的签名数据
-     */
 
-    public byte[] rsaSignFile(int keyIndex, byte[] fileName) throws AFCryptoException {
-        return new byte[0];
-    }
-
-    /**
-     * <p>对文件进行RSA签名运算</p>
-     * <p>使用外部RSA密钥对文件内容进行签名运算</p>
-     *
-     * @param privateKey ：base64编码的RSA私钥数据，其结构应满足PKCS#1中的RSA结构定义
-     *                   <p>RSAPrivateKey ::= SEQUENCE {</p>
-     *                   <p>    version             Version,</p>
-     *                   <p>    modulus             INTEGER, --- n</p>
-     *                   <p>    publicExponent      INTEGER, --- e</p>
-     *                   <p>    privateExponent     INTEGER, --- d</p>
-     *                   <p>    prime1              INTEGER, --- p</p>
-     *                   <p>    prime2              INTEGER, --- q</p>
-     *                   <p>    exponent1           INTEGER, --- d mod (p-1)</p>
-     *                   <p>    exponent2           INTEGER, --- d mod (q-1)</p>
-     *                   <p>    coefficient         INTEGER, --- (inverse of q) mod p</p>
-     *                   <p>    otherPrimeInfos     OtherPrimeInfos OPTIONAL</p>
-     *                   <p>}</p>
-     * @param fileName   ：待签名的文件名称
-     * @return : 返回Base64编码的签名数据
-     */
-
-    public byte[] rsaSignFile(byte[] privateKey, byte[] fileName) throws AFCryptoException {
-        return new byte[0];
-    }
 
     /**
      * <p>RSA验证签名</p>
@@ -270,7 +265,22 @@ public class AFSVCmd {
      */
 
     public boolean rsaVerify(int keyIndex, byte[] inData, byte[] signatureData) throws AFCryptoException {
-        return false;
+        logger.info("SV-RSA验签, keyIndex:{}, inDataLen:{}, signatureDataLen:{}", keyIndex, inData.length, signatureData.length);
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .append(ConstantNumber.SGD_RSA_SIGN)
+                .append(0)
+                .append(0)
+                .append(signatureData.length)
+                .append(signatureData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_INTERNALPUBLICKEYOPERATION_RSA, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-RSA验签失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-RSA验签失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return Arrays.equals(res.getDataBuffer().readOneData(), inData);
     }
 
     /**
@@ -287,69 +297,26 @@ public class AFSVCmd {
      * @return : true : 验证成功，false ：验证失败
      */
 
-    public boolean rsaVerify(byte[] publicKey, byte[] inData, byte[] signatureData) throws AFCryptoException {
-        return false;
+    public boolean rsaVerify(RSAPubKey publicKey, byte[] inData, byte[] signatureData) throws AFCryptoException {
+        logger.info("SV-RSA验签, publicKey:{}, inDataLen:{}, signatureDataLen:{}", publicKey, inData.length, signatureData.length);
+        byte[] param = new BytesBuffer()
+                .append(0)
+                .append(0)
+                .append(0)
+                .append(publicKey.size())
+                .append(publicKey.encode())
+                .append(signatureData.length)
+                .append(signatureData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPUBLICKEYOPERATION_RSA, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-RSA验签失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-RSA验签失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return Arrays.equals(res.getDataBuffer().readOneData(), inData);
     }
 
-    /**
-     * <p>RSA验证签名</p>
-     * <p>使用证书对数据进行验证签名运算</p>
-     *
-     * @param certificate   ：base64编码的RSA数字证书
-     * @param inData        ：原始数据
-     * @param signatureData ：Base64编码的签名数据
-     * @return : true : 验证成功，false ：验证失败
-     */
-
-    public boolean rsaVerifyByCertificate(byte[] certificate, byte[] inData, byte[] signatureData) throws AFCryptoException {
-        return false;
-    }
-
-    /**
-     * <p>对文件进行RSA验证签名</p>
-     * <p>使用内部密钥对文件签名值进行验证</p>
-     *
-     * @param keyIndex      ：密码设备内部存储的RSA索引号
-     * @param fileName      ：文件名称
-     * @param signatureData ：Base64编码的签名数据
-     * @return : true : 验证成功，false ：验证失败
-     */
-
-    public boolean rsaVerifyFile(int keyIndex, byte[] fileName, byte[] signatureData) throws AFCryptoException {
-        return false;
-    }
-
-    /**
-     * <p>对文件进行RSA验证签名</p>
-     * <p>使用外部RSA密钥对文件签名值进行验证</p>
-     *
-     * @param publicKey     ：base64编码的RSA公钥数据，其结构应满足PKCS#1中的RSA结构定义
-     *                      <p>RSAPublicKey ::= SEQUENCE {</p>
-     *                      <p>    modulus             INTEGER, --- n</p>
-     *                      <p>    publicExponent      INTEGER, --- e</p>
-     *                      <p>}</p>
-     * @param fileName      ：文件名称
-     * @param signatureData ：Base64编码的签名数据
-     * @return : true : 验证成功，false ：验证失败
-     */
-
-    public boolean rsaVerifyFile(byte[] publicKey, byte[] fileName, byte[] signatureData) throws AFCryptoException {
-        return false;
-    }
-
-    /**
-     * <p>RSA验证签名</p>
-     * <p>使用证书对文件签名数据进行验证签名运算</p>
-     *
-     * @param certificate   ：base64编码的RSA数字证书
-     * @param fileName      ：文件名称
-     * @param signatureData ：Base64编码的签名数据
-     * @return : true : 验证成功，false ：验证失败
-     */
-
-    public boolean rsaVerifyFileByCertificate(byte[] certificate, byte[] fileName, byte[] signatureData) throws AFCryptoException {
-        return false;
-    }
 
     /**
      * <p>RSA加密</p>
@@ -361,7 +328,22 @@ public class AFSVCmd {
      */
 
     public byte[] rsaEncrypt(int keyIndex, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SV-RSA加密, keyIndex:{}, inDataLen:{}", keyIndex, inData.length);
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .append(ConstantNumber.SGD_RSA_ENC)
+                .append(0)
+                .append(0)
+                .append(inData.length)
+                .append(inData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_INTERNALPUBLICKEYOPERATION_RSA, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-RSA加密失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-RSA加密失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
@@ -377,22 +359,28 @@ public class AFSVCmd {
      * @return ：Base64编码的加密数据
      */
 
-    public byte[] rsaEncrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+    public byte[] rsaEncrypt(RSAPubKey publicKey, byte[] inData) throws AFCryptoException {
+        logger.info("SV-RSA加密, publicKey:{}, inDataLen:{}", publicKey, inData.length);
+
+        byte[] param = new BytesBuffer()
+                .append(0)
+                .append(0)
+                .append(0)
+                .append(publicKey.size())
+                .append(publicKey.encode())
+                .append(inData.length)
+                .append(inData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPUBLICKEYOPERATION_RSA, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-RSA加密失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-RSA加密失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
-    /**
-     * <p>RSA加密</p>
-     * <p>使用RSA数字证书对数据进行加密</p>
-     *
-     * @param certificate ：base64编码的RSA数字证书
-     * @param inData      ：待加密的原始数据
-     * @return ：Base64编码的加密数据
-     */
 
-    public byte[] rsaEncryptByCertificate(byte[] certificate, byte[] inData) throws AFCryptoException {
-        return new byte[0];
-    }
 
     /**
      * <p>RSA解密</p>
@@ -404,7 +392,22 @@ public class AFSVCmd {
      */
 
     public byte[] rsaDecrypt(int keyIndex, byte[] encData) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SV-RSA解密, keyIndex:{}, encDataLen:{}", keyIndex, encData.length);
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .append(ConstantNumber.SGD_RSA_ENC)
+                .append(0)
+                .append(0)
+                .append(encData.length)
+                .append(encData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_INTERNALPRIVATEKEYOPERATION_RSA, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-RSA解密失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-RSA解密失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
@@ -428,8 +431,26 @@ public class AFSVCmd {
      * @return ：原始数据
      */
 
-    public byte[] rsaDecrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
-        return new byte[0];
+    public byte[] rsaDecrypt(RSAPriKey privateKey, byte[] encData) throws AFCryptoException {
+        logger.info("SV-RSA解密, privateKey:{}, encDataLen:{}", privateKey, encData.length);
+        byte[] param = new BytesBuffer()
+                .append(0)
+                .append(0)
+                .append(0)
+                .append(privateKey.size())
+                .append(privateKey.encode())
+                .append(encData.length)
+                .append(encData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPRIVATEKEYOPERATION_RSA, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-RSA解密失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-RSA解密失败, 错误码:" + res.getHeader().getErrorCode() + ", 错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
+
+
     }
 
     /**
@@ -708,15 +729,16 @@ public class AFSVCmd {
 
     /**
      * SM2验证签名 外部公钥
-     * @param data 待验证签名的原始数据
-     * @param signature 待验证签名的签名数据
+     *
+     * @param data         待验证签名的原始数据
+     * @param signature    待验证签名的签名数据
      * @param sm2PublicKey 外部公钥
      * @return true ：验证签名成功，false ：验证签名失败
      * @throws AFCryptoException AFCryptoException
      */
     public boolean SM2VerifyByCertPubKey(byte[] data, byte[] signature, SM2PublicKey sm2PublicKey) throws AFCryptoException {
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.SM3HashWithPubKey(data, sm2PublicKey,ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
+        byte[] hash = afHsmDevice.SM3HashWithPubKey(data, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
         int zero = 0;
         byte[] param = new BytesBuffer()
                 .append(zero)
@@ -824,7 +846,22 @@ public class AFSVCmd {
      */
 
     public byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        logger.info("sm2Encrypt,keyIndex:{},inDataLen:{}", keyIndex, inData.length);
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .append(ConstantNumber.SGD_SM2_3)
+                .append(0)
+                .append(0)
+                .append(inData.length)
+                .append(inData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALENCRYPT_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-sm2内部加密错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-sm2内部加密错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
@@ -837,7 +874,7 @@ public class AFSVCmd {
      * @return ：Base64编码的密文数据
      */
 
-    public byte[] sm2Encrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
+    public byte[] sm2Encrypt(SM2PublicKey publicKey, byte[] inData) throws AFCryptoException {
         return new byte[0];
     }
 

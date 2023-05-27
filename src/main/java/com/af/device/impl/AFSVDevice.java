@@ -3,6 +3,7 @@ package com.af.device.impl;
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
+import com.af.constant.ConstantNumber;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.device.DeviceInfo;
@@ -10,28 +11,40 @@ import com.af.device.IAFSVDevice;
 import com.af.device.cmd.AFSVCmd;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.struct.impl.RSA.RSAPriKey;
+import com.af.struct.impl.RSA.RSAPubKey;
+import com.af.struct.impl.sm2.SM2Cipher;
 import com.af.struct.impl.sm2.SM2Signature;
 import com.af.struct.signAndVerify.*;
+import com.af.struct.signAndVerify.sm2.SM2CipherStructure;
 import com.af.struct.signAndVerify.sm2.SM2PrivateKeyStructure;
+import com.af.struct.signAndVerify.sm2.SM2PublicKeyStructure;
 import com.af.struct.signAndVerify.sm2.SM2SignStructure;
 import com.af.utils.BigIntegerUtil;
 import com.af.utils.BytesOperate;
+import com.af.utils.pkcs.AFPkcs1Operate;
 import lombok.Getter;
 import lombok.Setter;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.pkcs.RSAPrivateKeyStructure;
 import org.bouncycastle.asn1.pkcs.RSAPublicKey;
+import org.bouncycastle.asn1.x509.RSAPublicKeyStructure;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.asn1.x509.X509CertificateStructure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -55,6 +68,42 @@ public class AFSVDevice implements IAFSVDevice {
      * 命令对象
      */
     private final AFSVCmd cmd = new AFSVCmd(client, agKey);
+
+
+    private byte[] RSAKey_e = {
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x01
+    };
 
     //私有构造
     private AFSVDevice() {
@@ -199,7 +248,11 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] rsaSignature(int keyIndex, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        logger.info("RSA签名, keyIndex: {}, inDataLen: {}", keyIndex, inData.length);
+        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.SIGN_PUBLIC_KEY);
+        RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
+        byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(rsaPubKey.getBits(), inData);
+        return BytesOperate.base64EncodeData(cmd.rsaSignature(keyIndex, signData));
     }
 
     /**
@@ -224,8 +277,50 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] rsaSignature(byte[] privateKey, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        RSAPriKey rsaPriKey = decodeRSAPrivateKey(privateKey);
+        int modulus = rsaPriKey.getBits();
+        byte[] bytes = AFPkcs1Operate.pkcs1EncryptionPrivate(modulus, inData);
+        return BytesOperate.base64EncodeData(cmd.rsaSignature(rsaPriKey, bytes));
     }
+
+    private RSAPriKey decodeRSAPrivateKey(byte[] privateKey) {
+        RSAPriKey rsaPriKey = new RSAPriKey();
+        byte[] derPrvKeyData = BytesOperate.base64DecodeData(new String(privateKey));
+        byte[] prvKeyData = new byte[rsaPriKey.size()];
+        try (ASN1InputStream ais = new ASN1InputStream(derPrvKeyData)) {
+            RSAPrivateKeyStructure structure = RSAPrivateKeyStructure.getInstance(ais.readObject());
+            int mLen = structure.getModulus().toString().length();
+            int bits = 2048;
+            if (mLen == 128) {
+                bits = 1024;
+            }
+            System.arraycopy(BytesOperate.int2bytes(bits), 0, prvKeyData, 0, 4);
+            if (bits == 1024) {
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN / 2), ConstantNumber.LiteRSARef_MAX_LEN / 2);
+                System.arraycopy(this.RSAKey_e, 0, prvKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN, ConstantNumber.LiteRSARef_MAX_LEN);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrivateExponent(), structure.getPrivateExponent().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 2) + (ConstantNumber.LiteRSARef_MAX_LEN / 2), ConstantNumber.LiteRSARef_MAX_LEN / 2);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrime1(), structure.getPrime1().toString().length()), 0, prvKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN * 3 + ConstantNumber.LiteRSARef_MAX_PLEN / 2, ConstantNumber.LiteRSARef_MAX_PLEN / 2);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrime2(), structure.getPrime2().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN) + ConstantNumber.LiteRSARef_MAX_PLEN / 2, ConstantNumber.LiteRSARef_MAX_PLEN / 2);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getExponent1(), structure.getExponent1().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 2) + ConstantNumber.LiteRSARef_MAX_PLEN / 2, ConstantNumber.LiteRSARef_MAX_PLEN / 2);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getExponent2(), structure.getExponent2().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 3) + ConstantNumber.LiteRSARef_MAX_PLEN / 2, ConstantNumber.LiteRSARef_MAX_PLEN / 2);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getCoefficient(), structure.getCoefficient().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 4) + ConstantNumber.LiteRSARef_MAX_PLEN / 2, ConstantNumber.LiteRSARef_MAX_PLEN / 2);
+            } else {
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, prvKeyData, 4, ConstantNumber.LiteRSARef_MAX_LEN);
+                System.arraycopy(this.RSAKey_e, 0, prvKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN, ConstantNumber.LiteRSARef_MAX_LEN);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrivateExponent(), structure.getPrivateExponent().toString().length()), 0, prvKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN * 2, ConstantNumber.LiteRSARef_MAX_LEN);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrime1(), structure.getPrime1().toString().length()), 0, prvKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN * 3, ConstantNumber.LiteRSARef_MAX_PLEN);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrime2(), structure.getPrime2().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN), ConstantNumber.LiteRSARef_MAX_PLEN);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getExponent1(), structure.getExponent1().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 2), ConstantNumber.LiteRSARef_MAX_PLEN);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getExponent2(), structure.getExponent2().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 3), ConstantNumber.LiteRSARef_MAX_PLEN);
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getCoefficient(), structure.getCoefficient().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 4), ConstantNumber.LiteRSARef_MAX_PLEN);
+            }
+            rsaPriKey.decode(prvKeyData);
+        } catch (IOException e) {
+            logger.error("解析RSA私钥异常", e);
+        }
+        return rsaPriKey;
+    }
+
 
     /**
      * <p>对文件进行RSA签名运算</p>
@@ -237,7 +332,29 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] rsaSignFile(int keyIndex, byte[] fileName) throws AFCryptoException {
-        return new byte[0];
+        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.SIGN_PUBLIC_KEY);
+        RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
+        byte[] md5Result = fileDigest(fileName);
+        byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(rsaPubKey.getBits(), md5Result);
+        byte[] bytes = cmd.rsaSignature(keyIndex, signData);
+        return BytesOperate.base64EncodeData(bytes);
+    }
+
+    /**
+     * 文件做SHA-256摘要
+     */
+    private static byte[] fileDigest(byte[] fileName) {
+        MessageDigest md = null;
+        try {
+            String fileData = BytesOperate.readFileByLine(new String(fileName));
+            md = MessageDigest.getInstance("SHA-256");
+            md.update(fileData.getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("文件做SHA-256摘要异常", e);
+            throw new RuntimeException(e);
+        }
+        return md.digest();
+
     }
 
     /**
@@ -262,7 +379,11 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] rsaSignFile(byte[] privateKey, byte[] fileName) throws AFCryptoException {
-        return new byte[0];
+        RSAPriKey rsaPriKey = decodeRSAPrivateKey(privateKey);
+        byte[] md5Result = fileDigest(fileName);
+        byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(rsaPriKey.getBits(), md5Result);
+        byte[] bytes = cmd.rsaSignature(rsaPriKey, signData);
+        return BytesOperate.base64EncodeData(bytes);
     }
 
     /**
@@ -276,7 +397,7 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public boolean rsaVerify(int keyIndex, byte[] inData, byte[] signatureData) throws AFCryptoException {
-        return false;
+        return cmd.rsaVerify(keyIndex, inData, signatureData);
     }
 
     /**
@@ -294,35 +415,81 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public boolean rsaVerify(byte[] publicKey, byte[] inData, byte[] signatureData) throws AFCryptoException {
-        return false;
+        RSAPubKey rsaPubKey = decodeRSAPublicKey(publicKey);
+        return cmd.rsaVerify(rsaPubKey, inData, signatureData);
+    }
+
+    private RSAPubKey decodeRSAPublicKey(byte[] publicKey) {
+        RSAPubKey rsaPubKey = new RSAPubKey();
+        byte[] derPubKeyData = BytesOperate.base64DecodeData(new String(publicKey));
+        byte[] pubKeyData = new byte[rsaPubKey.size()];
+        try (ASN1InputStream ais = new ASN1InputStream(derPubKeyData)) {
+            RSAPublicKeyStructure structure = RSAPublicKeyStructure.getInstance(ais.readObject());
+            int mLen = structure.getModulus().toString().length();
+            int bits = 2048;
+            if (mLen == 128) {
+                bits = 1024;
+            }
+            System.arraycopy(BytesOperate.int2bytes(bits), 0, pubKeyData, 0, 4);
+            if (bits == 1024) {
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, pubKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN / 2), ConstantNumber.LiteRSARef_MAX_LEN / 2);
+            } else {
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, pubKeyData, 4, ConstantNumber.LiteRSARef_MAX_LEN);
+            }
+            System.arraycopy(this.RSAKey_e, 0, pubKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN, ConstantNumber.LiteRSARef_MAX_LEN);
+            rsaPubKey.decode(pubKeyData);
+        } catch (IOException e) {
+            logger.error("解析公钥失败", e);
+        }
+        return rsaPubKey;
     }
 
     /**
      * <p>RSA验证签名</p>
      * <p>使用证书对数据进行验证签名运算</p>
      *
-     * @param certificate   ：base64编码的RSA数字证书
+     * @param certificate   ：base64编码的RSA数字证书路径
      * @param inData        ：原始数据
      * @param signatureData ：Base64编码的签名数据
      * @return : true : 验证成功，false ：验证失败
      */
     @Override
     public boolean rsaVerifyByCertificate(byte[] certificate, byte[] inData, byte[] signatureData) throws AFCryptoException {
-        return false;
+        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificate);
+        return cmd.rsaVerify(rsaPubKey, inData, signatureData);
+    }
+
+    private RSAPubKey getRSAPublicKeyFromCertificate(byte[] certificatePath) {
+        RSAPubKey rsaPubKey = null;
+        try {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            X509Certificate cert = (X509Certificate) cf.generateCertificate(new FileInputStream(new String(certificatePath)));
+            PublicKey publicKey = cert.getPublicKey();
+            byte[] derRSAPubKey = new byte[publicKey.getEncoded().length - 24];
+            System.arraycopy(publicKey.getEncoded(), 24, derRSAPubKey, 0, publicKey.getEncoded().length - 24);
+            rsaPubKey = decodeRSAPublicKey(BytesOperate.base64EncodeData(derRSAPubKey));
+        } catch (CertificateException | FileNotFoundException e) {
+            logger.error("解析证书失败", e);
+        }
+        return rsaPubKey;
     }
 
     /**
      * <p>对文件进行RSA验证签名</p>
-     * <p>使用内部密钥对文件签名值进行验证</p>
      *
      * @param keyIndex      ：密码设备内部存储的RSA索引号
      * @param fileName      ：文件名称
      * @param signatureData ：Base64编码的签名数据
-     * @return : true : 验证成功，false ：验证失败
      */
     @Override
     public boolean rsaVerifyFile(int keyIndex, byte[] fileName, byte[] signatureData) throws AFCryptoException {
-        return false;
+        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.SIGN_PUBLIC_KEY);
+        RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
+
+        byte[] md5Result = fileDigest(fileName);
+        byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(rsaPubKey.getBits(), md5Result);
+
+        return cmd.rsaVerify(keyIndex, signData, signatureData);
     }
 
     /**
@@ -340,7 +507,10 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public boolean rsaVerifyFile(byte[] publicKey, byte[] fileName, byte[] signatureData) throws AFCryptoException {
-        return false;
+        RSAPubKey rsaPubKey = decodeRSAPublicKey(publicKey);
+        byte[] md5Result = fileDigest(fileName);
+        byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(rsaPubKey.getBits(), md5Result);
+        return cmd.rsaVerify(rsaPubKey, signData, signatureData);
     }
 
     /**
@@ -354,7 +524,12 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public boolean rsaVerifyFileByCertificate(byte[] certificate, byte[] fileName, byte[] signatureData) throws AFCryptoException {
-        return false;
+        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificate);
+
+        byte[] md5Result = fileDigest(fileName);
+        byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(rsaPubKey.getBits(), md5Result);
+
+        return cmd.rsaVerify(rsaPubKey, signData, signatureData);
     }
 
     /**
@@ -367,7 +542,14 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] rsaEncrypt(int keyIndex, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.ENC_PUBLIC_KEY);
+        RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
+
+        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), inData);
+        byte[] rsaEncrypt = cmd.rsaEncrypt(keyIndex, encData);
+
+        return BytesOperate.base64EncodeData(rsaEncrypt);
+
     }
 
     /**
@@ -384,7 +566,10 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] rsaEncrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        RSAPubKey rsaPubKey = decodeRSAPublicKey(publicKey);
+        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), inData);
+        byte[] rsaEncrypt = cmd.rsaEncrypt(rsaPubKey, encData);
+        return BytesOperate.base64EncodeData(rsaEncrypt);
     }
 
     /**
@@ -397,7 +582,10 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] rsaEncryptByCertificate(byte[] certificate, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificate);
+        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), inData);
+        byte[] rsaEncrypt = cmd.rsaEncrypt(rsaPubKey, encData);
+        return BytesOperate.base64EncodeData(rsaEncrypt);
     }
 
     /**
@@ -410,7 +598,12 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] rsaDecrypt(int keyIndex, byte[] encData) throws AFCryptoException {
-        return new byte[0];
+        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.ENC_PUBLIC_KEY);
+        RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
+
+        byte[] rsaDecrypt = cmd.rsaDecrypt(keyIndex, encData);
+        byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(rsaPubKey.getBits(), rsaDecrypt);
+        return BytesOperate.base64EncodeData(decData);
     }
 
     /**
@@ -435,7 +628,10 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] rsaDecrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
-        return new byte[0];
+        RSAPriKey rsaPriKey = decodeRSAPrivateKey(privateKey);
+        byte[] rsaDecrypt = cmd.rsaDecrypt(rsaPriKey, encData);
+        byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(rsaPriKey.getBits(), rsaDecrypt);
+        return BytesOperate.base64EncodeData(decData);
     }
 
     /**
@@ -480,9 +676,8 @@ public class AFSVDevice implements IAFSVDevice {
             SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
 
             //自定义私钥结构
-            SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(256,BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey()));
+            SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(256, BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey()));
             byte[] encodeKey = sm2PrivateKey.encode();
-            //
             SM2Signature sm2Signature = new SM2Signature(cmd.sm2Signature(data, encodeKey)).to256();
             SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);                              // 转换为ASN1结构
             return BytesOperate.base64EncodeData(sm2SignStructure.toASN1Primitive().getEncoded("DER"));       // DER编码 base64编码
@@ -648,10 +843,6 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM2内部密钥验证签名失败,序列化失败", e);
             throw new AFCryptoException(e);
         }
-
-//        return cmd.sm2Verify(keyIndex, data, signature);
-
-//        return cmd.sm2Verify(keyIndex, data, new SM2Signature(signature).to512().encode());
     }
 
     /**
@@ -669,7 +860,7 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] data, byte[] signature) throws AFCryptoException {
-        logger.info("基于证书的SM2验证签名(外部密钥验签)");
+        logger.info("基于证书的SM2验证签名(外部密钥验签),用外部证书进行 SM2验证签名运算，根据签名服务器内部CA证书，验证证书有效性");
         if (this.validateCertificate(base64Certificate) != 0) {
             throw new AFCryptoException("验证签名失败 ----> 当前证书验证未通过，不可使用，请更换证书后重试！！！");
         } else {
@@ -707,12 +898,32 @@ public class AFSVDevice implements IAFSVDevice {
      * @return : true ：验证签名成功，false ：验证签名失败
      */
     @Override
-    public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] crlData, byte[] data, byte[] signature) throws AFCryptoException {
-        return false;
+    public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] crlData, byte[] data, byte[] signature) throws AFCryptoException, CertificateException {
+        logger.info("基于证书的SM2验证签名(外部密钥验签),用外部证书进行 SM2验证签名运算, 通过CRL文件验证证书有效性");
+        if (this.isCertificateRevoked(base64Certificate, crlData)) {
+            throw new AFCryptoException("验证签名失败 ----> 该证书已经吊销，不可使用，请更换证书后重试！！！！");
+        } else {
+            //读取签名数据
+            byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
+            byte[] signatureData = new byte[64];
+            try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
+                SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
+                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
+                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
+
+                SM2Signature sm2Signature = new SM2Signature(signatureData).to512();
+                return cmd.sm2VerifyByCertificate(base64Certificate, data, sm2Signature.encode());
+            } catch (IOException e) {
+                // 处理异常
+                logger.error("基于证书的SM2验证签名失败,序列化失败", e);
+                throw new AFCryptoException(e);
+            }
+
+        }
     }
 
     /**
-     * <p>SM2内部密钥验证w文件签名</p>
+     * <p>SM2内部密钥验证文件签名</p>
      * <p>使用签名服务器内部密钥对文件进行 SM2验证签名运算</p>
      *
      * @param keyIndex  ：待验证签名的签名服务器内部密钥索引
@@ -726,7 +937,24 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public boolean sm2VerifyFile(int keyIndex, byte[] fileName, byte[] signature) throws AFCryptoException {
-        return false;
+        logger.info("SM2内部密钥验证文件签名,用签名服务器内部密钥对文件进行 SM2验证签名运算");
+
+        String fileData = BytesOperate.readFileByLine(new String(fileName));
+        byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
+        byte[] signatureData = new byte[64];
+        try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
+            SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
+
+            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
+            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
+            SM2Signature sm2Signature = new SM2Signature(signatureData).to512();
+
+
+            return cmd.sm2Verify(keyIndex, fileData.getBytes(StandardCharsets.UTF_8), sm2Signature.encode());
+        } catch (IOException e) {
+            logger.error("SM2内部密钥验证文件签名失败,序列化失败", e);
+            throw new AFCryptoException(e);
+        }
     }
 
     /**
@@ -744,7 +972,26 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] fileName, byte[] signature) throws AFCryptoException {
-        return false;
+        logger.info("基于证书的SM2验证文件签名(外部密钥验签),使用外部证书对文件进行SM2验证签名运算，根据签名服务器内部CA证书，验证证书有效性");
+        if (this.validateCertificate(base64Certificate) != 0) {
+            throw new AFCryptoException("验证签名失败 ----> 当前证书验证未通过，不可使用，请更换证书后重试！！！！");
+        } else {
+            String fileData = BytesOperate.readFileByLine(new String(fileName));
+            byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
+            byte[] signatureData = new byte[64];
+            try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
+                SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
+                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
+                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
+
+                SM2Signature sm2Signature = new SM2Signature(signatureData).to512();
+                return cmd.sm2VerifyByCertificate(base64Certificate, fileData.getBytes(StandardCharsets.UTF_8), sm2Signature.encode());
+            } catch (IOException e) {
+                logger.error("基于证书的SM2验证文件签名失败,序列化失败", e);
+                throw new AFCryptoException(e);
+            }
+        }
+
     }
 
     /**
@@ -762,8 +1009,26 @@ public class AFSVDevice implements IAFSVDevice {
      * @return : true ：验证签名成功，false ：验证签名失败
      */
     @Override
-    public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] crlData, byte[] fileName, byte[] signature) throws AFCryptoException {
-        return false;
+    public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] crlData, byte[] fileName, byte[] signature) throws AFCryptoException, CertificateException {
+        logger.info("基于证书的SM2验证文件签名(外部密钥验签),使用外部证书对文件进行SM2验证签名运算, 通过CRL文件验证证书有效性");
+        if (this.isCertificateRevoked(base64Certificate, crlData)) {
+            throw new AFCryptoException("验证签名失败 ----> 当前证书验证未通过，不可使用，请更换证书后重试！！！！");
+        } else {
+            String fileData = BytesOperate.readFileByLine(new String(fileName));
+            byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
+            byte[] signatureData = new byte[64];
+            try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
+                SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
+                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
+                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
+
+                SM2Signature sm2Signature = new SM2Signature(signatureData).to512();
+                return cmd.sm2VerifyByCertificate(base64Certificate, fileData.getBytes(StandardCharsets.UTF_8), sm2Signature.encode());
+            } catch (IOException e) {
+                logger.error("基于证书的SM2验证文件签名失败,序列化失败", e);
+                throw new AFCryptoException(e);
+            }
+        }
     }
 
     /**
@@ -776,7 +1041,15 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        SM2Cipher sm2Cipher = new SM2Cipher(cmd.sm2Encrypt(keyIndex, inData)).to256();
+        SM2CipherStructure sm2CipherStructure = new SM2CipherStructure(sm2Cipher);
+        try {
+            byte[] encoded = sm2CipherStructure.toASN1Primitive().getEncoded("DER");
+            return BytesOperate.base64EncodeData(encoded);
+        } catch (IOException e) {
+            logger.error("密文DER编码失败", e);
+            throw new AFCryptoException("密文DER编码失败", e);
+        }
     }
 
     /**
@@ -790,7 +1063,23 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2Encrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        logger.info("使用外部公钥进行SM2加密");
+        byte[] decodeKey = BytesOperate.base64DecodePubKey(new String(publicKey));
+        SM2PublicKeyStructure structure = new SM2PublicKeyStructure(decodeKey);
+        SM2PublicKey sm2PublicKey = structure.convert();
+        byte[] bytes = cmd.sm2Encrypt(sm2PublicKey, inData);
+        SM2Cipher sm2Cipher = new SM2Cipher(bytes).to256();
+
+        SM2CipherStructure sm2CipherStructure = new SM2CipherStructure(sm2Cipher);
+        try {
+            byte[] encoded = sm2CipherStructure.toASN1Primitive().getEncoded("DER");
+            return BytesOperate.base64EncodeData(encoded);
+        } catch (IOException e) {
+            logger.error("密文DER编码失败", e);
+            throw new AFCryptoException("密文DER编码失败", e);
+        }
+
+
     }
 
     /**
@@ -1205,5 +1494,35 @@ public class AFSVDevice implements IAFSVDevice {
         return new byte[0];
     }
 
+    //================================私有方法,用于本类中数据处理,结构转换===========================================
+    private static byte[] Padding(byte[] data) {
+        if ((data.length % 16) == 0) {
+            return data;
+        }
+
+        int paddingNumber = 16 - (data.length % 16);
+        byte[] paddingData = new byte[paddingNumber];
+
+        Arrays.fill(paddingData, (byte) paddingNumber);
+        byte[] outData = new byte[data.length + paddingNumber];
+        System.arraycopy(data, 0, outData, 0, data.length);
+        System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
+
+        return outData;
+    }
+
+    private static byte[] cutting(byte[] data) {
+        int paddingNumber = (int) data[data.length - 1];
+        if (paddingNumber >= 16) paddingNumber = 0;
+
+        for (int i = 0; i < paddingNumber; ++i) {
+            if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
+                return null;
+            }
+        }
+        byte[] outData = new byte[data.length - paddingNumber];
+        System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
+        return outData;
+    }
 
 }

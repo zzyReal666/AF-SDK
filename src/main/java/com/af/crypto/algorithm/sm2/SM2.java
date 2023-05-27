@@ -58,7 +58,7 @@ public interface SM2 {
      * SM2解密
      *
      * @param index      内部密钥索引  如果使用外部密钥此参数传-1
-     * @param publicKey  外部密钥 如果使用内部密钥此参数传null
+     * @param privateKey  外部密钥 如果使用内部密钥此参数传null
      * @param encodeData 待解密数据
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常

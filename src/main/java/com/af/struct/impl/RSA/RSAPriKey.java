@@ -1,4 +1,4 @@
-package com.af.crypto.key.RSA;
+package com.af.struct.impl.RSA;
 
 import com.af.struct.IAFStruct;
 import com.af.exception.AFCryptoException;
@@ -11,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class RSAPrivateKey implements IAFStruct {
+public class RSAPriKey implements IAFStruct {
 
     private int bits;
     private byte[] m = new byte[LiteRSARef_MAX_LEN];
@@ -29,7 +29,7 @@ public class RSAPrivateKey implements IAFStruct {
     }
 
     @Override
-    public void decode(byte[] expPrikey) throws AFCryptoException {
+    public void decode(byte[] expPrikey)  {
         this.bits = BytesOperate.bytes2int(expPrikey, 0);
         System.arraycopy(expPrikey, 4, this.m, 0, LiteRSARef_MAX_LEN);
         System.arraycopy(expPrikey, 4 + LiteRSARef_MAX_LEN, this.e, 0, LiteRSARef_MAX_LEN);

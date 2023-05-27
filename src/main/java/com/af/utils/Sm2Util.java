@@ -1,15 +1,15 @@
 package com.af.utils;
 
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.params.ParametersWithRandom;
+
+
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ByteUtil;
 import cn.hutool.crypto.CryptoException;
 import cn.hutool.crypto.ECKeyUtil;
 import cn.hutool.crypto.SmUtil;
 import cn.hutool.crypto.asymmetric.SM2;
-import org.bouncycastle.crypto.CipherParameters;
-import org.bouncycastle.crypto.params.ParametersWithRandom;
-import org.bouncycastle.crypto.signers.SM2Signer;
-
 /**
  * 与硬件设备交互的数据均为GM/T0018格式
  * 

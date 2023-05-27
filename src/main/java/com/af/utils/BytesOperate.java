@@ -94,6 +94,15 @@ public class BytesOperate {
 
     }
 
+    public static byte[] base64DecodePubKey(String base64PubKey) {
+        String begin = "-----BEGIN PUBLIC KEY-----\n";
+        String end = "\n-----END PUBLIC KEY-----";
+        String outPubKey = "";
+        outPubKey = base64PubKey.replaceAll(begin, "");
+        outPubKey = outPubKey.replaceAll(end, "");
+        return base64DecodeData(outPubKey);
+    }
+
     /**
      * 封装数据 输入一个字节数组,返回一个封装好的字节数组
      */

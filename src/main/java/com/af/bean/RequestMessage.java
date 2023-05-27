@@ -1,12 +1,10 @@
 package com.af.bean;
 
+import com.af.utils.BytesBuffer;
 import lombok.Getter;
 import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -59,13 +57,9 @@ public class RequestMessage {
      * @return 字节数组
      */
     public byte[] encode() {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            out.write(this.header.encode());
-            out.write(this.data);
-        } catch (IOException e) {
-            logger.error("请求转换为字节数组失败", e);
-        }
-        return out.toByteArray();
+      return new BytesBuffer()
+                .append(header.encode())
+                .append(data)
+                .toBytes();
     }
 }

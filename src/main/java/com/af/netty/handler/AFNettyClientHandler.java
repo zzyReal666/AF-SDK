@@ -40,17 +40,16 @@ public class AFNettyClientHandler extends ChannelInboundHandlerAdapter {
         logger.debug("入站<=" + msg);
         response = null; // 清空上次的响应
         response = getResponse((ByteBuf) msg);
+        //通知客户端，响应已经接收完毕
+        synchronized (nettyClient) {
+            nettyClient.notifyAll();
+        }
     }
 
     public byte[] getResponse(ByteBuf response) {
         byte[] bytes = new byte[response.readableBytes()];
         response.readBytes(bytes);
-        //通知客户端，响应已经接收完毕
-        synchronized (nettyClient) {
-            nettyClient.notifyAll();
-        }
         return bytes;
     }
-
 
 }
