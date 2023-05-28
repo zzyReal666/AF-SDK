@@ -1549,7 +1549,24 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] encodeSignedDataForSM2(int keyType, byte[] privateKey, byte[] signerCertificate, byte[] data) throws AFCryptoException {
-        return new byte[0];
+
+        try {
+            // 解码私钥
+            byte[] decodeKey = BytesOperate.base64DecodePrivateKey(new String(privateKey));
+            InputStream inputData = new ByteArrayInputStream(decodeKey);
+            ASN1InputStream inputStream = new ASN1InputStream(inputData);
+            ASN1Sequence asn1Encodables = (ASN1Sequence) inputStream.readObject();
+            SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(asn1Encodables);
+            SM2PrivateKey sm2PrivateKey = sm2PrivateKeyStructure.toSM2PrivateKey();
+            // 解码证书
+            byte[] derCert = BytesOperate.base64DecodeCert(new String(signerCertificate));
+            // 编码签名数据
+            byte[] bytes = cmd.encodeSignedDataForSM2(keyType, sm2PrivateKey, derCert, data);
+            return BytesOperate.base64EncodeData(bytes);
+        } catch (IOException e) {
+            logger.error("编码基于SM2算法的签名数据错误");
+            throw new AFCryptoException(e);
+        }
     }
 
     /**
@@ -1561,7 +1578,8 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public AFSM2DecodeSignedData decodeSignedDataForSM2(byte[] signedData) throws AFCryptoException {
-        return null;
+        byte[] derSignedData = BytesOperate.base64DecodeData(new String(signedData));
+        return cmd.decodeSignedDataForSM2(derSignedData);
     }
 
     /**
@@ -1574,7 +1592,8 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public boolean verifySignedDataForSM2(byte[] signedData, byte[] rawData) throws AFCryptoException {
-        return false;
+        byte[] derSignedData = BytesOperate.base64DecodeData(new String(signedData));
+        return cmd.verifySignedDataForSM2(rawData, derSignedData);
     }
 
     /**

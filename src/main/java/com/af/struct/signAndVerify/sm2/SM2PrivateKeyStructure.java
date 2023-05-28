@@ -99,7 +99,11 @@ public class SM2PrivateKeyStructure implements ASN1Encodable {
 
 
     public SM2PrivateKey toSM2PrivateKey() {
-        return new SM2PrivateKey( BigIntegerUtil.asUnsigned32ByteArray(this.getKey()));
+        byte[] d = BigIntegerUtil.asUnsigned32ByteArray(this.getKey());
+        SM2PrivateKey sm2PrivateKey = new SM2PrivateKey();
+        sm2PrivateKey.setLength(d.length);
+        sm2PrivateKey.setD(d);
+        return sm2PrivateKey ;
     }
 
 

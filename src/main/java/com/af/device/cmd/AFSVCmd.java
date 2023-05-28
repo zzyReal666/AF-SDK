@@ -1042,8 +1042,9 @@ public class AFSVCmd {
 
     /**
      * 根据证书别名获取证书列表
-     * @param subCmd 0x01：获取证书个数；0x02：获取证书列表
-     * @param index 证书索引
+     *
+     * @param subCmd  0x01：获取证书个数；0x02：获取证书列表
+     * @param index   证书索引
      * @param altName 证书别名
      * @return 证书列表
      */
@@ -1070,8 +1071,6 @@ public class AFSVCmd {
         }
         return list;
     }
-
-
 
 
     /**
@@ -1216,7 +1215,7 @@ public class AFSVCmd {
      * <p>获取用户指定的证书扩展信息内容</p>
      *
      * @param certData ：Base64编码的证书文件
-     * @param oid       : 用户待获取的证书内容类型OID值 : OID值定义在类 certParseInfoType 中
+     * @param oid      : 用户待获取的证书内容类型OID值 : OID值定义在类 certParseInfoType 中
      * @return ：用户获取到的证书信息内容
      */
 
@@ -1397,8 +1396,25 @@ public class AFSVCmd {
      * @return ：Base64编码的签名数据
      */
 
-    public byte[] encodeSignedDataForSM2(int keyType, byte[] privateKey, byte[] signerCertificate, byte[] data) throws AFCryptoException {
-        return new byte[0];
+    public byte[] encodeSignedDataForSM2(int keyType, SM2PrivateKey privateKey, byte[] certData, byte[] data) throws AFCryptoException {
+        logger.info("SV-编码签名数据, keyType: {}, signerCertificate: {}, data: {}", keyType, certData, data);
+        byte[] param = new BytesBuffer()
+                .append(keyType)
+                .append(privateKey.encode())
+                .append(0)
+                .append(certData.length)
+                .append(certData)
+                .append(ConstantNumber.SGD_SM3)
+                .append(data.length)
+                .append(data)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_SM2_SIGNDATA_ENCODE, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-编码签名数据,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-编码签名数据,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
@@ -1410,20 +1426,59 @@ public class AFSVCmd {
      */
 
     public AFSM2DecodeSignedData decodeSignedDataForSM2(byte[] signedData) throws AFCryptoException {
-        return null;
+        logger.info("SV-解码签名数据, signedData: {}", signedData);
+        byte[] param = new BytesBuffer()
+                .append(signedData.length)
+                .append(signedData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_SM2_SIGNDATA_DECODE, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-解码签名数据,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-解码签名数据,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        byte[] responseData = res.getData();
+
+        int certLen = BytesOperate.bytes2int(responseData);
+        byte[] certData = getBytes(responseData, 4, certLen);
+        int hashAlgID = BytesOperate.bytes2int(responseData, 4 + certLen);
+        int rawDataLen = BytesOperate.bytes2int(responseData, 4 + certLen + 4);
+        byte[] rawData = getBytes(responseData, 4 + certLen + 4 + 4, rawDataLen);
+        int signDataLen = BytesOperate.bytes2int(responseData, 4 + certLen + 4 + 4 + rawDataLen);
+        byte[] result = getBytes(responseData, 4 + certLen + 4 + 4 + rawDataLen + 4, signDataLen);
+
+        return new AFSM2DecodeSignedData(rawData, BytesOperate.base64EncodeCert(certData), hashAlgID, BytesOperate.base64EncodeData(result));
     }
+
 
     /**
      * <p>验证签名数据</p>
-     * <p>验证基于SM2算法的签名数据</p>
      *
-     * @param signedData ：Base64编码的签名数据，其格式应符合GM/T 0010《SM2密码算法加密签名消息语法规范》中SignedData的数据类型定义
-     * @param rawData    : 数据原文，若签名消息为patch，则此处为null
-     * @return ：验证结果，true：验证通过，false：验证失败
+     * @param rawData  原文数据
+     * @param signData 签名数据
      */
+    public boolean verifySignedDataForSM2(byte[] rawData, byte[] signData) throws AFCryptoException {
+        logger.info("SV-验证签名数据, rawData: {}, signData: {}", rawData, signData);
 
-    public boolean verifySignedDataForSM2(byte[] signedData, byte[] rawData) throws AFCryptoException {
-        return false;
+        int rawDataLen = null == rawData ? 0 : rawData.length;
+
+        BytesBuffer buffer = new BytesBuffer()
+                .append(signData.length)
+                .append(signData)
+                .append(rawDataLen);
+        if (rawDataLen > 0) {
+            buffer.append(rawData);
+        }
+        byte[] param = buffer.toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_SM2_SIGNDATA_VERIFY, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-验证签名数据,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-验证签名数据,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return true;
+
+
     }
 
     /**
