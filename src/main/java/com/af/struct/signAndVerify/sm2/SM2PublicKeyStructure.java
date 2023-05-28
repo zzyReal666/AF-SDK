@@ -30,6 +30,14 @@ public class SM2PublicKeyStructure implements ASN1Encodable {
         this.y = y;
     }
 
+
+    public SM2PublicKeyStructure (SM2PublicKey publicKey) {
+        BigInteger x = BigIntegerUtil.toPositiveInteger(publicKey.getX());
+        BigInteger y = BigIntegerUtil.toPositiveInteger(publicKey.getY());
+        this.x = x;
+        this.y = y;
+    }
+
     public SM2PublicKeyStructure(ECPoint Q) {
         this.x = Q.getAffineX();
         this.y = Q.getAffineY();
@@ -85,13 +93,13 @@ public class SM2PublicKeyStructure implements ASN1Encodable {
     }
 
 
-    public SM2PublicKey convert() {
+    public SM2PublicKey toSm2PubKey() {
         byte[] x = BigIntegerUtil.asUnsigned32ByteArray(this.getX());
         byte[] y = BigIntegerUtil.asUnsigned32ByteArray(this.getY());
         return new SM2PublicKey(256, x, y);
     }
 
-    public SM2PublicKeyStructure convert(SM2PublicKey publicKey) {
+    public SM2PublicKeyStructure toSm2PubKey(SM2PublicKey publicKey) {
         this.x = BigIntegerUtil.toPositiveInteger(publicKey.getX());
         this.y = BigIntegerUtil.toPositiveInteger(publicKey.getY());
         return this;

@@ -56,6 +56,13 @@ public class SM2CipherStructure implements ASN1Encodable {
         this.C = ((DEROctetString)e.nextElement()).getOctets();
     }
 
+    public SM2Cipher toSM2Cipher() {
+        byte[] x = BigIntegerUtil.asUnsigned32ByteArray(this.getX());
+        byte[] y = BigIntegerUtil.asUnsigned32ByteArray(this.getY());
+        byte[] c = this.getC();
+        byte[] m = this.getM();
+        return new SM2Cipher(x.length,x, y, m ,c);
+    }
 
 
     @Override

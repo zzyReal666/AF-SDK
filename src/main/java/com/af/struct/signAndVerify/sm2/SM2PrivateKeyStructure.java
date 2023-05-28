@@ -1,5 +1,7 @@
 package com.af.struct.signAndVerify.sm2;
 
+import com.af.crypto.key.sm2.SM2PrivateKey;
+import com.af.utils.BigIntegerUtil;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.util.BigIntegers;
 
@@ -93,6 +95,19 @@ public class SM2PrivateKeyStructure implements ASN1Encodable {
         }
         return null;
     }
+
+
+
+    public SM2PrivateKey toSM2PrivateKey() {
+        return new SM2PrivateKey( BigIntegerUtil.asUnsigned32ByteArray(this.getKey()));
+    }
+
+
+
+
+
+
+
     @Override
     public ASN1Primitive toASN1Primitive() {
         return seq;

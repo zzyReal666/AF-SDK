@@ -115,6 +115,7 @@ public enum ConstantNumber {
     public static final int BLX_KEYTPYE_DEC = 0;
     public static final int BLX_KEYTPYE_ENC = 2;
 
+
     public static final int AF_LEN_1024 = 1024;
     public static final int AF_LEN_2048 = 2048;
     public static final int AF_LEN_4096 = 1024 * 512;
@@ -130,4 +131,10 @@ public enum ConstantNumber {
     public static final int SIGN_PUBLIC_KEY = 0;
     public static final  int ENC_PUBLIC_KEY = 1;
     public static final String DEFAULT_USER_ID = "1234567812345678";
+    public static final int SGD_SERVER_CERT_SIGN = 2;           ///< 服务器签名证书
+    public static final int SGD_SERVER_CERT_ENC = 1;          ///< 服务器加密证书
+
+    public static final int SGD_CERT_SIGN = 2;           ///< 签名证书
+    public static final int SGD_CERT_ENC = 1;
+
 }

@@ -26,6 +26,14 @@ public class SM2PublicKey implements Key {
         this.decode(data);
     }
 
+    public SM2PublicKey(int length) {
+        this.length = length;
+        this.x = new byte[length / 8];
+        this.y = new byte[length / 8];
+    }
+
+
+
     //构造函数 全部参数
     public SM2PublicKey(int length, byte[] x, byte[] y) {
         this.length = length;

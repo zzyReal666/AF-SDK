@@ -3,6 +3,7 @@ package com.af.device.impl;
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
+import com.af.constant.CertParseInfoType;
 import com.af.constant.ConstantNumber;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
@@ -26,12 +27,14 @@ import com.af.utils.pkcs.AFPkcs1Operate;
 import lombok.Getter;
 import lombok.Setter;
 import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.pkcs.RSAPrivateKeyStructure;
 import org.bouncycastle.asn1.pkcs.RSAPublicKey;
 import org.bouncycastle.asn1.x509.RSAPublicKeyStructure;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.asn1.x509.TBSCertificateStructure;
 import org.bouncycastle.asn1.x509.X509CertificateStructure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1066,7 +1069,7 @@ public class AFSVDevice implements IAFSVDevice {
         logger.info("使用外部公钥进行SM2加密");
         byte[] decodeKey = BytesOperate.base64DecodePubKey(new String(publicKey));
         SM2PublicKeyStructure structure = new SM2PublicKeyStructure(decodeKey);
-        SM2PublicKey sm2PublicKey = structure.convert();
+        SM2PublicKey sm2PublicKey = structure.toSm2PubKey();
         byte[] bytes = cmd.sm2Encrypt(sm2PublicKey, inData);
         SM2Cipher sm2Cipher = new SM2Cipher(bytes).to256();
 
@@ -1092,7 +1095,39 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2EncryptByCertificate(byte[] certificate, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        logger.info("使用证书进行SM2加密");
+        if (this.validateCertificate(certificate) != 0) {
+            throw new AFCryptoException("验证签名失败 ----> 当前证书验证未通过，不可使用，请更换证书后重试！！！");
+
+        }
+        try {
+            // 读取证书数据
+            byte[] derCert = BytesOperate.base64DecodePubKey(new String(certificate));
+            InputStream input = new ByteArrayInputStream(derCert);
+            ASN1InputStream aln = new ASN1InputStream(input);
+            ASN1Sequence seq = (ASN1Sequence) aln.readObject();
+            X509CertificateStructure cert = new X509CertificateStructure(seq);
+            byte[] encoded = cert.getSubjectPublicKeyInfo().getPublicKeyData().getEncoded();
+
+            // 读取公钥数据
+            SM2PublicKey publicKey = new SM2PublicKey(256);
+            byte[] sm2Pubkey = new byte[publicKey.size()];
+            System.arraycopy(BytesOperate.int2bytes(256), 0, sm2Pubkey, 0, 4);
+            System.arraycopy(encoded, 4, sm2Pubkey, 4, 64);
+            publicKey.decode(sm2Pubkey);
+
+            // 加密数据
+            byte[] bytes = cmd.sm2Encrypt(publicKey, inData);
+
+            // 封装密文
+            SM2Cipher sm2Cipher = new SM2Cipher(bytes).to256();
+            SM2CipherStructure sm2CipherStructure = new SM2CipherStructure(sm2Cipher);
+            byte[] cipher = sm2CipherStructure.toASN1Primitive().getEncoded("DER");
+            return BytesOperate.base64EncodeData(cipher);
+        } catch (IOException e) {
+            logger.error("证书解析失败", e);
+            throw new AFCryptoException(e);
+        }
     }
 
     /**
@@ -1111,7 +1146,18 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2Decrypt(int keyIndex, byte[] encData) throws AFCryptoException {
-        return new byte[0];
+        logger.info("使用内部密钥进行SM2解密");
+        byte[] decodeData = BytesOperate.base64DecodePubKey(new String(encData));
+        try (ASN1InputStream ais = new ASN1InputStream(decodeData)) {
+            SM2CipherStructure structure = SM2CipherStructure.getInstance(ais.readObject());
+            SM2Cipher sm2Cipher = structure.toSM2Cipher();
+            byte[] bytes = cmd.sm2Decrypt(keyIndex, sm2Cipher);
+
+            return BytesOperate.base64EncodeData(bytes);
+        } catch (IOException e) {
+            logger.error("密文DER解码失败", e);
+            throw new AFCryptoException("密文DER解码失败", e);
+        }
     }
 
     /**
@@ -1131,7 +1177,28 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2Decrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
-        return new byte[0];
+        logger.info("使用外部密钥进行SM2解密");
+        byte[] decodeData = BytesOperate.base64DecodePubKey(new String(encData));
+        try (ASN1InputStream ais = new ASN1InputStream(decodeData)) {
+
+            //读取密文
+            SM2CipherStructure structure = SM2CipherStructure.getInstance(ais.readObject());
+            SM2Cipher sm2Cipher = structure.toSM2Cipher();
+
+            //读取私钥
+            byte[] decodePrivateKey = BytesOperate.base64DecodePubKey(new String(privateKey));
+            ASN1InputStream aln = new ASN1InputStream(new ByteArrayInputStream(decodePrivateKey));
+            ASN1Sequence seq = (ASN1Sequence) aln.readObject();
+            SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(seq);
+            SM2PrivateKey sm2PrivateKey = sm2PrivateKeyStructure.toSM2PrivateKey();
+
+            //解密
+            byte[] bytes = cmd.sm2Decrypt(sm2PrivateKey, sm2Cipher);
+            return BytesOperate.base64EncodeData(bytes);
+        } catch (IOException e) {
+            logger.error("密文DER解码失败", e);
+            throw new AFCryptoException("密文DER解码失败", e);
+        }
     }
 
     /**
@@ -1144,7 +1211,21 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getSm2PublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
-        return new byte[0];
+        logger.info("导出SM2公钥");
+        SM2PublicKey sm2PublicKey = new SM2PublicKey().to512();
+        if (keyUsage == ConstantNumber.ENC_PUBLIC_KEY) {
+            sm2PublicKey.decode(cmd.getSM2EncPublicKey(keyIndex));
+        } else {
+            sm2PublicKey.decode(cmd.getSM2SignPublicKey(keyIndex));
+        }
+        SM2PublicKey sm2PublicKey256 = sm2PublicKey.to256();
+        try {
+            byte[] encodedKey = new SM2PublicKeyStructure(sm2PublicKey256).toASN1Primitive().getEncoded("DER");
+            return BytesOperate.base64EncodeData(encodedKey);
+        } catch (IOException e) {
+            logger.error("SM2公钥DER编码失败", e);
+            throw new AFCryptoException("SM2公钥DER编码失败", e);
+        }
     }
 
     /**
@@ -1155,7 +1236,7 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public certAltNameTrustList getCertTrustListAltName() throws AFCryptoException {
-        return null;
+        return cmd.getCertTrustListAltName();
     }
 
     /**
@@ -1167,7 +1248,8 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public int getCertCountByAltName(byte[] altName) throws AFCryptoException {
-        return 0;
+        logger.info("获取证书的个数");
+        return cmd.getCertListByAltName(0x01, 0, altName).getCertCount();
     }
 
     /**
@@ -1180,7 +1262,9 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getCertByAltName(byte[] altName, int certIndex) throws AFCryptoException {
-        return new byte[0];
+        logger.info("根据别名获取单个证书");
+        byte[] certData = cmd.getCertListByAltName(0x02, certIndex, altName).getCertData();
+        return BytesOperate.base64EncodeData(certData);
     }
 
     /**
@@ -1191,7 +1275,7 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public void getInstance(byte[] policyName) throws AFCryptoException {
-
+        cmd.getInstance(policyName);
     }
 
     /**
@@ -1202,8 +1286,9 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public void deleteCertList(byte[] altName) throws AFCryptoException {
-
+        cmd.deleteCertList(altName);
     }
+
 
     /**
      * <p>获取服务器证书</p>
@@ -1213,7 +1298,15 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getServerCert() throws AFCryptoException {
-        return new byte[0];
+        byte[] cert;
+        cert = cmd.getServerCertByUsage(ConstantNumber.SGD_SERVER_CERT_SIGN);
+        if (null == cert) {
+            cert = cmd.getServerCertByUsage(ConstantNumber.SGD_SERVER_CERT_ENC);
+            if (null == cert) {
+                throw new AFCryptoException("获取服务器证书失败");
+            }
+        }
+        return BytesOperate.base64EncodeCert(cert);
     }
 
     /**
@@ -1225,7 +1318,8 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getServerCertByUsage(int usage) throws AFCryptoException {
-        return new byte[0];
+        return BytesOperate.base64EncodeCert(cmd.getServerCertByUsage(usage));
+
     }
 
     /**
@@ -1238,7 +1332,7 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getCertByPolicyName(byte[] policyName, int certType) throws AFCryptoException {
-        return new byte[0];
+        return BytesOperate.base64EncodeCert(cmd.getCertByPolicyName(policyName, certType));
     }
 
     /**
@@ -1250,7 +1344,22 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getOcspUrl(byte[] base64Certificate) throws AFCryptoException {
-        return new byte[0];
+        InputStream inStream = new ByteArrayInputStream(BytesOperate.base64DecodeCert(new String(base64Certificate)));
+        ASN1Sequence seq = null;
+        ASN1InputStream asn1InputStream;
+        try {
+            asn1InputStream = new ASN1InputStream(inStream);
+            seq = (ASN1Sequence) asn1InputStream.readObject();
+            X509CertificateStructure cert = new X509CertificateStructure(seq);
+            TBSCertificateStructure tbsCertificate = cert.getTBSCertificate();
+            byte[] encoded = tbsCertificate.getExtensions().getExtension(new ASN1ObjectIdentifier(new String(CertParseInfoType.Authority_Info_Access))).getValue().getEncoded();
+            String stringUrl = new String(encoded);
+            int index = stringUrl.indexOf("http:");
+            String outUrl = stringUrl.substring(index);
+            return outUrl.getBytes(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new AFCryptoException("获取证书中的OCSP URL 错误" + e.getMessage());
+        }
     }
 
     /**
@@ -1263,7 +1372,8 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getCertInfo(byte[] base64Certificate, int certInfoType) throws AFCryptoException {
-        return new byte[0];
+        byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
+        return cmd.getCertInfo(derCert, certInfoType);
     }
 
     /**
@@ -1276,7 +1386,8 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getCertInfoByOid(byte[] base64Certificate, byte[] certInfoOid) throws AFCryptoException {
-        return new byte[0];
+        byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
+        return cmd.getCertInfoByOid(derCert, certInfoOid);
     }
 
     /**

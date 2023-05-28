@@ -4,6 +4,7 @@ import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
 import com.af.constant.ConstantNumber;
+import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.device.AFDeviceFactory;
 import com.af.device.DeviceInfo;
@@ -12,6 +13,7 @@ import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
+import com.af.struct.impl.sm2.SM2Cipher;
 import com.af.struct.signAndVerify.*;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
@@ -27,6 +29,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.*;
 import java.util.Arrays;
+import java.util.Locale;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -253,7 +256,6 @@ public class AFSVCmd {
     }
 
 
-
     /**
      * <p>RSA验证签名</p>
      * <p>使用内部RSA密钥对数据进行验证签名运算</p>
@@ -379,7 +381,6 @@ public class AFSVCmd {
         }
         return res.getDataBuffer().readOneData();
     }
-
 
 
     /**
@@ -875,7 +876,23 @@ public class AFSVCmd {
      */
 
     public byte[] sm2Encrypt(SM2PublicKey publicKey, byte[] inData) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SV-sm2外部加密,publicKey:{},inDataLen:{}", publicKey, inData.length);
+        byte[] param = new BytesBuffer()
+                .append(0)
+                .append(ConstantNumber.SGD_SM2_3)
+                .append(0)
+                .append(publicKey.size())
+                .append(publicKey.encode())
+                .append(inData.length)
+                .append(inData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALENCRYPT_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-sm2外部加密错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-sm2外部加密错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
@@ -891,23 +908,31 @@ public class AFSVCmd {
         return new byte[0];
     }
 
-    /**
-     * <p>sm2解密</p>
-     * <p>使用内部密钥进行SM2解密</p>
-     *
-     * @param keyIndex ：密码设备内部密钥索引
-     * @param encData  ：Base64编码的加密数据, 其结构应满足 GM/T 0009-2012中关于SM2公钥结构的数据定义
-     *                 <p>SM2Cipher ::= SEQUENCE {</p>
-     *                 <p>     XCoordinate     INTEGER, --x分量</p>
-     *                 <p>     YCoordinate     INTEGER, --y分量</p>
-     *                 <p>     HASH            OCTET STRING SIZE(32), --杂凑值</p>
-     *                 <p>     CipherText      OCTET STRING, --密文</p>
-     *                 <p>}</p>
-     * @return ：原文数据
-     */
 
-    public byte[] sm2Decrypt(int keyIndex, byte[] encData) throws AFCryptoException {
-        return new byte[0];
+    /**
+     * sm2 内部解密
+     *
+     * @param keyIndex  密钥索引
+     * @param SM2Cipher 密文
+     */
+    public byte[] sm2Decrypt(int keyIndex, SM2Cipher SM2Cipher) throws AFCryptoException {
+        logger.info("SV-sm2内部解密,keyIndex:{},SM2CipherLen:{}", keyIndex, SM2Cipher.size());
+        getPrivateAccess(keyIndex);
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .append(ConstantNumber.SGD_SM2_3)
+                .append(0)
+                .append(0)
+                .append(SM2Cipher.size())
+                .append(SM2Cipher.encode())
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALDECRYPT_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-sm2内部解密错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-sm2内部解密错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
@@ -926,21 +951,65 @@ public class AFSVCmd {
      * @return ：原文数据
      */
 
-    public byte[] sm2Decrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
-        return new byte[0];
+    public byte[] sm2Decrypt(SM2PrivateKey privateKey, SM2Cipher encData) throws AFCryptoException {
+        logger.info("SV-sm2外部解密,privateKey:{},encDataLen:{}", privateKey, encData.size());
+        byte[] param = new BytesBuffer()
+                .append(0)
+                .append(ConstantNumber.SGD_SM2_3)
+                .append(0)
+                .append(privateKey.size())
+                .append(privateKey.encode())
+                .append(encData.size())
+                .append(encData.encode())
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALDECRYPT_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-sm2外部解密错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-sm2外部解密错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
+    }
+
+
+    /**
+     * 导出SM2加密公钥
+     *
+     * @param keyIndex 密钥索引
+     */
+    public byte[] getSM2EncPublicKey(int keyIndex) throws AFCryptoException {
+        logger.info("SV-导出SM2加密公钥,keyIndex:{}", keyIndex);
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .append(ConstantNumber.SGD_SM2_2)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXPORTENCPUBLICKEY_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-导出SM2加密公钥错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-导出SM2加密公钥错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
-     * <p>导出SM2公钥</p>
-     * <p>导出密码机内部对应索引和用途的SM2公钥信息</p>
+     * 导出SM2签名公钥
      *
-     * @param keyIndex ：密码设备内部存储的SM2索引号
-     * @param keyUsage ：密钥用途，0：签名公钥；1：加密公钥
-     * @return : 返回Base64编码的公钥数据
+     * @param keyIndex 密钥索引
      */
-
-    public byte[] getSm2PublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
-        return new byte[0];
+    public byte[] getSM2SignPublicKey(int keyIndex) throws AFCryptoException {
+        logger.info("SV-导出SM2签名公钥,keyIndex:{}", keyIndex);
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .append(ConstantNumber.SGD_SM2_1)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXPORTSIGNPUBLICKEY_ECC, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-导出SM2签名公钥错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-导出SM2签名公钥错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
@@ -951,33 +1020,59 @@ public class AFSVCmd {
      */
 
     public certAltNameTrustList getCertTrustListAltName() throws AFCryptoException {
-        return null;
+        logger.info("SV-查询证书信任列表别名");
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GET_ALL_ALT_NAME, null);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-查询证书信任列表别名错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-查询证书信任列表别名错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        byte[] responseData = res.getData();
+        int nameNumber = BytesOperate.bytes2int(getBytes(responseData, 0, 4));
+        int certListLen = BytesOperate.bytes2int(getBytes(responseData, 4, 4));
+        byte[] certList = getBytes(responseData, 4 + 4, certListLen);
+
+        return new certAltNameTrustList(certList, nameNumber);
     }
+
+    private static byte[] getBytes(byte[] bytesResponse, int offset, int length) {
+        return BytesOperate.subBytes(bytesResponse, offset, length);
+    }
+
 
     /**
-     * <p>获取证书的个数</p>
-     * <p>根据证书别名获取信任证书的个数</p>
-     *
-     * @param altName ：证书别名
-     * @return ：证书的个数
+     * 根据证书别名获取证书列表
+     * @param subCmd 0x01：获取证书个数；0x02：获取证书列表
+     * @param index 证书索引
+     * @param altName 证书别名
+     * @return 证书列表
      */
-
-    public int getCertCountByAltName(byte[] altName) throws AFCryptoException {
-        return 0;
+    public CertList getCertListByAltName(int subCmd, int index, byte[] altName) throws AFCryptoException {
+        logger.info("SV-根据证书别名获取信任证书的个数,altName:{}", altName);
+        BytesBuffer buffer = new BytesBuffer().append(subCmd);
+        if (subCmd != 0x01) {
+            buffer.append(index);
+        }
+        byte[] param = buffer.append(altName.length).append(altName).toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GET_CERT, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-根据证书别名获取信任证书的个数错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-根据证书别名获取信任证书的个数错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        byte[] responseData = res.getData();
+        CertList list = new CertList();
+        if (subCmd == 0x01) {
+            list.setCertCount(BytesOperate.bytes2int(getBytes(responseData, 0, 4)));
+        } else {
+            int certLen = BytesOperate.bytes2int(getBytes(responseData, 0, 4));
+            list.setCertData(getBytes(responseData, 4, certLen));
+        }
+        return list;
     }
 
-    /**
-     * <p>根据别名获取单个证书</p>
-     * <p>根据别名获取单个证书</p>
-     *
-     * @param altName   ：证书别名
-     * @param certIndex ：证书索引号(与函数getCertCountByAltName中获取到的值相匹配)
-     * @return ：Base64编码的证书文件
-     */
 
-    public byte[] getCertByAltName(byte[] altName, int certIndex) throws AFCryptoException {
-        return new byte[0];
-    }
+
 
     /**
      * <p>获取应用策略</p>
@@ -986,7 +1081,26 @@ public class AFSVCmd {
      * @param policyName ：策略名称
      */
 
-    public void getInstance(byte[] policyName) throws AFCryptoException {
+    public AFSvCryptoInstance getInstance(byte[] policyName) throws AFCryptoException {
+        logger.info("SV-获取应用策略,policyName:{}", policyName);
+        byte[] param = new BytesBuffer()
+                .append(policyName.length)
+                .append(policyName)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GET_INSTANCE, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-获取应用策略错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-获取应用策略错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        byte[] responseData = res.getData();
+        AFSvCryptoInstance instance = new AFSvCryptoInstance();
+        instance.setPolicyName(policyName);
+        instance.setKeyIndex(BytesOperate.bytes2int(getBytes(responseData, 0, 4)));
+        instance.setKeyType(BytesOperate.bytes2int(getBytes(responseData, 4, 4)));
+        instance.setPolicy(BytesOperate.bytes2int(getBytes(responseData, 4 + 4, 4)));
+
+        return instance;
 
     }
 
@@ -998,7 +1112,17 @@ public class AFSVCmd {
      */
 
     public void deleteCertList(byte[] altName) throws AFCryptoException {
-
+        logger.info("SV-删除用户证书列表,altName:{}", altName);
+        byte[] param = new BytesBuffer()
+                .append(altName.length)
+                .append(altName)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_DELETE_CERT, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-删除用户证书列表错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-删除用户证书列表错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
     }
 
     /**
@@ -1021,7 +1145,17 @@ public class AFSVCmd {
      */
 
     public byte[] getServerCertByUsage(int usage) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SV-获取服务器证书,usage:{}", usage);
+        byte[] param = new BytesBuffer()
+                .append(usage)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GET_SERVER_CERT_INFO, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-获取服务器证书错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-获取服务器证书错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
@@ -1034,20 +1168,21 @@ public class AFSVCmd {
      */
 
     public byte[] getCertByPolicyName(byte[] policyName, int certType) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SV-根据策略名称，获取相应的证书,policyName:{},certType:{}", policyName, certType);
+        byte[] param = new BytesBuffer()
+                .append(policyName.length)
+                .append(policyName)
+                .append(certType)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GET_CERT_BY_POLICY_NAME, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-根据策略名称，获取相应的证书错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-根据策略名称，获取相应的证书错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
-    /**
-     * <p>获取证书中的OCSP URL地址</p>
-     * <p>获取证书中的OCSP URL地址</p>
-     *
-     * @param base64Certificate ： Base64编码的证书
-     * @return ： OCSP URL地址
-     */
-
-    public byte[] getOcspUrl(byte[] base64Certificate) throws AFCryptoException {
-        return new byte[0];
-    }
 
     /**
      * <p>获取证书信息</p>
@@ -1059,20 +1194,49 @@ public class AFSVCmd {
      */
 
     public byte[] getCertInfo(byte[] base64Certificate, int certInfoType) throws AFCryptoException {
-        return new byte[0];
+        logger.info("SV-获取证书信息,base64Certificate:{},certInfoType:{}", base64Certificate, certInfoType);
+        byte[] param = new BytesBuffer()
+                .append(certInfoType)
+                .append(base64Certificate.length)
+                .append(base64Certificate)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GET_CERT_INFO, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-获取证书信息错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-获取证书信息错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        byte[] bytes = res.getDataBuffer().readOneData();
+        return new String(bytes).toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8);
+
     }
 
     /**
      * <p>获取证书扩展信息</p>
      * <p>获取用户指定的证书扩展信息内容</p>
      *
-     * @param base64Certificate ：Base64编码的证书文件
-     * @param certInfoOid       : 用户待获取的证书内容类型OID值 : OID值定义在类 certParseInfoType 中
+     * @param certData ：Base64编码的证书文件
+     * @param oid       : 用户待获取的证书内容类型OID值 : OID值定义在类 certParseInfoType 中
      * @return ：用户获取到的证书信息内容
      */
 
-    public byte[] getCertInfoByOid(byte[] base64Certificate, byte[] certInfoOid) throws AFCryptoException {
-        return new byte[0];
+    public byte[] getCertInfoByOid(byte[] certData, byte[] oid) throws AFCryptoException {
+        logger.info("SV-获取证书扩展信息,certData:{},oid:{}", certData, oid);
+        byte[] param = new BytesBuffer()
+                .append(0)
+                .append(oid.length)
+                .append(oid)
+                .append(certData.length)
+                .append(certData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GET_CERT_EXT_TYPE_INFO, param);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-获取证书扩展信息错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-获取证书扩展信息错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
+
     }
 
     /**
@@ -1289,4 +1453,6 @@ public class AFSVCmd {
     public byte[] decodeEnvelopedDataForSM2(int keyIndex, int decodeKeyUsage, byte[] envelopedData) throws AFCryptoException {
         return new byte[0];
     }
+
+
 }

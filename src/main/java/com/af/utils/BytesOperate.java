@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
 /**
@@ -101,6 +102,13 @@ public class BytesOperate {
         outPubKey = base64PubKey.replaceAll(begin, "");
         outPubKey = outPubKey.replaceAll(end, "");
         return base64DecodeData(outPubKey);
+    }
+
+    public static byte[] base64EncodeCert(byte[] derCert)
+    {
+        String begin = "-----BEGIN CERTIFICATE-----\n";
+        String end = "\n-----END CERTIFICATE-----";
+        return (begin + new String(base64EncodeData(derCert)) + end).getBytes(StandardCharsets.UTF_8);
     }
 
     /**
