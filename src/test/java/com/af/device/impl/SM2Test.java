@@ -56,16 +56,16 @@ class SM2Test {
      */
     @Test
     void testInside256() throws AFCryptoException {
-        SM2Cipher sm2Cipher = device.SM2Encrypt(ModulusLength.LENGTH_256, 2, data);
-        byte[] decrypt = device.SM2Decrypt(ModulusLength.LENGTH_256, 2, sm2Cipher);
+        SM2Cipher sm2Cipher = device.sm2Encrypt(ModulusLength.LENGTH_256, 2, data);
+        byte[] decrypt = device.sm2Decrypt(ModulusLength.LENGTH_256, 2, sm2Cipher);
         assert Arrays.equals(data, decrypt);
     }
 
     @Test
     void testInside512() throws AFCryptoException {
-        SM2Cipher sm2Cipher = device.SM2Encrypt(ModulusLength.LENGTH_512, 2, data);
+        SM2Cipher sm2Cipher = device.sm2Encrypt(ModulusLength.LENGTH_512, 2, data);
         System.out.println("sm2Cipher:" + sm2Cipher);
-        byte[] decrypt = device.SM2Decrypt(ModulusLength.LENGTH_512, 2, sm2Cipher);
+        byte[] decrypt = device.sm2Decrypt(ModulusLength.LENGTH_512, 2, sm2Cipher);
         assert Arrays.equals(data, decrypt);
     }
 
@@ -78,8 +78,8 @@ class SM2Test {
     void testExternal256() throws AFCryptoException {
         //256
         SM2KeyPair sm2KeyPair1 = device.generateSM2KeyPair(ModulusLength.LENGTH_256);
-        SM2Cipher sm2Cipher = device.SM2Encrypt(ModulusLength.LENGTH_256, sm2KeyPair1.getPubKey(), data);
-        byte[] decrypt = device.SM2Decrypt(ModulusLength.LENGTH_256, sm2KeyPair1.getPriKey(), sm2Cipher);
+        SM2Cipher sm2Cipher = device.sm2Encrypt(ModulusLength.LENGTH_256, sm2KeyPair1.getPubKey(), data);
+        byte[] decrypt = device.sm2Decrypt(ModulusLength.LENGTH_256, sm2KeyPair1.getPriKey(), sm2Cipher);
         assert Arrays.equals(data, decrypt);
     }
 
@@ -88,10 +88,10 @@ class SM2Test {
     void testExternal512() throws AFCryptoException {
         //512
         SM2KeyPair sm2KeyPair2 = device.generateSM2KeyPair(ModulusLength.LENGTH_512);
-//        SM2Cipher sm2Cipher2 = device.SM2Encrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPubKey(), data);
+//        SM2Cipher sm2Cipher2 = device.sm2Encrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPubKey(), data);
         //下面这句降外部key由512改为256 就可以加密
-        SM2Cipher sm2Cipher2 = device.SM2Encrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPubKey(), data);
-        byte[] decrypt2 = device.SM2Decrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPriKey().to256(), sm2Cipher2);
+        SM2Cipher sm2Cipher2 = device.sm2Encrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPubKey(), data);
+        byte[] decrypt2 = device.sm2Decrypt(ModulusLength.LENGTH_512, sm2KeyPair2.getPriKey().to256(), sm2Cipher2);
         assert Arrays.equals(data, decrypt2);
     }
 
@@ -102,7 +102,7 @@ class SM2Test {
     @Test
     void testInSign256() throws AFCryptoException {
 
-        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_256, 1, data);
+        SM2Signature sm2Signature = device.sm2Signature(ModulusLength.LENGTH_256, 1, data);
         //签名结果
         System.out.println("内部密钥签名结果=" + Base64.encode(sm2Signature.encode()));
 
@@ -113,7 +113,7 @@ class SM2Test {
 
 
         sm2Signature.decode(decode);
-        boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, 1, data, sm2Signature);
+        boolean verify = device.sm2Verify(ModulusLength.LENGTH_256, 1, data, sm2Signature);
         assert verify;
     }
 
@@ -123,8 +123,8 @@ class SM2Test {
      */
     @Test
     void testInSign512() throws AFCryptoException {
-        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_512, 1, data);
-        boolean verify = device.SM2Verify(ModulusLength.LENGTH_512, 1, data, sm2Signature);
+        SM2Signature sm2Signature = device.sm2Signature(ModulusLength.LENGTH_512, 1, data);
+        boolean verify = device.sm2Verify(ModulusLength.LENGTH_512, 1, data, sm2Signature);
         System.out.println(verify);
         assert verify;
     }
@@ -137,8 +137,8 @@ class SM2Test {
         SM2KeyPair sm2KeyPair1 = device.generateSM2KeyPair(ModulusLength.LENGTH_256);
         SM2PrivateKey priKey = sm2KeyPair1.getPriKey();
         SM2PublicKey pubKey = sm2KeyPair1.getPubKey();
-        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_256, data, priKey);
-        boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, data, sm2Signature, pubKey);
+        SM2Signature sm2Signature = device.sm2Signature(ModulusLength.LENGTH_256, data, priKey);
+        boolean verify = device.sm2Verify(ModulusLength.LENGTH_256, data, sm2Signature, pubKey);
         assert verify;
     }
 
@@ -148,8 +148,8 @@ class SM2Test {
     @Test
     void testExSign512() throws AFCryptoException {
         SM2KeyPair sm2KeyPair2 = device.generateSM2KeyPair(ModulusLength.LENGTH_512);
-        SM2Signature sm2Signature2 = device.SM2Signature(ModulusLength.LENGTH_512, data, sm2KeyPair2.getPriKey());
-        boolean verify2 = device.SM2Verify(ModulusLength.LENGTH_512, data, sm2Signature2, sm2KeyPair2.getPubKey());
+        SM2Signature sm2Signature2 = device.sm2Signature(ModulusLength.LENGTH_512, data, sm2KeyPair2.getPriKey());
+        boolean verify2 = device.sm2Verify(ModulusLength.LENGTH_512, data, sm2Signature2, sm2KeyPair2.getPubKey());
         assert verify2;
 
     }

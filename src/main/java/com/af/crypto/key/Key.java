@@ -11,7 +11,6 @@ public interface Key extends IAFStruct {
 
     String getAlgorithm();
 
-
     byte[] encode();
 
     void decode(byte[] encodedKey);

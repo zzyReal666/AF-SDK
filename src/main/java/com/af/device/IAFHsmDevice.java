@@ -2,16 +2,16 @@ package com.af.device;
 
 import com.af.constant.GroupMode;
 import com.af.constant.ModulusLength;
-import com.af.crypto.key.keyInfo.AFKmsKeyInfo;
-import com.af.crypto.key.keyInfo.AFSymmetricKeyStatus;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
+import com.af.struct.impl.RSA.RSAKeyPair;
+import com.af.struct.impl.RSA.RSAPriKey;
+import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.sm2.SM2Cipher;
 import com.af.struct.impl.sm2.SM2Signature;
 import com.af.exception.AFCryptoException;
 
-import java.util.List;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -31,7 +31,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 加密后的数据
      * @throws AFCryptoException 加密异常
      */
-    byte[] SM1Encrypt(GroupMode mode, int index, byte[] iv, byte[] data) throws AFCryptoException;
+    byte[] sm1Encrypt(GroupMode mode, int index, byte[] iv, byte[] data) throws AFCryptoException;
 
     /**
      * SM1内部密钥解密
@@ -43,7 +43,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常
      */
-    byte[] SM1Decrypt(GroupMode mode, int index, byte[] iv, byte[] encodeData) throws AFCryptoException;
+    byte[] sm1Decrypt(GroupMode mode, int index, byte[] iv, byte[] encodeData) throws AFCryptoException;
 
 
     //==================2.外部密钥加解密==================
@@ -58,7 +58,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 加密后的数据
      * @throws AFCryptoException 加密异常
      */
-    byte[] SM1Encrypt(GroupMode mode, byte[] key, byte[] iv, byte[] data) throws AFCryptoException;
+    byte[] sm1Encrypt(GroupMode mode, byte[] key, byte[] iv, byte[] data) throws AFCryptoException;
 
     /**
      * SM1外部密钥解密
@@ -70,7 +70,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常
      */
-    byte[] SM1Decrypt(GroupMode mode, byte[] key, byte[] iv, byte[] encodeData) throws AFCryptoException;
+    byte[] sm1Decrypt(GroupMode mode, byte[] key, byte[] iv, byte[] encodeData) throws AFCryptoException;
 
 
     //=======================================================SM2===========================================================
@@ -115,7 +115,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @param data  待加密数据
      * @throws AFCryptoException 加密异常
      */
-    SM2Cipher SM2Encrypt(ModulusLength length, int index, byte[] data) throws AFCryptoException;
+    SM2Cipher sm2Encrypt(ModulusLength length, int index, byte[] data) throws AFCryptoException;
 
     /**
      * SM2内部密钥解密
@@ -125,7 +125,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常
      */
-    byte[] SM2Decrypt(ModulusLength length,int index, SM2Cipher encodeData) throws AFCryptoException;
+    byte[] sm2Decrypt(ModulusLength length, int index, SM2Cipher encodeData) throws AFCryptoException;
 
     //===================2.2外部密钥加解密===================
 
@@ -137,7 +137,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 加密后的数据
      * @throws AFCryptoException 加密异常
      */
-    SM2Cipher SM2Encrypt(ModulusLength length, SM2PublicKey key, byte[] data) throws AFCryptoException;
+    SM2Cipher sm2Encrypt(ModulusLength length, SM2PublicKey key, byte[] data) throws AFCryptoException;
 
     /**
      * SM2外部密钥解密
@@ -146,7 +146,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 解密后的数据
      * @throws AFCryptoException 解密异常
      */
-    byte[] SM2Decrypt(ModulusLength length, SM2PrivateKey privateKey, SM2Cipher encodeData) throws AFCryptoException;
+    byte[] sm2Decrypt(ModulusLength length, SM2PrivateKey privateKey, SM2Cipher encodeData) throws AFCryptoException;
 
 
     //===================================SM2签名验签===================================
@@ -158,7 +158,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @param data  待签名数据
      * @throws AFCryptoException 签名异常
      */
-    SM2Signature SM2Signature(ModulusLength length, int index, byte[] data) throws AFCryptoException;
+    SM2Signature sm2Signature(ModulusLength length, int index, byte[] data) throws AFCryptoException;
 
     /**
      * SM2 内部密钥验签
@@ -169,7 +169,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 验签结果 true:验签成功 false:验签失败
      * @throws AFCryptoException 验签异常
      */
-    boolean SM2Verify(ModulusLength length,int index, byte[] data, SM2Signature signature) throws AFCryptoException;
+    boolean sm2Verify(ModulusLength length, int index, byte[] data, SM2Signature signature) throws AFCryptoException;
 
     /**
      * SM2 外部密钥签名
@@ -179,7 +179,7 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 签名
      * @throws AFCryptoException 签名异常
      */
-    SM2Signature SM2Signature(ModulusLength length,byte[] data, SM2PrivateKey privateKey) throws AFCryptoException;
+    SM2Signature sm2Signature(ModulusLength length,byte[] data, SM2PrivateKey privateKey) throws AFCryptoException;
 
     /**
      * SM2 外部密钥验签
@@ -190,20 +190,13 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 验签结果 true:验签成功 false:验签失败
      * @throws AFCryptoException 验签异常
      */
-    boolean SM2Verify(ModulusLength length,byte[] data, SM2Signature signature, SM2PublicKey publicKey) throws AFCryptoException;
+    boolean sm2Verify(ModulusLength length, byte[] data, SM2Signature signature, SM2PublicKey publicKey) throws AFCryptoException;
 
 
     //=======================================================SM3===========================================================
 
-    /**
-     * SM3哈希 杂凑算法
-     *
-     * @param data 待杂凑数据
-     * @return 杂凑值
-     * @throws AFCryptoException 杂凑异常
-     */
-    byte[] SM3Hash(byte[] data) throws AFCryptoException;
 
+    byte[] sm3Hash(byte[] data) throws AFCryptoException;
     /**
      * SM3哈希 杂凑算法 <br>
      * 带公钥信息和用户ID
@@ -214,44 +207,128 @@ public interface IAFHsmDevice extends IAFDevice {
      * @return 杂凑值
      * @throws AFCryptoException 杂凑异常
      */
-    byte[] SM3HashWithPubKey(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException;
-
-
-    /**
-     * SM3 HMAC  内部密钥<br>
-     *
-     * @param index 内部密钥索引
-     * @param data  待杂凑数据
-     * @return 消息验证码值
-     * @throws AFCryptoException 杂凑异常
-     */
+    byte[] sm3HashWithPubKey(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException;
     byte[] SM3HMac(int index, byte[] data) throws AFCryptoException;
-
-
-    /**
-     * SM3 HMAC  外部密钥<br>
-     *
-     * @param key  密钥
-     * @param data 待杂凑数据
-     * @return 消息验证码值
-     * @throws AFCryptoException 杂凑异常
-     */
     byte[] SM3HMac(byte[] key, byte[] data) throws AFCryptoException;
 
     //=======================================================SM4===========================================================
 
-    byte[] SM4Mac(int index, byte[] data, byte[] IV) throws AFCryptoException;
+    byte[] sm4Mac(int index, byte[] data, byte[] IV) throws AFCryptoException;
 
-    byte[] SM4Mac(byte[] key, byte[] data, byte[] IV) throws AFCryptoException;
+    byte[] sm4Mac(byte[] key, byte[] data, byte[] IV) throws AFCryptoException;
 
-    byte[] SM4Encrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException;
+    byte[] sm4Encrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException;
 
-    byte[] SM4Decrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException;
+    byte[] sm4Decrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException;
 
-    byte[] SM4Encrypt(GroupMode mode, byte[] key, byte[] data, byte[] IV) throws AFCryptoException;
+    byte[] sm4Encrypt(GroupMode mode, byte[] key, byte[] data, byte[] IV) throws AFCryptoException;
 
-    byte[] SM4Decrypt(GroupMode mode, byte[] key, byte[] data, byte[] IV) throws AFCryptoException;
+    byte[] sm4Decrypt(GroupMode mode, byte[] key, byte[] data, byte[] IV) throws AFCryptoException;
 
+
+
+
+    //=======================================================RSA===========================================================
+    /**
+     * <p> 获取RSA签名公钥信息 </p>
+     *
+     * @param index：密钥索引
+     * @return 返回RSA签名数据结构
+     * @throws AFCryptoException
+     */
+    RSAPubKey getRSASignPublicKey(int index) throws AFCryptoException;
+
+    /**
+     * <p> 获取RSA加密公钥信息 </p>
+     *
+     * @param index： 密钥索引
+     * @return 返回RSA加密数据结构
+     * @throws AFCryptoException
+     */
+    RSAPubKey getRSAEncPublicKey(int index) throws AFCryptoException;
+
+    /**
+     * <p> 生成RSA密钥对信息 </p>
+     *
+     * @param bits: 位长，1024 or 2048
+     * @return 返回RSA密钥对数据结构
+     * @throws AFCryptoException
+     */
+    RSAKeyPair generateRSAKeyPair(int bits) throws AFCryptoException;
+
+    /**
+     * <p> RSA外部加密运算 </p>
+     *
+     * @param publicKey ：RSA公钥信息
+     * @param data      : 原始数据
+     * @return ：返回运算结果
+     */
+    byte[] RSAExternalEncode(RSAPubKey publicKey, byte[] data) throws AFCryptoException;
+
+    /**
+     * <p> RSA外部解密运算 </p>
+     *
+     * @param prvKey ：RSA私钥信息
+     * @param data   : 加密数据
+     * @return ：返回运算结果
+     */
+    byte[] RSAExternalDecode(RSAPriKey prvKey, byte[] data) throws AFCryptoException;
+
+    /**
+     * <p> RSA外部签名运算 </p>
+     *
+     * @param prvKey ：RSA私钥信息
+     * @param data   : 原始数据
+     * @return ：返回运算结果
+     */
+    byte[] RSAExternalSign(RSAPriKey prvKey, byte[] data) throws AFCryptoException;
+
+    /**
+     * <p> RSA外部验证签名运算 </p>
+     *
+     * @param publicKey ：RSA公钥信息
+     * @param data      : 签名数据
+     * @param rawData   : 原始数据
+     * @return ：true: 验证成功，false：验证失败
+     */
+    boolean RSAExternalVerify(RSAPubKey publicKey, byte[] data, byte[] rawData) throws AFCryptoException;
+
+    /**
+     * <p> RSA内部加密运算 </p>
+     *
+     * @param index ：RSA内部密钥索引
+     * @param data  : 原始数据
+     * @return ：返回运算结果
+     */
+    byte[] RSAInternalEncode(int index, byte[] data) throws AFCryptoException;
+
+    /**
+     * <p> RSA内部解密运算 </p>
+     *
+     * @param index ：RSA内部密钥索引
+     * @param data  : 加密数据
+     * @return ：返回运算结果
+     */
+    byte[] RSAInternalDecode(int index, byte[] data) throws AFCryptoException;
+
+    /**
+     * <p> RSA内部签名运算</p>
+     *
+     * @param index ：RSA内部密钥索引
+     * @param data  : 原始数据
+     * @return ：返回运算结果
+     */
+    byte[] RSAInternalSign(int index, byte[] data) throws AFCryptoException;
+
+    /**
+     * <p> RSA内部验证签名运算 </p>
+     *
+     * @param index   ：RSA内部密钥索引
+     * @param data    : 签名数据
+     * @param rawData : 原始数据
+     * @return ：true: 验证成功，false：验证失败
+     */
+    boolean RSAInternalVerify(int index, byte[] data, byte[] rawData) throws AFCryptoException;
 
     //================================================others====================================================
 
@@ -267,41 +344,41 @@ public interface IAFHsmDevice extends IAFDevice {
     int getPrivateKeyAccessRight(int keyIndex, int keyType, byte[] passwd) throws AFCryptoException;
 
 
-    /**
-     * 获取设备内部对称密钥状态
-     *
-     * @return 设备内部对称密钥状态
-     * @throws AFCryptoException 获取设备内部对称密钥状态异常
-     */
-    List<AFSymmetricKeyStatus> getSymmetricKeyStatus() throws AFCryptoException;
-
-    /**
-     * 导入非易失对称密钥
-     *
-     * @param index   密钥索引
-     * @param keyData 密钥数据(16进制编码)
-     * @throws AFCryptoException 导入非易失对称密钥异常
-     */
-    void importKek(int index, byte[] keyData) throws AFCryptoException;
-
-
-    /**
-     * 销毁非易失对称密钥
-     *
-     * @param index 密钥索引
-     * @throws AFCryptoException 销毁非易失对称密钥异常
-     */
-    void delKek(int index) throws AFCryptoException;
-
-
-    /**
-     * 生成密钥信息
-     *
-     * @param keyType 密钥类型 1:对称密钥; 3:SM2密钥 4:RSA密钥;
-     * @param keyBits 密钥长度 128/256/512/1024/2048/4096
-     * @param count   密钥数量
-     * @return 密钥信息列表
-     * @throws AFCryptoException 生成密钥信息异常
-     */
-    List<AFKmsKeyInfo> generateKey(int keyType, int keyBits, int count) throws AFCryptoException;
+//    /**
+//     * 获取设备内部对称密钥状态
+//     *
+//     * @return 设备内部对称密钥状态
+//     * @throws AFCryptoException 获取设备内部对称密钥状态异常
+//     */
+//    List<AFSymmetricKeyStatus> getSymmetricKeyStatus() throws AFCryptoException;
+//
+//    /**
+//     * 导入非易失对称密钥
+//     *
+//     * @param index   密钥索引
+//     * @param keyData 密钥数据(16进制编码)
+//     * @throws AFCryptoException 导入非易失对称密钥异常
+//     */
+//    void importKek(int index, byte[] keyData) throws AFCryptoException;
+//
+//
+//    /**
+//     * 销毁非易失对称密钥
+//     *
+//     * @param index 密钥索引
+//     * @throws AFCryptoException 销毁非易失对称密钥异常
+//     */
+//    void delKek(int index) throws AFCryptoException;
+//
+//
+//    /**
+//     * 生成密钥信息
+//     *
+//     * @param keyType 密钥类型 1:对称密钥; 3:SM2密钥 4:RSA密钥;
+//     * @param keyBits 密钥长度 128/256/512/1024/2048/4096
+//     * @param count   密钥数量
+//     * @return 密钥信息列表
+//     * @throws AFCryptoException 生成密钥信息异常
+//     */
+//    List<AFKmsKeyInfo> generateKey(int keyType, int keyBits, int count) throws AFCryptoException;
 }

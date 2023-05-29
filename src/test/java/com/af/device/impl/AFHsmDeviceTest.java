@@ -58,23 +58,23 @@ AFHsmDeviceTest {
         byte[] iv = device.getRandom(16);
 
         //内部 ECB
-        byte[] encryptECB = device.SM1Encrypt(GroupMode.ECB, 2, null, data);
-        byte[] decryptECB = device.SM1Decrypt(GroupMode.ECB, 2, null, encryptECB);
+        byte[] encryptECB = device.sm1Encrypt(GroupMode.ECB, 2, null, data);
+        byte[] decryptECB = device.sm1Decrypt(GroupMode.ECB, 2, null, encryptECB);
         assert Arrays.equals(data, decryptECB);
 
         //内部 CBC
-        byte[] encryptCBC = device.SM1Encrypt(GroupMode.CBC, 2, iv, data);
-        byte[] decryptCBC = device.SM1Decrypt(GroupMode.CBC, 2, iv, encryptCBC);
+        byte[] encryptCBC = device.sm1Encrypt(GroupMode.CBC, 2, iv, data);
+        byte[] decryptCBC = device.sm1Decrypt(GroupMode.CBC, 2, iv, encryptCBC);
         assert Arrays.equals(data, decryptCBC);
 
         //外部 ECB
-        byte[] encryptECB2 = device.SM1Encrypt(GroupMode.ECB, key, null, data);
-        byte[] decryptECB2 = device.SM1Decrypt(GroupMode.ECB, key, null, encryptECB2);
+        byte[] encryptECB2 = device.sm1Encrypt(GroupMode.ECB, key, null, data);
+        byte[] decryptECB2 = device.sm1Decrypt(GroupMode.ECB, key, null, encryptECB2);
         assert Arrays.equals(data, decryptECB2);
 
         //外部 CBC
-        byte[] encryptCBC2 = device.SM1Encrypt(GroupMode.CBC, key, iv, data);
-        byte[] decryptCBC2 = device.SM1Decrypt(GroupMode.CBC, key, iv, encryptCBC2);
+        byte[] encryptCBC2 = device.sm1Encrypt(GroupMode.CBC, key, iv, data);
+        byte[] decryptCBC2 = device.sm1Decrypt(GroupMode.CBC, key, iv, encryptCBC2);
         assert Arrays.equals(data, decryptCBC2);
 
     }
@@ -102,11 +102,11 @@ AFHsmDeviceTest {
         //todo 加解密
 
         //todo 签名验签
-        SM2Signature sm2Signature = device.SM2Signature(ModulusLength.LENGTH_256, 1, data);
-        boolean verify = device.SM2Verify(ModulusLength.LENGTH_256, 1, data, sm2Signature);
+        SM2Signature sm2Signature = device.sm2Signature(ModulusLength.LENGTH_256, 1, data);
+        boolean verify = device.sm2Verify(ModulusLength.LENGTH_256, 1, data, sm2Signature);
         assert verify;
-        SM2Signature sm2Signature1 = device.SM2Signature(ModulusLength.LENGTH_512, 1, data);
-        boolean b = device.SM2Verify(ModulusLength.LENGTH_512, 1, data, sm2Signature1);
+        SM2Signature sm2Signature1 = device.sm2Signature(ModulusLength.LENGTH_512, 1, data);
+        boolean b = device.sm2Verify(ModulusLength.LENGTH_512, 1, data, sm2Signature1);
         assert b;
 
     }

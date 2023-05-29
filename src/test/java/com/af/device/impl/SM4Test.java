@@ -23,7 +23,7 @@ class SM4Test {
     @Test
     void testMacInside() throws AFCryptoException {
         byte[] IV = device.getRandom(16);
-        byte[] bytes = device.SM4Mac(2, data, IV);
+        byte[] bytes = device.sm4Mac(2, data, IV);
         System.out.println(Arrays.toString(bytes));
     }
 
@@ -31,7 +31,7 @@ class SM4Test {
     void testMacExternal() throws AFCryptoException {
         byte[] IV = device.getRandom(16);
         byte[] key = device.getRandom(16);
-        byte[] bytes = device.SM4Mac(key, data, IV);
+        byte[] bytes = device.sm4Mac(key, data, IV);
         System.out.println(Arrays.toString(bytes));
     }
 
@@ -39,28 +39,28 @@ class SM4Test {
     @Test
     void testECB() throws AFCryptoException {
         //ECB内部
-        byte[] cipher = device.SM4Encrypt(GroupMode.ECB, 2, data, null);
-        byte[] plain = device.SM4Decrypt(GroupMode.ECB, 2, cipher, null);
+        byte[] cipher = device.sm4Encrypt(GroupMode.ECB, 2, data, null);
+        byte[] plain = device.sm4Decrypt(GroupMode.ECB, 2, cipher, null);
         assert Arrays.equals(data, plain);
 
         //ECB外部
-        byte[] cipher2 = device.SM4Encrypt(GroupMode.ECB, key, data, null);
-        byte[] plain2 = device.SM4Decrypt(GroupMode.ECB, key, cipher2, null);
+        byte[] cipher2 = device.sm4Encrypt(GroupMode.ECB, key, data, null);
+        byte[] plain2 = device.sm4Decrypt(GroupMode.ECB, key, cipher2, null);
         assert Arrays.equals(data, plain2);
 
     }
     @Test
     void  testCBC() throws AFCryptoException {
         //CBC内部
-        byte[] cipher3 = device.SM4Encrypt(GroupMode.CBC, 2, data, IV);
+        byte[] cipher3 = device.sm4Encrypt(GroupMode.CBC, 2, data, IV);
         System.out.println("cipher3:" + Arrays.toString(cipher3));
-        byte[] plain3 = device.SM4Decrypt(GroupMode.CBC, 2, cipher3, IV);
+        byte[] plain3 = device.sm4Decrypt(GroupMode.CBC, 2, cipher3, IV);
         System.out.println("plain3:" + Arrays.toString(plain3));
         assert Arrays.equals(data, plain3);
 
         //CBC外部
-        byte[] cipher4 = device.SM4Encrypt(GroupMode.CBC, key, data, IV);
-        byte[] plain4 = device.SM4Decrypt(GroupMode.CBC, key, cipher4, IV);
+        byte[] cipher4 = device.sm4Encrypt(GroupMode.CBC, key, data, IV);
+        byte[] plain4 = device.sm4Decrypt(GroupMode.CBC, key, cipher4, IV);
         assert Arrays.equals(data, plain4);
     }
 

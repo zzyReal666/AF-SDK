@@ -1,5 +1,9 @@
 package com.af.crypto.algorithm.sm3;
 
+import com.af.device.AFDeviceFactory;
+import com.af.device.impl.AFHsmDevice;
+import com.af.struct.impl.sm3.HMac;
+import com.af.struct.impl.sm3.KeyParameter;
 import com.af.struct.impl.sm3.SM3Digest;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.exception.AFCryptoException;
@@ -127,25 +131,25 @@ public class SM3Impl implements SM3 {
     @Override
     public byte[] SM3HMac(int index, byte[] key, byte[] data) throws AFCryptoException {
         if (key == null) { // 内部密钥
-//            byte[] key = exportSymmKey(index);
-//            KeyParameter keyParameter = new KeyParameter(key);
-//            SM3Digest digest = new SM3Digest();
-//            HMac mac = new HMac(digest);
-//            mac.init(keyParameter);
-//            mac.update(data, 0, data.length);
-//            byte[] result = new byte[mac.getMacSize()];
-//            mac.doFinal(result, 0);
-//            return result;
+            AFHsmDevice device = AFDeviceFactory.getAFHsmDevice(client.getHost(), client.getPort(), client.getPassword());
+             key = device.getKeyInfo().exportSymmKey(index);
+            KeyParameter keyParameter = new KeyParameter(key);
+            SM3Digest digest = new SM3Digest();
+            HMac mac = new HMac(digest);
+            mac.init(keyParameter);
+            mac.update(data, 0, data.length);
+            byte[] result = new byte[mac.getMacSize()];
+            mac.doFinal(result, 0);
+            return result;
         } else { // 外部密钥
-//            KeyParameter keyParameter = new KeyParameter(key);
-//            SM3Digest digest = new SM3Digest();
-//            HMac mac = new HMac(digest);
-//            mac.init(keyParameter);
-//            mac.update(data, 0, data.length);
-//            byte[] result = new byte[mac.getMacSize()];
-//            mac.doFinal(result, 0);
-//            return result;
+            KeyParameter keyParameter = new KeyParameter(key);
+            SM3Digest digest = new SM3Digest();
+            HMac mac = new HMac(digest);
+            mac.init(keyParameter);
+            mac.update(data, 0, data.length);
+            byte[] result = new byte[mac.getMacSize()];
+            mac.doFinal(result, 0);
+            return result;
         }
-        return null;
     }
 }

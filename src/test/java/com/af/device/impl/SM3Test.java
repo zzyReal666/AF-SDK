@@ -19,7 +19,7 @@ class SM3Test {
     }
     @Test
     void SM3Hash() throws AFCryptoException {
-        byte[] bytes = device.SM3Hash(data);
+        byte[] bytes = device.sm3Hash(data);
     }
 
     @Test
@@ -36,7 +36,7 @@ class SM3Test {
     void testSM3HashWithPublicKey256() throws Exception{
         //获取公钥
         SM2PublicKey sm2EncryptPublicKey = device.getSM2EncryptPublicKey(2, ModulusLength.LENGTH_256);
-        byte[] bytes = device.SM3HashWithPubKey(data, sm2EncryptPublicKey, "1".getBytes());
+        byte[] bytes = device.sm3HashWithPubKey(data, sm2EncryptPublicKey, "1".getBytes());
         System.out.println(Arrays.toString(bytes));
     }
 

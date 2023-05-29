@@ -40,11 +40,11 @@ public class AFSVCmd {
 
     private static final Logger logger = LoggerFactory.getLogger(AFSVCmd.class);
     private final AFNettyClient client;
-    private byte[] agkey;
+    private final byte[] agKey;
 
     public AFSVCmd(AFNettyClient client, byte[] agkey) {
         this.client = client;
-        this.agkey = agkey;
+        this.agKey = agkey;
     }
 
     /**
@@ -92,7 +92,7 @@ public class AFSVCmd {
                 .append(base64Certificate)
                 .toBytes();
 
-        param = SM4Utils.encrypt(param, agkey);
+        param = SM4Utils.encrypt(param, agKey);
         RequestMessage req = new RequestMessage(CMDCode.CMD_VERIFY_CERT, param);
         ResponseMessage res = client.send(req);
         if (null == res || res.getHeader().getErrorCode() != 0) {
@@ -146,7 +146,7 @@ public class AFSVCmd {
                 .append(base64CaCertificate)
                 .toBytes();
 
-        RequestMessage req = new RequestMessage(CMDCode.CMD_ADD_CA_CERT, SM4Utils.encrypt(agkey, param));
+        RequestMessage req = new RequestMessage(CMDCode.CMD_ADD_CA_CERT, SM4Utils.encrypt(agKey, param));
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("SV-导入CA证书失败, 错误码:{}, 错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
@@ -467,7 +467,7 @@ public class AFSVCmd {
         logger.info("SM2内部密钥签名, index: {}, data: {}", index, data);
         getPrivateAccess(index);
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.SM3Hash(data);
+        byte[] hash = afHsmDevice.sm3Hash(data);
         int begin = 1;
         byte[] param = new BytesBuffer()
                 .append(begin)
@@ -520,7 +520,7 @@ public class AFSVCmd {
     public byte[] sm2Signature(byte[] data, byte[] privateKey) throws AFCryptoException {
         logger.info("SM2外部密钥签名, data: {}, privateKey: {}", data, privateKey);
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.SM3Hash(data);
+        byte[] hash = afHsmDevice.sm3Hash(data);
         int zero = 0;
         byte[] param = new BytesBuffer()
                 .append(zero)
@@ -568,7 +568,7 @@ public class AFSVCmd {
         logger.info("SM2文件签名, index: {}, data: {}", index, data);
         getPrivateAccess(index);
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.SM3Hash(data);
+        byte[] hash = afHsmDevice.sm3Hash(data);
         int begin = 1;
         byte[] param = new BytesBuffer()
                 .append(begin)
@@ -599,7 +599,7 @@ public class AFSVCmd {
     public byte[] sm2SignFile(byte[] data, byte[] privateKey) throws AFCryptoException {
         logger.info("SM2文件签名, data: {}, privateKey: {}", data, privateKey);
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.SM3Hash(data);
+        byte[] hash = afHsmDevice.sm3Hash(data);
         int zero = 0;
         byte[] param = new BytesBuffer()
                 .append(zero)
@@ -635,7 +635,7 @@ public class AFSVCmd {
         int zero = 0;
         //hash
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.SM3HashWithPubKey(data, new SM2PublicKey(sm2PublicKey), ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
+        byte[] hash = afHsmDevice.sm3HashWithPubKey(data, new SM2PublicKey(sm2PublicKey), ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
 
         RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, new BytesBuffer()
                 .append(zero)
@@ -673,7 +673,7 @@ public class AFSVCmd {
         getPrivateAccess(keyIndex);
         int begin = 1;
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.SM3Hash(data);
+        byte[] hash = afHsmDevice.sm3Hash(data);
         byte[] param = new BytesBuffer()
                 .append(begin)
                 .append(keyIndex)
@@ -739,7 +739,7 @@ public class AFSVCmd {
      */
     public boolean SM2VerifyByCertPubKey(byte[] data, byte[] signature, SM2PublicKey sm2PublicKey) throws AFCryptoException {
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.SM3HashWithPubKey(data, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
+        byte[] hash = afHsmDevice.sm3HashWithPubKey(data, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
         int zero = 0;
         byte[] param = new BytesBuffer()
                 .append(zero)
@@ -1391,7 +1391,7 @@ public class AFSVCmd {
      * @param keyType           ：消息签名格式，1：带原文，2：不带原文
      * @param privateKey        ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
      *                          <p>SM2PrivateKey ::= INTEGER</p>
-     * @param signerCertificate ：Base64编码的签名者证书
+     * @param certData ：Base64编码的签名者证书
      * @param data              ：需要签名的数据
      * @return ：Base64编码的签名数据
      */
