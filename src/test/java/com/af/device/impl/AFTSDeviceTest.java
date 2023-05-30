@@ -15,7 +15,7 @@ class AFTSDeviceTest {
 
     @BeforeEach
     void setUp() {
-        device = AFDeviceFactory.getAFTSDevice("192.168.20.50", 8008, "abcd1234");
+        device = AFDeviceFactory.getAFTSDevice("192.168.1.232", 6001, "abcd1234");
 
     }
 

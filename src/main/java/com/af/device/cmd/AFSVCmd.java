@@ -18,6 +18,7 @@ import com.af.struct.signAndVerify.*;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import com.af.utils.SM4Utils;
+import lombok.ToString;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.x509.X509CertificateStructure;
@@ -36,6 +37,7 @@ import java.util.Locale;
  * @description
  * @since 2023/5/19 12:02
  */
+@ToString
 public class AFSVCmd {
 
     private static final Logger logger = LoggerFactory.getLogger(AFSVCmd.class);
@@ -87,7 +89,7 @@ public class AFSVCmd {
      */
 
     public int validateCertificate(byte[] base64Certificate) throws AFCryptoException {
-        logger.info("SV-验证证书有效性, base64Certificate:{}", base64Certificate);
+        logger.info("SV-OCSP验证证书有效性, base64Certificate:{}", base64Certificate);
         byte[] param = new BytesBuffer().append(base64Certificate.length)
                 .append(base64Certificate)
                 .toBytes();
@@ -490,7 +492,8 @@ public class AFSVCmd {
      *
      * @param index 索引
      */
-    private void getPrivateAccess(int index) throws AFCryptoException {
+    public void getPrivateAccess(int index) throws AFCryptoException {
+        logger.info("获取私钥访问权限, index: {}", index);
         String pwd = "12345678";
         byte[] param = new BytesBuffer()
                 .append(index)
@@ -565,7 +568,7 @@ public class AFSVCmd {
      */
 
     public byte[] sm2SignFile(int index, byte[] data) throws AFCryptoException {
-        logger.info("SM2文件签名, index: {}, data: {}", index, data);
+        logger.info("SM2文件签名, index: {}, dataLen: {}", index, data.length);
         getPrivateAccess(index);
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
         byte[] hash = afHsmDevice.sm3Hash(data);

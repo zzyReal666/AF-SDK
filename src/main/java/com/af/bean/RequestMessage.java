@@ -1,6 +1,9 @@
 package com.af.bean;
 
+import cn.hutool.core.util.HexUtil;
+import com.af.constant.CMDCode;
 import com.af.utils.BytesBuffer;
+import com.af.utils.SM4Utils;
 import lombok.Getter;
 import lombok.ToString;
 import org.slf4j.Logger;
@@ -11,7 +14,6 @@ import org.slf4j.LoggerFactory;
  * @description 请求消息体 请求头+数据
  * @since 2023/4/18 17:48
  */
-@ToString
 @Getter
 public class RequestMessage {
 
@@ -35,10 +37,10 @@ public class RequestMessage {
     public RequestMessage(int cmd, byte[] data) {
         if (data == null) {
             data = new byte[0];
-            logger.warn("请求数据为空,只包含请求头");
+            logger.warn("请求数据为空");
         }
         this.header = new RequestHeader(data.length, cmd);
-        if (cmd == 0x00000000) {
+        if (cmd == 0x00000000 || cmd == CMDCode.CMD_EXCHANGE_PUBLIC_KEY || cmd == CMDCode.CMD_EXCHANGE_RANDOM) {
             this.data = data;   //登录请求不加密
         } else {
 //            this.data = SM4Utils.encrypt(data, SM4Utils.ROOT_KEY);
@@ -57,9 +59,14 @@ public class RequestMessage {
      * @return 字节数组
      */
     public byte[] encode() {
-      return new BytesBuffer()
+        return new BytesBuffer()
                 .append(header.encode())
                 .append(data)
                 .toBytes();
+    }
+
+   //toString
+    public String toString() {
+        return "RequestMessage(header=" + this.getHeader() + ", data=" + HexUtil.encodeHexStr(this.getData()) + ")";
     }
 }

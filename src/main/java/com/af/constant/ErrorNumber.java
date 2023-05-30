@@ -13,17 +13,17 @@ public class ErrorNumber {
      * @param RetCode 错误码
      * @return
      */
-    public static final String toErrorInfo(int RetCode) {
-        return err.containsKey(new Integer(RetCode)) ?
+    public static String toErrorInfo(int RetCode) {
+        return err.containsKey(RetCode) ?
                 err.get(new Integer(RetCode)) + "[" + toHexString(RetCode) + "]"
                 : err.get(SDR_UNKNOWERR) + "[" + toHexString(RetCode) + "]";
     }
 
     private static  String toHexString(int n) {
-        String code = Integer.toHexString(n);
+        StringBuilder code = new StringBuilder(Integer.toHexString(n));
 
         for (int i = code.length(); i < 8; ++i) {
-            code = "0" + code;
+            code.insert(0, "0");
         }
 
         return "0x" + code;
@@ -33,15 +33,15 @@ public class ErrorNumber {
         private Error() {}
 
         public String get(int key) {
-            return (String) super.get(new Integer(key));
+            return (String) super.get(key);
         }
 
         public Object put(int key, String value) {
-            return super.put(new Integer(key), value);
+            return super.put(key, value);
         }
     }
 
-    private static Error err;
+    private static final Error err;
 
     public static int SDR_OK = 0x0;                           /*成功*/
     public static int SDR_BASE = 0x01000000;

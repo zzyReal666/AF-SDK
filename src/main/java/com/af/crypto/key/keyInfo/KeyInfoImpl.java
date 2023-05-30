@@ -6,6 +6,7 @@ import com.af.constant.CMDCode;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
+import com.af.utils.SM4Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,10 +55,12 @@ public class KeyInfoImpl implements KeyInfo {
                 .append(passwd.length)
                 .append(passwd)
                 .toBytes();
+//        param = SM4Utils.encrypt(param, SM4Utils.ROOT_KEY);
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GET_PRIVATE_KEY_ACCESS_RIGHT, param);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
-            throw new AFCryptoException("获取私钥访问权限异常");
+            logger.error("获取私钥访问权限异常,错误码:{},错误信息:{}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+            throw new AFCryptoException("获取私钥访问权限异常,错误码:" + responseMessage.getHeader().getErrorCode() + ",错误信息:" + responseMessage.getHeader().getErrorInfo());
         } else {
             return 0;
         }
@@ -119,10 +122,14 @@ public class KeyInfoImpl implements KeyInfo {
 
 
     @Override
-    public byte[] exportSymmKey(int index) {
-        logger.info("exportSymmKey");
+    public byte[] exportSymmKey(int index) throws AFCryptoException{
+        logger.info("exportSymmKey,index:{}", index);
         RequestMessage req = new RequestMessage(CMD_EXPORT_KEY, new BytesBuffer().append(index).toBytes());
         ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("exportSymmKey 失败,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("exportSymmKey 失败,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
         return res.getDataBuffer().readOneData();
     }
 }

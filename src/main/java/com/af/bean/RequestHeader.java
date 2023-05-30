@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @since 2023/4/19 16:06
  */
 @Getter
-@ToString
 public class RequestHeader {
 
     /**
@@ -71,6 +70,12 @@ public class RequestHeader {
                 .append(taskNO)
                 .append(cmd)
                 .toBytes();
+    }
+
+
+    //toString
+    public String toString() {
+        return "RequestHeader(length=" + this.getLength() + ", taskNO=" + this.getTaskNO() + ", cmd=0x" + Integer.toHexString(this.getCmd()) + ")";
     }
 
 

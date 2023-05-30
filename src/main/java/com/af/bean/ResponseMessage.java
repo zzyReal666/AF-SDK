@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
  * @since 2023/4/19 18:09
  */
 @Getter
-@ToString
 public class ResponseMessage {
     /**
      * 日志
@@ -44,4 +43,10 @@ public class ResponseMessage {
         return new BytesBuffer(data);
     }
 
+
+
+    //toString
+    public String toString() {
+        return "ResponseMessage(header=" + this.getHeader() + ", data=" + java.util.Arrays.toString(this.getData()) + ")";
+    }
 }

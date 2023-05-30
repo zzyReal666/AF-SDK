@@ -1,5 +1,6 @@
 package com.af.bean;
 
+import cn.hutool.core.util.StrUtil;
 import com.af.constant.ErrorNumber;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
@@ -15,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @since 2023/4/21 15:45
  */
 @Getter
-@ToString
 public class ResponseHeader {
 
     /**
@@ -61,5 +61,12 @@ public class ResponseHeader {
 
     public String getErrorInfo() {
         return ErrorNumber.toErrorInfo(this.errorCode);
+    }
+
+
+
+    //toString
+    public String toString() {
+        return "ResponseHeader(length=" + this.getLength() + ", taskNO=" + this.getTaskNO() + ", errorCode=" + StrUtil.fillBefore(Integer.toHexString(this.getErrorCode()), '0', 8) + ", errorInfo=" + this.getErrorInfo() + ")";
     }
 }

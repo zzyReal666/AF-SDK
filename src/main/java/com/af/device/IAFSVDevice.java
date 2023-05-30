@@ -13,6 +13,12 @@ import java.security.cert.CertificateException;
  */
 public interface IAFSVDevice extends IAFDevice{
 
+
+    /**
+     * 获取私钥访问权限
+     */
+     void getPrivateAccess(int index) throws AFCryptoException;
+
     /**
      * <p>验证证书有效性</p>
      *

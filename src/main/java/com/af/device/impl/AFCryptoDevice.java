@@ -27,10 +27,6 @@ public class AFCryptoDevice extends AFHsmDevice {
         return SingletonHolder.INSTANCE;
     }
 
-
-
-
-
     /**
      * 获取随机数
      *
@@ -42,6 +38,4 @@ public class AFCryptoDevice extends AFHsmDevice {
         //TODO: 2023/5/6 11:19 获取随机数增强
         return super.getRandom(length);
     }
-
-
 }

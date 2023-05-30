@@ -4,7 +4,7 @@ package com.af.struct.impl.sm3;
 public class KeyParameter
     implements CipherParameters
 {
-    private byte[]  key;
+    private final byte[]  key;
 
     public KeyParameter(
         byte[]  key)

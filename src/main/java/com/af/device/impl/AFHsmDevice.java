@@ -76,6 +76,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     public AFHsmDevice setAgKey() {
         this.agKey = this.keyAgreement(client);
+        logger.info("协商密钥成功");
         return this;
     }
     //==============================API===================================
@@ -531,7 +532,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      */
     @Override
     public byte[] sm3Hash(byte[] data) throws AFCryptoException {
-        logger.info("SM3哈希 杂凑算法 data: {}", data);
+        logger.info("SM3哈希 杂凑算法 dataLen: {}", data.length);
         return sm3.SM3Hash(data);
     }
 
@@ -863,15 +864,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         return cmd.RSAInternalVerify(index, data, rawData);
     }
 
-    /**
-     * 获取私钥访问权限
-     *
-     * @param keyIndex 密钥索引
-     * @param keyType  密钥类型 1:RSA; 0:SM2;
-     * @param passwd   私钥访问权限口令
-     * @return 0:成功; 非0:失败
-     * 获取私钥访问权限异常
-     */
+
     @Override
     public int getPrivateKeyAccessRight(int keyIndex, int keyType, byte[] passwd) throws AFCryptoException {
         logger.info("获取获取私钥访问权限 keyIndex:{}, keyType:{}, passwd:{}", keyIndex, keyType, passwd);

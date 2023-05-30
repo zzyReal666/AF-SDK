@@ -21,12 +21,13 @@ AFHsmDeviceTest {
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-        device = AFHsmDevice.getInstance("192.168.1.232", 6001, "abcd1234");
+        device = AFHsmDevice.getInstance("192.168.1.232", 6001, "abcd1234").setAgKey();
+//        device = AFHsmDevice.getInstance("192.168.10.40", 8008, "abcd1234").setAgKey();
     }
 
 
     /**
-     * 密钥协商
+     * 密钥协商  success
      */
     @Test
     void testAgreeKey() throws Exception {
@@ -34,17 +35,27 @@ AFHsmDeviceTest {
         System.out.println(afHsmDevice);
     }
 
+    /**
+     * 获取设备信息 success
+     */
     @Test
     void testGetDeviceInfo() throws Exception {
         System.out.println(device.getDeviceInfo());
     }
 
+    /**
+     * 获取随机数  success
+     */
     @Test
     void testGetRandom() throws Exception {
         System.out.println(Arrays.toString(device.getRandom(5)));
 
     }
 
+    @Test
+    void testGetPrivateAccess()throws  Exception{
+        System.out.println(device.getPrivateKeyAccessRight(1, 1, "12345678".getBytes()));
+    }
 
     /**
      * SM1加解密<br>

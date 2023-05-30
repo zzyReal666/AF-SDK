@@ -17,7 +17,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SM2Signature implements IAFStruct {
 
-    private int length; // 256位或者512位
+    private int length; // 模长 256或者512
     private byte[] r;
     private byte[] s;
 
