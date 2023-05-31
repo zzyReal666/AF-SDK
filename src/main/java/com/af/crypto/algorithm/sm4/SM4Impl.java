@@ -22,10 +22,12 @@ public class SM4Impl implements SM4 {
 
     private final AFNettyClient client;
     private final KeyInfoImpl keyInfo;
+    private final byte[] agKey;
 
-    public SM4Impl(AFNettyClient client) {
+    public SM4Impl(AFNettyClient client, byte[] agKey) {
         this.client = client;
-        this.keyInfo = KeyInfoImpl.getInstance(client);
+        this.keyInfo = KeyInfoImpl.getInstance(client, agKey);
+        this.agKey = agKey;
     }
 
     /**
@@ -37,7 +39,7 @@ public class SM4Impl implements SM4 {
      * @throws AFCryptoException 加密异常
      */
     @Override
-    public  byte[] encrypt(int index, byte[] data) throws AFCryptoException {
+    public byte[] encrypt(int index, byte[] data) throws AFCryptoException {
         int zero = 0;
         byte[] key = keyInfo.exportSymmKey(index);
         int keyType = 0;
@@ -52,9 +54,9 @@ public class SM4Impl implements SM4 {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode()!=0){
+        if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM4 ECB 加密错误, 错误信息: {}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM4 ECB 加密错误, 错误信息: " + responseMessage.getHeader().getErrorInfo());
         }
@@ -85,9 +87,9 @@ public class SM4Impl implements SM4 {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode()!=0){
+        if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM4 ECB 加密错误, 错误信息: {}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM4 ECB 加密错误, 错误信息: " + responseMessage.getHeader().getErrorInfo());
         }
@@ -104,7 +106,7 @@ public class SM4Impl implements SM4 {
      */
     @Override
     public byte[] decrypt(int index, byte[] data) throws AFCryptoException {
-        byte [] key = keyInfo.exportSymmKey(index);
+        byte[] key = keyInfo.exportSymmKey(index);
         int zero = 0;
         int keyType = 0;
         int keyId = 0;
@@ -118,9 +120,9 @@ public class SM4Impl implements SM4 {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode()!=0){
+        if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM4 ECB 解密错误, 错误信息: {}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM4 ECB 解密错误, 错误信息: " + responseMessage.getHeader().getErrorInfo());
         }
@@ -150,9 +152,9 @@ public class SM4Impl implements SM4 {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode()!=0){
+        if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM4 ECB 解密错误, 错误信息: {}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM4 ECB 解密错误, 错误信息: " + responseMessage.getHeader().getErrorInfo());
         }
@@ -170,7 +172,7 @@ public class SM4Impl implements SM4 {
      */
     @Override
     public byte[] encrypt(int index, byte[] data, byte[] iv) throws AFCryptoException {
-        byte [] key = keyInfo.exportSymmKey(index);
+        byte[] key = keyInfo.exportSymmKey(index);
         int keyType = 0;
         int keyId = 0;
         byte[] param = new BytesBuffer()
@@ -184,9 +186,9 @@ public class SM4Impl implements SM4 {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode()!=0){
+        if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM4 CBC 加密错误, 错误信息: {}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM4 CBC 加密错误, 错误信息: " + responseMessage.getHeader().getErrorInfo());
         }
@@ -218,9 +220,9 @@ public class SM4Impl implements SM4 {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode()!=0){
+        if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM4 CBC 加密错误, 错误信息: {}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM4 CBC 加密错误, 错误信息: " + responseMessage.getHeader().getErrorInfo());
         }
@@ -239,7 +241,7 @@ public class SM4Impl implements SM4 {
      */
     @Override
     public byte[] decrypt(int index, byte[] data, byte[] iv) throws AFCryptoException {
-        byte [] key = keyInfo.exportSymmKey(index);
+        byte[] key = keyInfo.exportSymmKey(index);
         int keyType = 0;
         int keyId = 0;
         byte[] param = new BytesBuffer()
@@ -253,9 +255,9 @@ public class SM4Impl implements SM4 {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode()!=0){
+        if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM4 CBC 解密错误, 错误信息: {}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM4 CBC 解密错误, 错误信息: " + responseMessage.getHeader().getErrorInfo());
         }
@@ -287,9 +289,9 @@ public class SM4Impl implements SM4 {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode()!=0){
+        if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM4 CBC 解密错误, 错误信息: {}", responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("SM4 CBC 解密错误, 错误信息: " + responseMessage.getHeader().getErrorInfo());
         }
@@ -323,7 +325,7 @@ public class SM4Impl implements SM4 {
                 .append(data)
                 .toBytes();
 
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_CALCULATEMAC, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_CALCULATEMAC, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             throw new AFCryptoException("SM4 Mac error,ErrorInfo:{}" + responseMessage.getHeader().getErrorInfo());
@@ -357,7 +359,7 @@ public class SM4Impl implements SM4 {
                 .append(data)
                 .toBytes();
 
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_CALCULATEMAC, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_CALCULATEMAC, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             throw new AFCryptoException("SM4 Mac error,ErrorInfo:{}" + responseMessage.getHeader().getErrorInfo());
@@ -365,14 +367,4 @@ public class SM4Impl implements SM4 {
         return responseMessage.getDataBuffer().readOneData();
     }
 
-    /**
-     * SM4  padding填充
-     *
-     * @param data 待填充数据
-     * @return 填充后的数据
-     */
-    @Override
-    public byte[] padding(byte[] data) {
-        return new byte[0];
-    }
 }

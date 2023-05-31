@@ -1,6 +1,6 @@
 package com.af.netty.handler;
 
-import com.af.bean.ResponseMessage;
+import cn.hutool.core.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -25,6 +25,23 @@ public class MessageDecoder extends ByteToMessageDecoder {
      */
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-        out.add(new ResponseMessage(in.array()));
+        if (in.readableBytes() < 12) {
+            // 长度短了，数据包不完整，需要等待后面的包来
+            // return 就是等待后面的包，out.add就是向下传递。
+            return;
+        }
+        in.markReaderIndex(); // 标记当前读指针的位置
+        byte[] lcBytes = new byte[4];
+        in.readBytes(lcBytes);
+        int lc = ByteUtil.bytesToInt(lcBytes);
+        if (in.readableBytes() < lc - 4) {
+            // 报文还没收全
+            in.resetReaderIndex(); // 指针返回标记位置
+            return; // return 就是等待
+        }
+        in.resetReaderIndex();
+        byte[] data = new byte[lc];
+        in.readBytes(data);
+        out.add(data); // add 之后就会调用channelRead
     }
 }

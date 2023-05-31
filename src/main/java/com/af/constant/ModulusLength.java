@@ -8,7 +8,10 @@ package com.af.constant;
 public enum ModulusLength {
 
     LENGTH_256(256),
-    LENGTH_512(512);
+    LENGTH_512(512),
+    LENGTH_1024(1024),
+    LENGTH_2048(2048);
+
 
     private final int length;
 

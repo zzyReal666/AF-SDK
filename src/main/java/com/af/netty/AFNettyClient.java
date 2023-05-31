@@ -3,6 +3,7 @@ package com.af.netty;
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.netty.handler.AFNettyClientHandler;
+import com.af.netty.handler.MessageDecoder;
 import com.af.utils.BytesBuffer;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -42,7 +43,7 @@ public class AFNettyClient {
 
     //连接超时时间
     @Setter
-    private int TIMEOUT = 7000; // 超时时间（毫秒）
+    private int TIMEOUT = 70000; // 超时时间（毫秒）
     //响应超时时间
     @Setter
     private int RESPONSE_TIMEOUT = 10000; // 超时时间（毫秒）
@@ -107,6 +108,7 @@ public class AFNettyClient {
                 @Override
                 protected void initChannel(SocketChannel ch) {
                     ch.pipeline().addLast(new LoggingHandler());
+//                    ch.pipeline().addLast(new MessageDecoder());
                     ch.pipeline().addLast(new AFNettyClientHandler(AFNettyClient.this));
                 }
             }).connect(host, port).sync();
@@ -133,12 +135,22 @@ public class AFNettyClient {
     /**
      * 发送数据
      */
-    public ResponseMessage send(RequestMessage requestMessage) {
+    public ResponseMessage  send(RequestMessage requestMessage) {
         logger.info("==> {}", requestMessage);
+        //开始时间
+        long startTime = System.currentTimeMillis();
+        //编码
         byte[] req = requestMessage.encode();
+        //发送数据
         byte[] res = send(req);
-        logger.info("<== {}", new ResponseMessage(res));
-        return new ResponseMessage(res);
+        ResponseMessage responseMessage = new ResponseMessage(res, requestMessage.isEncrypt());
+        //结束时间
+        long endTime = System.currentTimeMillis();
+        //耗时
+        long time = endTime - startTime;
+        responseMessage.setTime(time);
+        logger.info("<== {}",responseMessage );
+        return responseMessage;
     }
 
     public byte[] send(byte[] msg) {
@@ -177,13 +189,14 @@ public class AFNettyClient {
     private void login() {
         byte[] psw = password.getBytes();
         byte[] param = new BytesBuffer().append(psw).toBytes();
-        ResponseMessage responseMessage = send(new RequestMessage(0x00000000, param));
-        //todo 客户端版本号
-//        logger.info("服务端版本号{}", new String(responseMessage.getDataBuffer().readOneData()));
+        ResponseMessage responseMessage = send(new RequestMessage(0x00000000, param,null));
+        logger.info("服务端版本号{}", new String(responseMessage.getDataBuffer().readOneData()));
+        logger.info("客户端版本号{}", new String("1.0.0".getBytes()));
         if (responseMessage.getHeader().getErrorCode() != 0x00000000) {
-            logger.error("登录失败,请检查密码是否正确!");
-            throw new RuntimeException("登录失败,密码错误!");
+            logger.error("登录失败");
+            throw new RuntimeException("登录失败");
         }
+
     }
 
 

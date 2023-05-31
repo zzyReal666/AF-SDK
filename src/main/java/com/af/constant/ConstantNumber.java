@@ -128,8 +128,8 @@ public enum ConstantNumber {
 
 
     //签名验签服务器
-    public static final int SIGN_PUBLIC_KEY = 0;
-    public static final  int ENC_PUBLIC_KEY = 1;
+    public static final int SIGN_PUBLIC_KEY = 0;   //签名公钥
+    public static final int ENC_PUBLIC_KEY = 1;   //加密公钥
     public static final String DEFAULT_USER_ID = "1234567812345678";
     public static final int SGD_SERVER_CERT_SIGN = 2;           ///< 服务器签名证书
     public static final int SGD_SERVER_CERT_ENC = 1;          ///< 服务器加密证书

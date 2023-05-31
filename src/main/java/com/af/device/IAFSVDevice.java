@@ -16,8 +16,10 @@ public interface IAFSVDevice extends IAFDevice{
 
     /**
      * 获取私钥访问权限
+     * @param index 私钥索引
+     * @param keyType 私钥类型 3:SM2 4:RSA
      */
-     void getPrivateAccess(int index) throws AFCryptoException;
+     void getPrivateAccess(int index,int keyType) throws AFCryptoException;
 
     /**
      * <p>验证证书有效性</p>
@@ -41,16 +43,16 @@ public interface IAFSVDevice extends IAFDevice{
      */
     boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws AFCryptoException, CertificateException;
 
-    /**
-     * <p>导入CA证书</p>
-     * <p>导入CA证书</p>
-     *
-     * @param caAltName:           ca证书别名
-     * @param base64CaCertificate： 待导入的CA证书--BASE64编码格式
-     * @return ：返回CA证书导入结果，0为导入成功
-     * @throws AFCryptoException
-     */
-    int addCaCertificate(byte[] caAltName, byte[] base64CaCertificate) throws AFCryptoException;
+//    /**
+//     * <p>导入CA证书</p>
+//     * <p>导入CA证书</p>
+//     *
+//     * @param caAltName:           ca证书别名
+//     * @param base64CaCertificate： 待导入的CA证书--BASE64编码格式
+//     * @return ：返回CA证书导入结果，0为导入成功
+//     * @throws AFCryptoException
+//     */
+//    int addCaCertificate(byte[] caAltName, byte[] base64CaCertificate) throws AFCryptoException;
 
     /**
      * <p>导出RSA公钥</p>
@@ -539,7 +541,7 @@ public interface IAFSVDevice extends IAFDevice{
      * @return 信任列表别名组合，如： CA001|CA002|CA003
      * @throws AFCryptoException
      */
-    certAltNameTrustList getCertTrustListAltName() throws AFCryptoException;
+    CertAltNameTrustList getCertTrustListAltName() throws AFCryptoException;
 
     /**
      * <p>获取证书的个数</p>

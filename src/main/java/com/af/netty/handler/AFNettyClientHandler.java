@@ -32,7 +32,7 @@ public class AFNettyClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("连接服务器成功");
+        logger.info("与服务器建立连接,连接地址:" + ctx.channel().remoteAddress());
     }
 
     @Override

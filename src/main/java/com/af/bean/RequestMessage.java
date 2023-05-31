@@ -2,12 +2,17 @@ package com.af.bean;
 
 import cn.hutool.core.util.HexUtil;
 import com.af.constant.CMDCode;
+import com.af.crypto.algorithm.sm4.SM4;
+import com.af.device.impl.AFTSDevice;
 import com.af.utils.BytesBuffer;
 import com.af.utils.SM4Utils;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -26,7 +31,10 @@ public class RequestMessage {
      * 数据
      */
     private final byte[] data;
-
+    /**
+     * 是否加密
+     */
+    private boolean isEncrypt = true;
 
     /**
      * 请求消息体 构建
@@ -34,23 +42,29 @@ public class RequestMessage {
      * @param cmd  命令码
      * @param data 数据
      */
-    public RequestMessage(int cmd, byte[] data) {
-        if (data == null) {
-            data = new byte[0];
-            logger.warn("请求数据为空");
+    public RequestMessage(int cmd, byte[] data, byte[] agKey) {
+        if (null == agKey) {
+            this.isEncrypt = false;
         }
-        this.header = new RequestHeader(data.length, cmd);
-        if (cmd == 0x00000000 || cmd == CMDCode.CMD_EXCHANGE_PUBLIC_KEY || cmd == CMDCode.CMD_EXCHANGE_RANDOM) {
-            this.data = data;   //登录请求不加密
+        if (data == null || data.length == 0) {
+            this.header = new RequestHeader(0, cmd);
+            this.data = null;
         } else {
-//            this.data = SM4Utils.encrypt(data, SM4Utils.ROOT_KEY);
-            this.data = data;
+            this.header = new RequestHeader(data.length, cmd);
+            this.data = null == agKey ? data : SM4Utils.encrypt(data, agKey);
         }
-
     }
 
     public RequestMessage(int cmd) {
-        this(cmd, null);
+        this(cmd, null, null);
+    }
+
+    /**
+     * 请求是否加密 默认加密
+     */
+    public RequestMessage setIsEncrypt(boolean isEncrypt) {
+        this.isEncrypt = isEncrypt;
+        return this;
     }
 
     /**
@@ -59,14 +73,18 @@ public class RequestMessage {
      * @return 字节数组
      */
     public byte[] encode() {
+        if (data == null) {
+            return header.encode();
+        }
         return new BytesBuffer()
                 .append(header.encode())
                 .append(data)
                 .toBytes();
     }
 
-   //toString
     public String toString() {
-        return "RequestMessage(header=" + this.getHeader() + ", data=" + HexUtil.encodeHexStr(this.getData()) + ")";
+        return "RequestMessage(header=" + this.getHeader()
+                + ", data=" + HexUtil.encodeHexStr(null == this.getData() ? "".getBytes() : this.getData())
+                + ", isEncrypt=" + this.isEncrypt() + ")";
     }
 }

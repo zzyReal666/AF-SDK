@@ -26,7 +26,7 @@ class AFNettyClientTest {
 
         byte[] data = out.toByteArray();
         System.out.println(data.toString());
-        RequestMessage requestMessage = new RequestMessage(0x00000000, data);
+        RequestMessage requestMessage = new RequestMessage(0x00000000, data,null);
         byte[] send = client.send(requestMessage.encode());
         System.out.println(send.length);
         System.out.println(new ResponseMessage(send));
@@ -45,7 +45,7 @@ class AFNettyClientTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(8).array());
 
-        RequestMessage requestMessage = new RequestMessage(0x00020002, out.toByteArray());
+        RequestMessage requestMessage = new RequestMessage(0x00020002, out.toByteArray(),null);
         byte[] send = client.send(requestMessage.encode());
         System.out.println(send.length);
         System.out.println(new ResponseMessage(send));

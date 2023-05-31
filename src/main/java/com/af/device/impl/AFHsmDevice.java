@@ -50,15 +50,16 @@ import java.util.List;
 @Getter
 public class AFHsmDevice implements IAFHsmDevice {
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
-    private byte[] agKey = null;  //协商密钥
+    private byte[] agKey;  //协商密钥
     //set agKey
 
     private static AFNettyClient client;  //netty客户端
-    private final SM1 sm1 = new SM1Impl(client);
-    private final SM2 sm2 = new SM2Impl(client);
-    private final SM3 sm3 = new SM3Impl(client);
-    private final SM4 sm4 = new SM4Impl(client);
-    private final KeyInfo keyInfo = KeyInfoImpl.getInstance(client);
+    private final SM1 sm1 = new SM1Impl(client, agKey);  //国密SM1算法
+    private final SM2 sm2 = new SM2Impl(client, agKey);  //国密SM2算法
+    private final SM3 sm3 = new SM3Impl(client);  //国密SM3算法
+    private final SM4 sm4 = new SM4Impl(client, agKey);  //国密SM4算法
+    private final KeyInfo keyInfo = KeyInfoImpl.getInstance(client, agKey);
+
     private final AFHSMCmd cmd = new AFHSMCmd(client, agKey);
 
     //==============================单例模式===================================
@@ -89,16 +90,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      */
     @Override
     public DeviceInfo getDeviceInfo() throws AFCryptoException {
-        logger.info("获取设备信息");
-        RequestMessage req = new RequestMessage(CMDCode.CMD_DEVICEINFO, null);
-        //发送请求
-        ResponseMessage resp = client.send(req);
-        if (resp.getHeader().getErrorCode() != 0) {
-            logger.error("获取设备信息错误,错误码:{},错误信息:{}", resp.getHeader().getErrorCode(), resp.getHeader().getErrorInfo());
-        }
-        DeviceInfo info = new DeviceInfo();
-        info.decode(resp.getDataBuffer().readOneData());
-        return info;
+        return cmd.getDeviceInfo();
+
     }
 
 
@@ -112,27 +105,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      */
     @Override
     public byte[] getRandom(int length) throws AFCryptoException {
-        logger.info("获取随机数");
-        if (length <= 0) {
-            logger.error("获取随机数错误,随机数长度错误 length:{}", length);
-            throw new AFCryptoException("获取随机数错误,随机数长度错误");
-        }
-        byte[] param = new BytesBuffer().append(length).toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATERANDOM, param);
-        ResponseMessage resp;
-        //发送请求
-        try {
-            resp = client.send(req);
-        } catch (Exception e) {
-            logger.error("获取随机数错误", e);
-            throw new AFCryptoException("获取随机数异常", e);
-        }
-        if (resp == null || resp.getHeader().getErrorCode() != 0) {
-            logger.error("获取随机数错误,无响应或者响应码错误 response:{} ErrorCode:{}", resp == null ? "null" : resp.toString(), resp == null ? "null" : resp.getHeader().getErrorCode());
-            throw new AFCryptoException("获取随机数异常");
-        }
-        int retLen = BytesOperate.bytes2int(resp.getData());
-        return BytesOperate.subBytes(resp.getData(), 4, retLen);
+        return cmd.getRandom(length);
     }
 
 
@@ -939,30 +912,28 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data 待填充数据
      * @return 填充后数据
      */
-//    private static byte[] Padding(byte[] data) {
-//        int paddingNumber = 16 - (data.length % 16);
-//        byte[] paddingData = new byte[paddingNumber];
-//        for (int i = 0; i < paddingNumber; ++i) {
-//            paddingData[i] = (byte) paddingNumber;
-//        }
-//        byte[] outData = new byte[data.length + paddingNumber];
-//        System.arraycopy(data, 0, outData, 0, data.length);
-//        System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
-//        return outData;
-//    }
     private static byte[] Padding(byte[] data) {
-        if ((data.length % 16) == 0) {
-            return data;
-        }
         int paddingNumber = 16 - (data.length % 16);
         byte[] paddingData = new byte[paddingNumber];
         Arrays.fill(paddingData, (byte) paddingNumber);
         byte[] outData = new byte[data.length + paddingNumber];
         System.arraycopy(data, 0, outData, 0, data.length);
         System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
-
         return outData;
     }
+
+//    private static byte[] Padding(byte[] data) {
+////        if ((data.length % 16) == 0) {
+////            return data;
+////        }
+//        int paddingNumber = 16 - (data.length % 16);
+//        byte[] paddingData = new byte[paddingNumber];
+//        Arrays.fill(paddingData, (byte) paddingNumber);
+//        byte[] outData = new byte[data.length + paddingNumber];
+//        System.arraycopy(data, 0, outData, 0, data.length);
+//        System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
+//        return outData;
+//    }
 
 
     /**
@@ -972,27 +943,27 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return 去填充后数据
      * 去填充异常
      */
-//    private static byte[] cutting(byte[] data) throws AFCryptoException {
-//        int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
-//        for (int i = 0; i < paddingNumber; ++i) {
-//            if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
-//                throw new AFCryptoException("验证填充数据错误");
-//            }
-//        }
-//        byte[] outData = new byte[data.length - paddingNumber];
-//        System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
-//        return outData;
-//    }
-    private static byte[] cutting(byte[] data) {
+    private static byte[] cutting(byte[] data) throws AFCryptoException {
         int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
-        if (paddingNumber >= 16) paddingNumber = 0;
         for (int i = 0; i < paddingNumber; ++i) {
             if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
-                return null;
+                throw new AFCryptoException("验证填充数据错误");
             }
         }
         byte[] outData = new byte[data.length - paddingNumber];
         System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
         return outData;
     }
+//    private static byte[] cutting(byte[] data) {
+//        int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
+//        if (paddingNumber >= 16) paddingNumber = 0;
+//        for (int i = 0; i < paddingNumber; ++i) {
+//            if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
+//                return null;
+//            }
+//        }
+//        byte[] outData = new byte[data.length - paddingNumber];
+//        System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
+//        return outData;
+//    }
 }

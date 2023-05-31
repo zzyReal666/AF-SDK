@@ -5,6 +5,7 @@ import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
 import com.af.constant.ConstantNumber;
 import com.af.crypto.key.keyInfo.KeyInfoImpl;
+import com.af.device.AFDeviceFactory;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
@@ -22,10 +23,12 @@ public class SM1Impl implements SM1 {
     private static final Logger logger = LoggerFactory.getLogger(SM1Impl.class);
     private final KeyInfoImpl keyInfo;
     private final AFNettyClient client;
+    private final byte[] agKey ;
 
-    public SM1Impl(AFNettyClient client) {
+    public SM1Impl(AFNettyClient client, byte[] agKey) {
         this.client = client;
-        this.keyInfo = KeyInfoImpl.getInstance(client);
+        this.keyInfo = KeyInfoImpl.getInstance(client, agKey);
+        this.agKey = agKey;
     }
 
 
@@ -55,7 +58,7 @@ public class SM1Impl implements SM1 {
 
                 .append(data.length)
                 .append(data).toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM1EncryptECB failed, ErrorCode: {} ,ErrorInfo: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
@@ -81,7 +84,7 @@ public class SM1Impl implements SM1 {
 
                 .append(data.length)
                 .append(data).toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM1EncryptECB failed, ErrorCode: {} ,ErrorInfo: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
@@ -116,7 +119,7 @@ public class SM1Impl implements SM1 {
 
                 .append(data.length)
                 .append(data).toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             throw new AFCryptoException("SM1DecryptECB failed, ErrorInfo: " + responseMessage.getHeader().getErrorInfo());
@@ -149,7 +152,7 @@ public class SM1Impl implements SM1 {
 
                 .append(encodeData.length)
                 .append(encodeData).toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             throw new AFCryptoException("SM1DecryptECB failed, ErrorInfo: " + responseMessage.getHeader().getErrorInfo());
@@ -186,7 +189,7 @@ public class SM1Impl implements SM1 {
 
                 .append(data.length)
                 .append(data).toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             throw new AFCryptoException("SM1EncryptCBC failed, ErrorInfo: " + responseMessage.getHeader().getErrorInfo());
@@ -223,7 +226,7 @@ public class SM1Impl implements SM1 {
 
                 .append(data.length)
                 .append(data).toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_ENCRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             throw new AFCryptoException("SM1EncryptCBC failed, ErrorInfo: " + responseMessage.getHeader().getErrorInfo());
@@ -261,7 +264,7 @@ public class SM1Impl implements SM1 {
 
                 .append(encodeData.length)
                 .append(encodeData).toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             throw new AFCryptoException("SM1DecryptCBC failed, ErrorInfo: " + responseMessage.getHeader().getErrorInfo());
@@ -297,7 +300,7 @@ public class SM1Impl implements SM1 {
                 .append(encodeData.length)
                 .append(encodeData).toBytes();
 
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_DECRYPT, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             throw new AFCryptoException("SM1DecryptCBC failed, ErrorInfo: " + responseMessage.getHeader().getErrorInfo());

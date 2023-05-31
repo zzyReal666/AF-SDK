@@ -16,6 +16,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CertList {
 
-    private byte[] certData;
+    private byte[] certData; //证书数据 DER编码
     private int certCount;
 }

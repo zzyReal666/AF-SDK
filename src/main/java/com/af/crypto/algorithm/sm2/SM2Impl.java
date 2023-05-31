@@ -30,10 +30,12 @@ public class SM2Impl implements SM2 {
     private static final Logger logger = LoggerFactory.getLogger(SM2Impl.class);
     private final AFNettyClient client;
     private final SM3 sm3;
+    private final byte[] agKey;
 
-    public SM2Impl(AFNettyClient client) {
+    public SM2Impl(AFNettyClient client,byte[] agKey) {
         this.client = client;
         this.sm3 = new SM3Impl(client);
+        this.agKey = agKey;
     }
 
     /**
@@ -53,7 +55,7 @@ public class SM2Impl implements SM2 {
 
         RequestMessage requestMessage = new RequestMessage(type.equals(SM2KeyType.SIGN) ?
                 CMDCode.CMD_EXPORTSIGNPUBLICKEY_ECC
-                : CMDCode.CMD_EXPORTENCPUBLICKEY_ECC, param);
+                : CMDCode.CMD_EXPORTENCPUBLICKEY_ECC, param,agKey);
 
         ResponseMessage responseMessage = client.send(requestMessage);
         logger.debug("获取SM2公钥 responseMessage:{}", responseMessage);
@@ -80,7 +82,7 @@ public class SM2Impl implements SM2 {
                 .append(ConstantNumber.SGD_SM2)
                 .append(keyBits)
                 .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GENERATEKEYPAIR_ECC, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GENERATEKEYPAIR_ECC, param,agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         logger.debug("生成SM2密钥对 responseMessage:{}", responseMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
@@ -129,7 +131,7 @@ public class SM2Impl implements SM2 {
                     .append(data)
                     .toBytes();
         }
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALENCRYPT_ECC, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALENCRYPT_ECC, param,agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM2加密错误,错误信息:{}", responseMessage.getHeader().getErrorInfo());
@@ -174,7 +176,7 @@ public class SM2Impl implements SM2 {
                     .append(encodeData.encode())
                     .toBytes();
         }
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALDECRYPT_ECC, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALDECRYPT_ECC, param,agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("SM2解密错误,错误信息:{}", responseMessage.getHeader().getErrorInfo());
@@ -189,7 +191,7 @@ public class SM2Impl implements SM2 {
                 .append(index)
                 .append(pwd.length())
                 .append(pwd.getBytes(StandardCharsets.UTF_8))
-                .toBytes());
+                .toBytes(),agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("获取私钥访问权限错误,错误信息:{}", responseMessage.getHeader().getErrorInfo());
@@ -221,7 +223,7 @@ public class SM2Impl implements SM2 {
                     .append(hashData.length)
                     .append(hashData)
                     .toBytes();
-            requestMessage = new RequestMessage(CMDCode.CMD_INTERNALSIGN_ECC, param);
+            requestMessage = new RequestMessage(CMDCode.CMD_INTERNALSIGN_ECC, param,agKey);
         } else {   //使用外部密钥
             param = new BytesBuffer()
                     .append(zero)
@@ -232,7 +234,7 @@ public class SM2Impl implements SM2 {
                     .append(hashData.length)
                     .append(hashData)
                     .toBytes();
-            requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, param);
+            requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, param,agKey);
         }
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
@@ -268,7 +270,7 @@ public class SM2Impl implements SM2 {
                     .append(signData.length)
                     .append(signData)
                     .toBytes();
-            requestMessage = new RequestMessage(CMDCode.CMD_INTERNALVERIFY_ECC, param);
+            requestMessage = new RequestMessage(CMDCode.CMD_INTERNALVERIFY_ECC, param,agKey);
         } else { //使用外部密钥
             param = new BytesBuffer()
                     .append(zero)
@@ -281,7 +283,7 @@ public class SM2Impl implements SM2 {
                     .append(signData.length)
                     .append(signData)
                     .toBytes();
-            requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALVERIFY_ECC, param);
+            requestMessage = new RequestMessage(CMDCode.CMD_EXTERNALVERIFY_ECC, param,agKey);
         }
 
         ResponseMessage responseMessage = client.send(requestMessage);

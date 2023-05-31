@@ -124,11 +124,5 @@ public interface SM4 {
     byte[] SM4Mac(byte[] key, byte[] data, byte[] IV) throws AFCryptoException;
 
 
-    /**
-     * SM4  padding填充
-     *
-     * @param data 待填充数据
-     * @return 填充后的数据
-     */
-    byte[] padding(byte[] data);
+
 }

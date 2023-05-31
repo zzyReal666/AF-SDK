@@ -43,7 +43,16 @@ public class AFHSMCmd extends AFCmd {
      */
 
     public DeviceInfo getDeviceInfo() throws AFCryptoException {
-        return null;
+        logger.info("获取设备信息");
+        RequestMessage req = new RequestMessage(CMDCode.CMD_DEVICEINFO, null, agKey);
+        //发送请求
+        ResponseMessage resp = client.send(req);
+        if (resp.getHeader().getErrorCode() != 0) {
+            logger.error("获取设备信息错误,错误码:{},错误信息:{}", resp.getHeader().getErrorCode(), resp.getHeader().getErrorInfo());
+        }
+        DeviceInfo info = new DeviceInfo();
+        info.decode(resp.getDataBuffer().readOneData());
+        return info;
     }
 
     /**
@@ -55,7 +64,26 @@ public class AFHSMCmd extends AFCmd {
      */
 
     public byte[] getRandom(int length) throws AFCryptoException {
-        return new byte[0];
+        logger.info("HSM-获取随机数 length:{}", length);
+        if (length <= 0) {
+            logger.error("获取随机数错误,随机数长度错误 length:{}", length);
+            throw new AFCryptoException("获取随机数错误,随机数长度错误");
+        }
+        byte[] param = new BytesBuffer().append(length).toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATERANDOM, param,agKey);
+        ResponseMessage resp;
+        //发送请求
+        try {
+            resp = client.send(req);
+        } catch (Exception e) {
+            logger.error("获取随机数错误", e);
+            throw new AFCryptoException("获取随机数异常", e);
+        }
+        if (resp == null || resp.getHeader().getErrorCode() != 0) {
+            logger.error("获取随机数错误,无响应或者响应码错误 response:{} ErrorCode:{}", resp == null ? "null" : resp.toString(), resp == null ? "null" : resp.getHeader().getErrorCode());
+            throw new AFCryptoException("获取随机数异常");
+        }
+        return resp.getDataBuffer().readOneData();
     }
 
     /**
@@ -339,7 +367,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(index)
                 .append(ConstantNumber.SGD_RSA_SIGN)
                 .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXPORTSIGNPUBLICKEY_RSA, param);
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXPORTSIGNPUBLICKEY_RSA, param,agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-获取RSA签名公钥信息失败, index:{}, 错误码:{},错误信息:{}", index, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
@@ -360,7 +388,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(index)
                 .append(ConstantNumber.SGD_RSA_ENC)
                 .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXPORTENCPUBLICKEY_RSA, param);
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXPORTENCPUBLICKEY_RSA, param,agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-获取RSA加密公钥信息失败, index:{}, 错误码:{},错误信息:{}", index, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
@@ -381,7 +409,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(ConstantNumber.SGD_RSA)
                 .append(bits)
                 .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATEKEYPAIR_RSA, param);
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATEKEYPAIR_RSA, param,agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-生成RSA密钥对信息失败, bits:{}, 错误码:{},错误信息:{}", bits, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
@@ -429,7 +457,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPUBLICKEYOPERATION_RSA, param);
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPUBLICKEYOPERATION_RSA, param,agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-RSA外部加密运算失败, dataLen:{}, 错误码:{},错误信息:{}", data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
@@ -457,7 +485,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPRIVATEKEYOPERATION_RSA, param);
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPRIVATEKEYOPERATION_RSA, param,agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-RSA外部解密运算失败, dataLen:{}, 错误码:{},错误信息:{}", data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
@@ -486,7 +514,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(data)
                 .toBytes();
 
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPRIVATEKEYOPERATION_RSA, param);
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPRIVATEKEYOPERATION_RSA, param,agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-RSA外部签名运算失败, dataLen:{}, 错误码:{},错误信息:{}", data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
@@ -516,7 +544,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(data)
                 .toBytes();
 
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPUBLICKEYOPERATION_RSA, param);
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALPUBLICKEYOPERATION_RSA, param,agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-RSA外部验证签名运算失败, dataLen:{}, rawDataLen:{}, 错误码:{},错误信息:{}", data.length, rawData.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
@@ -544,7 +572,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_INTERNALPUBLICKEYOPERATION_RSA, param));
+        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_INTERNALPUBLICKEYOPERATION_RSA, param,agKey));
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-RSA内部加密运算失败, index:{}, dataLen:{}, 错误码:{},错误信息:{}", index, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-RSA内部加密运算失败, index:" + index + ", dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -570,7 +598,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_INTERNALPRIVATEKEYOPERATION_RSA, param));
+        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_INTERNALPRIVATEKEYOPERATION_RSA, param,agKey));
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-RSA内部解密运算失败, index:{}, dataLen:{}, 错误码:{},错误信息:{}", index, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-RSA内部解密运算失败, index:" + index + ", dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -596,7 +624,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_INTERNALPRIVATEKEYOPERATION_RSA, param));
+        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_INTERNALPRIVATEKEYOPERATION_RSA, param,agKey));
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-RSA内部签名运算失败, index:{}, dataLen:{}, 错误码:{},错误信息:{}", index, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-RSA内部签名运算失败, index:" + index + ", dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -624,7 +652,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(data.length)
                 .append(data)
                 .toBytes();
-        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_INTERNALPUBLICKEYOPERATION_RSA, param));
+        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_INTERNALPUBLICKEYOPERATION_RSA, param,agKey));
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-RSA内部验证签名运算失败, index:{}, dataLen:{}, rawDataLen:{}, 错误码:{},错误信息:{}", index, data.length, rawData.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-RSA内部验证签名运算失败, index:" + index + ", dataLen:" + data.length + ", rawDataLen:" + rawData.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());

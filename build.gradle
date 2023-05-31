@@ -27,6 +27,7 @@ allprojects {
     }
 }
 dependencies {
+    implementation files('lib/AFSecurityAccess-1.0.jar')
     testImplementation platform('org.junit:junit-bom:5.9.1') // 单元测试
     testImplementation 'org.junit.jupiter:junit-jupiter'     // 单元测试
     implementation 'ch.qos.logback:logback-classic:1.2.9'    // 日志

@@ -1,6 +1,5 @@
 package com.af.device;
 
-import com.af.device.impl.AFCryptoDevice;
 import com.af.device.impl.AFHsmDevice;
 import com.af.device.impl.AFSVDevice;
 import com.af.device.impl.AFTSDevice;
@@ -13,14 +12,12 @@ import com.af.device.impl.AFTSDevice;
 public class AFDeviceFactory {
 
 
+    //密码机
     public static AFHsmDevice getAFHsmDevice(String host, int port, String passwd) {
         return AFHsmDevice.getInstance(host, port, passwd);
     }
 
 
-    public static AFCryptoDevice getAFCryptoDevice(String host, int port, String passwd) {
-        return AFCryptoDevice.getInstance(host, port, passwd);
-    }
 
     //时间戳服务器
     public static AFTSDevice getAFTSDevice(String host, int port, String passwd) {

@@ -89,9 +89,16 @@ public class SM2PrivateKey implements Key {
 
     @Override
     public void decode(byte[] encodedKey) {
+
+        //传入字节生成
+        if (encodedKey.length == 32) {
+            this.length = 256;
+            System.arraycopy(encodedKey, 0, this.D, 0, EXP_ECCref_MAX_LEN);
+        }
+
+        //网络通信返回
         this.length = (encodedKey.length - 4) * 8;  //前4个字节是length 后面的是D,此变量为模长 256/512
         this.D = new byte[this.length / 8];
-        //从encodedKey的第4个字节开始  复制到this.D的0位置 复制长度为this.length/8
         System.arraycopy(encodedKey, 4, this.D, 0, this.length / 8);
     }
 

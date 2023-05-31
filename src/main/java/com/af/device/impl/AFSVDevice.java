@@ -1,8 +1,5 @@
 package com.af.device.impl;
 
-import com.af.bean.RequestMessage;
-import com.af.bean.ResponseMessage;
-import com.af.constant.CMDCode;
 import com.af.constant.CertParseInfoType;
 import com.af.constant.ConstantNumber;
 import com.af.crypto.key.sm2.SM2PrivateKey;
@@ -32,7 +29,6 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.pkcs.RSAPrivateKey;
-import org.bouncycastle.asn1.pkcs.RSAPrivateKeyStructure;
 import org.bouncycastle.asn1.pkcs.RSAPublicKey;
 import org.bouncycastle.asn1.x509.*;
 import org.slf4j.Logger;
@@ -62,11 +58,11 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * 协商密钥
      */
-    private byte[] agKey;
+    private  byte[] agKey;
     /**
      * 通信客户端
      */
-    private static AFNettyClient client;
+    public static AFNettyClient client;
     /**
      * 命令对象
      */
@@ -123,11 +119,17 @@ public class AFSVDevice implements IAFSVDevice {
         return SingletonHolder.INSTANCE;
     }
 
+    /**
+     * 协商密钥
+     */
     public AFSVDevice setAgKey() {
         this.agKey = this.keyAgreement(client);
+        this.cmd.setAgKey(this.agKey);
         logger.info("协商密钥成功");
         return this;
     }
+
+
 
 
     //=====================================API=====================================
@@ -141,18 +143,7 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public DeviceInfo getDeviceInfo() throws AFCryptoException {
-        logger.info("获取设备信息-签名验签服务器");
-        RequestMessage req = new RequestMessage(CMDCode.CMD_DEVICEINFO, null);
-        //发送请求
-        ResponseMessage resp = client.send(req);
-        if (resp.getHeader().getErrorCode() != 0) {
-            logger.error("获取设备信息错误,无响应或者响应码错误,错误码:{},错误信息:{}", resp.getHeader().getErrorCode(), resp.getHeader().getErrorInfo());
-            throw new AFCryptoException("获取设备信息错误");
-        }
-        //解析响应
-        DeviceInfo info = new DeviceInfo();
-        info.decode(resp.getDataBuffer().readOneData());
-        return info;
+        return cmd.getDeviceInfo();
     }
 
     /**
@@ -183,8 +174,8 @@ public class AFSVDevice implements IAFSVDevice {
      * @param index 私钥索引
      */
     @Override
-    public void getPrivateAccess(int index) throws AFCryptoException {
-        cmd.getPrivateAccess(index);
+    public void getPrivateAccess(int index,int keyType) throws AFCryptoException {
+        cmd.getPrivateAccess(index,keyType);
     }
 
     /**
@@ -215,18 +206,6 @@ public class AFSVDevice implements IAFSVDevice {
         return cmd.isCertificateRevoked(base64Certificate, crlData);
     }
 
-    /**
-     * <p>导入CA证书</p>
-     * <p>导入CA证书</p>
-     *
-     * @param caAltName           :           ca证书别名
-     * @param base64CaCertificate ： 待导入的CA证书--BASE64编码格式
-     * @return ：返回CA证书导入结果，0为导入成功
-     */
-    @Override
-    public int addCaCertificate(byte[] caAltName, byte[] base64CaCertificate) throws AFCryptoException {
-        return cmd.addCaCertificate(caAltName, base64CaCertificate);
-    }
 
     /**
      * <p>导出RSA公钥</p>
@@ -238,6 +217,12 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getRSAPublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
+        if (keyIndex<0 || keyIndex>1023){
+            throw new AFCryptoException("keyIndex范围为1-1023");
+        }
+        if (keyUsage!=0 && keyUsage!=1){
+            throw new AFCryptoException("keyUsage取值为0或1,0:签名公钥;1:加密公钥");
+        }
         byte[] encoded;
         byte[] sequenceBytes = cmd.getRSAPublicKey(keyIndex, keyUsage);
         //解析公钥
@@ -298,6 +283,11 @@ public class AFSVDevice implements IAFSVDevice {
         return BytesOperate.base64EncodeData(cmd.rsaSignature(rsaPriKey, bytes));
     }
 
+    /**
+     * RSA 构建私钥结构
+     * @param privateKey 私钥字节数组
+     * @return RSAPriKey
+     */
     private RSAPriKey decodeRSAPrivateKey(byte[] privateKey) {
         RSAPriKey rsaPriKey = new RSAPriKey();
         byte[] derPrvKeyData = BytesOperate.base64DecodeData(new String(privateKey));
@@ -434,6 +424,11 @@ public class AFSVDevice implements IAFSVDevice {
         return cmd.rsaVerify(rsaPubKey, inData, signatureData);
     }
 
+    /**
+     * 构建 RSAPubKey 对象
+     * @param publicKey 公钥数据-字节数组
+     * @return RSAPubKey 对象
+     */
     private RSAPubKey decodeRSAPublicKey(byte[] publicKey) {
         RSAPubKey rsaPubKey = new RSAPubKey();
         byte[] derPubKeyData = BytesOperate.base64DecodeData(new String(publicKey));
@@ -474,6 +469,11 @@ public class AFSVDevice implements IAFSVDevice {
         return cmd.rsaVerify(rsaPubKey, inData, signatureData);
     }
 
+    /**
+     * 从证书中获取公钥
+     * @param certificatePath 证书路径
+     * @return RSAPubKey 对象
+     */
     private RSAPubKey getRSAPublicKeyFromCertificate(byte[] certificatePath) {
         RSAPubKey rsaPubKey = null;
         try {
@@ -1220,7 +1220,7 @@ public class AFSVDevice implements IAFSVDevice {
     @Override
     public byte[] getSm2PublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
         logger.info("导出SM2公钥");
-        SM2PublicKey sm2PublicKey = new SM2PublicKey().to512();
+        SM2PublicKey sm2PublicKey = new SM2PublicKey();
         if (keyUsage == ConstantNumber.ENC_PUBLIC_KEY) {
             sm2PublicKey.decode(cmd.getSM2EncPublicKey(keyIndex));
         } else {
@@ -1243,7 +1243,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @return 信任列表别名组合，如： CA001|CA002|CA003
      */
     @Override
-    public certAltNameTrustList getCertTrustListAltName() throws AFCryptoException {
+    public CertAltNameTrustList getCertTrustListAltName() throws AFCryptoException {
         return cmd.getCertTrustListAltName();
     }
 

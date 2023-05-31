@@ -29,6 +29,7 @@ public class AFTSDevice implements IAFTSDevice {
      */
     @Getter
     private static AFNettyClient client = null;
+    private byte[] agKey;
 
     //私有化构造方法
     private AFTSDevice() {
@@ -44,6 +45,15 @@ public class AFTSDevice implements IAFTSDevice {
         client = AFNettyClient.getInstance(host, port, passwd);
         return SingletonHolder.INSTANCE;
     }
+    /**
+     * 协商密钥
+     */
+    public AFTSDevice setAgKey() {
+        this.agKey = this.keyAgreement(client);
+        logger.info("协商密钥成功");
+        return this;
+    }
+
 
 
 
@@ -91,7 +101,7 @@ public class AFTSDevice implements IAFTSDevice {
                 .append(hashAlg)
                 .toBytes();
         param = SM4Utils.encrypt(ROOT_KEY, param);
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_CREATE_TS_REQUEST, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_CREATE_TS_REQUEST, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("时间戳请求失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
@@ -115,8 +125,7 @@ public class AFTSDevice implements IAFTSDevice {
                 .append(asn1Request)
                 .append(signAlg)
                 .toBytes();
-        param = SM4Utils.encrypt(ROOT_KEY, param);
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_TS_RESPONSE, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_TS_RESPONSE, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("时间戳响应失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
@@ -162,7 +171,7 @@ public class AFTSDevice implements IAFTSDevice {
                 .append(tsaCert)
                 .toBytes();
         param = SM4Utils.encrypt(ROOT_KEY, param);
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_TS_VERIFY, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_TS_VERIFY, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() == 0) {
             return true;
@@ -185,7 +194,7 @@ public class AFTSDevice implements IAFTSDevice {
                 .append(tsValue)
                 .toBytes();
         param = SM4Utils.encrypt(ROOT_KEY, param);
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GET_TS_INFO, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GET_TS_INFO, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("获取时间戳主要信息失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
@@ -212,7 +221,7 @@ public class AFTSDevice implements IAFTSDevice {
                 .append(subject)
                 .toBytes();
         param = SM4Utils.encrypt(ROOT_KEY, param);
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GET_TS_DETAIL, param);
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GET_TS_DETAIL, param, agKey);
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("获取指定的时间戳详细信息失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());

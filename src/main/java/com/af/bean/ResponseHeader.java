@@ -52,10 +52,14 @@ public class ResponseHeader {
     private static final AtomicInteger atomicInteger = new AtomicInteger(1);
 
 
-    public ResponseHeader(byte[] header) {
-        this.length = BytesOperate.bytes2int(header);
-        this.taskNO = BytesOperate.bytes2int(header, 4);
-        this.errorCode = BytesOperate.bytes2int(header, 8);
+    /**
+     * 构造函数
+     * @param data  服务端响应的数据,只需要取前12个字节为头
+     */
+    public ResponseHeader(byte[] data) {
+        this.length = BytesOperate.bytes2int(data);
+        this.taskNO = BytesOperate.bytes2int(data, 4);
+        this.errorCode = BytesOperate.bytes2int(data, 8);
     }
 
 
