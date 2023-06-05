@@ -19,7 +19,6 @@ public class RSAPubKey implements IAFStruct {
     //构造
     public RSAPubKey(byte[] data) {
         this.decode(data);
-
     }
 
     @Override

@@ -33,7 +33,6 @@ public class SM2PublicKey implements Key {
     }
 
 
-
     //构造函数 全部参数
     public SM2PublicKey(int length, byte[] x, byte[] y) {
         this.length = length;
@@ -68,13 +67,13 @@ public class SM2PublicKey implements Key {
 
     @Override
     public void decode(byte[] pubKey) {
-        int tempLen = (pubKey.length - 4) / 2;  //前四位表示长度,后面的数据分成两份,分别表示x,y
-        this.length = tempLen * 8;
-        this.x = new byte[tempLen];
-        this.y = new byte[tempLen];
+        this.length = BytesOperate.bytes2int(pubKey, 0);
+        this.x = new byte[length / 8];
+        this.y = new byte[length / 8];
         System.arraycopy(pubKey, 4, this.x, 0, this.x.length);
         System.arraycopy(pubKey, 4 + this.x.length, this.y, 0, this.y.length);
     }
+
     public int size() {
         return 4 + this.x.length + this.y.length;
     }

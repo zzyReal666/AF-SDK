@@ -23,7 +23,7 @@ public class SM1Impl implements SM1 {
     private static final Logger logger = LoggerFactory.getLogger(SM1Impl.class);
     private final KeyInfoImpl keyInfo;
     private final AFNettyClient client;
-    private final byte[] agKey ;
+    private final byte[] agKey;
 
     public SM1Impl(AFNettyClient client, byte[] agKey) {
         this.client = client;
@@ -45,10 +45,11 @@ public class SM1Impl implements SM1 {
         logger.info("SM1EncryptECB");
         BytesBuffer buffer = new BytesBuffer();
         byte[] key = keyInfo.exportSymmKey(index);
-        int keyType = 0;
+        int keyType = 0;  // 接口标识 0|外部密钥，1|内部密钥，2|检查密钥句柄
         int keyID = 0;
         int zero = 0;
-        byte[] param = buffer.append(ConstantNumber.SGD_SM1_ECB)
+        byte[] param = buffer
+                .append(ConstantNumber.SGD_SM1_ECB)
                 .append(keyType)
                 .append(keyID)
                 .append(key.length)
@@ -67,6 +68,13 @@ public class SM1Impl implements SM1 {
         return responseMessage.getDataBuffer().readOneData();
     }
 
+    /**
+     * SM1 ECB模式加密 使用外部密钥
+     * @param key 外部密钥
+     * @param data 待加密数据
+     * @return 加密后的数据
+     * @throws AFCryptoException 加密异常
+     */
     @Override
     public byte[] SM1EncryptECB(byte[] key, byte[] data) throws AFCryptoException {
         logger.info("SM1EncryptECB");
@@ -74,7 +82,8 @@ public class SM1Impl implements SM1 {
         int keyType = 0;
         int keyID = 0;
         int zero = 0;
-        byte[] param = buffer.append(ConstantNumber.SGD_SM1_ECB)
+        byte[] param = buffer
+                .append(ConstantNumber.SGD_SM1_ECB)
                 .append(keyType)
                 .append(keyID)
                 .append(key.length)

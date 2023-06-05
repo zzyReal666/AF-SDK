@@ -50,8 +50,8 @@ public class RequestMessage {
             this.header = new RequestHeader(0, cmd);
             this.data = null;
         } else {
-            this.header = new RequestHeader(data.length, cmd);
             this.data = null == agKey ? data : SM4Utils.encrypt(data, agKey);
+            this.header = new RequestHeader(this.data.length, cmd);
         }
     }
 

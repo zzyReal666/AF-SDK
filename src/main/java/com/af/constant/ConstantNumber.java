@@ -55,8 +55,8 @@ public enum ConstantNumber {
     public static final int SGD_ZUC_EIA3 = 0x00000802;
 
     public static final int SGD_RSA = 0x00010000;
-    public static final int SGD_RSA_SIGN = 0x00010010; //user-defined
-    public static final int SGD_RSA_ENC = 0x00010020;//user-defined
+    public static final int SGD_RSA_SIGN = 0x00010010; // RSA签名/验签
+    public static final int SGD_RSA_ENC = 0x00010020;// RSA加密/解密
 
     public static final int SGD_SM2 = 0x00020100;     //生成sm2密钥对
     public static final int SGD_SM2_1 = 0x00020200;  //获取sm2签名公钥    //SM2外部密钥签名

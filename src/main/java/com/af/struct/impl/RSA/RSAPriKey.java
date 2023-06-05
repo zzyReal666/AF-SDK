@@ -23,6 +23,12 @@ public class RSAPriKey implements IAFStruct {
     private byte[] dq = new byte[LiteRSARef_MAX_PLEN];
     private byte[] cof = new byte[LiteRSARef_MAX_PLEN];
 
+
+
+    public RSAPriKey(byte[] data) {
+        this.decode(data);
+    }
+
     @Override
     public int size() {
         return 4 + 3 * LiteRSARef_MAX_LEN + 5 * LiteRSARef_MAX_PLEN;

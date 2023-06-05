@@ -59,7 +59,7 @@ public class AFSVCmd {
      * @return 设备信息
      * 获取设备信息异常
      */
-    public DeviceInfo getDeviceInfo() throws AFCryptoException {
+    public DeviceInfo getDeviceInfo() throws AFCryptoException {  //success
         logger.info("SV-获取设备信息");
         RequestMessage req = new RequestMessage(CMDCode.CMD_DEVICEINFO, null, agKey);
         //发送请求
@@ -81,10 +81,9 @@ public class AFSVCmd {
      * @return 随机数
      * 获取随机数异常
      */
-    public byte[] getRandom(int length) throws AFCryptoException {
+    public byte[] getRandom(int length) throws AFCryptoException {  //success
         logger.info("SV-获取随机数, length:{}", length);
         byte[] param = new BytesBuffer().append(length).toBytes();
-
         RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATERANDOM, param, agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
@@ -102,8 +101,7 @@ public class AFSVCmd {
      * @param base64Certificate : 待验证的证书--BASE64编码格式
      * @return ：返回证书验证结果，0为验证通过
      */
-
-    public int validateCertificate(byte[] base64Certificate) throws AFCryptoException {
+    public int validateCertificate(byte[] base64Certificate) throws AFCryptoException { //success
         logger.info("SV-OCSP验证证书有效性, base64Certificate:{}", base64Certificate);
         byte[] param = new BytesBuffer()
                 .append(base64Certificate.length)
@@ -127,8 +125,7 @@ public class AFSVCmd {
      * @param crlData           :           待验证证书的CRL文件数据 --BASE64编码格式
      * @return ：返回证书验证结果，true ：当前证书已被吊销, false ：当前证书未被吊销
      */
-
-    public boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws CertificateException, AFCryptoException {
+    public boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws CertificateException, AFCryptoException { //success
         logger.info("SV-验证证书是否被吊销, base64Certificate:{}, crlData:{}", base64Certificate, crlData);
         ByteArrayInputStream inputCertificate = new ByteArrayInputStream(BytesOperate.base64DecodeCert(new String(base64Certificate)));
         CertificateFactory certCf = CertificateFactory.getInstance("X.509");
@@ -146,8 +143,8 @@ public class AFSVCmd {
 
     }
 
-
     /**
+     * 导出RSA公钥 签名公钥/加密公钥
      * <p>导出RSA公钥</p>
      * <p>导出密码机内部对应索引和用途的RSA公钥信息</p>
      *
@@ -155,15 +152,29 @@ public class AFSVCmd {
      * @param keyUsage ：密钥用途，0：签名公钥；1：加密公钥
      * @return : 返回Base64编码的公钥数据
      */
-
-    public byte[] getRSAPublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
+    public byte[] getRSAPublicKey(int keyIndex, int keyUsage) throws AFCryptoException { //success
         logger.info("SV-导出RSA公钥, keyIndex:{}, keyUsage:{}", keyIndex, keyUsage);
-        int type = ConstantNumber.SGD_RSA_SIGN;
-        int cmdID = CMDCode.CMD_EXPORTSIGNPUBLICKEY_RSA;
+        //参数校验
+        if (keyIndex < 0 || keyIndex > 1023) {
+            logger.error("SV-导出RSA公钥失败, keyIndex:{} 超出范围(0-1023)", keyIndex);
+            throw new AFCryptoException("SV-导出RSA公钥失败, keyIndex:" + keyIndex + " 超出范围(0-1023)");
+        }
+        int type;
+        int cmdID;
+        // 导出签名公钥
+        if (ConstantNumber.SIGN_PUBLIC_KEY == keyUsage) {
+            type = ConstantNumber.SGD_RSA_SIGN;
+            cmdID = CMDCode.CMD_EXPORTSIGNPUBLICKEY_RSA;
+        }
         // 导出加密公钥
-        if (keyUsage == ConstantNumber.ENC_PUBLIC_KEY) {
+        else if (ConstantNumber.ENC_PUBLIC_KEY == keyUsage) {
             type = ConstantNumber.SGD_RSA_ENC;
             cmdID = CMDCode.CMD_EXPORTENCPUBLICKEY_RSA;
+        }
+        //非法参数
+        else {
+            logger.error("SV-导出RSA公钥失败, keyUsage:{} 不合法(0:签名公钥; 1:加密公钥)", keyUsage);
+            throw new AFCryptoException("SV-导出RSA公钥失败, keyUsage:" + keyUsage + " 不合法(0:签名公钥; 1:加密公钥)");
         }
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
@@ -179,6 +190,7 @@ public class AFSVCmd {
     }
 
     /**
+     * RSA签名 内部私钥
      * <p>RSA签名</p>
      * <p>使用RSA内部密钥进行签名运算</p>
      *
@@ -186,14 +198,13 @@ public class AFSVCmd {
      * @param inData   ：待签名的原始数据
      * @return : 返回Base64编码的签名数据
      */
-
     public byte[] rsaSignature(int keyIndex, byte[] inData) throws AFCryptoException {
         logger.info("SV-RSA签名, keyIndex:{}, inDataLen:{}", keyIndex, inData.length);
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
                 .append(ConstantNumber.SGD_RSA_SIGN)
                 .append(0)
-                .append(0)
+                .append(0) //私钥长度,因为是内部私钥,所以长度为0
                 .append(inData.length)
                 .append(inData)
                 .toBytes();
@@ -208,6 +219,7 @@ public class AFSVCmd {
     }
 
     /**
+     * RSA签名 外部私钥
      * <p>RSA签名</p>
      * <p>使用RSA外部密钥进行签名运算</p>
      *
@@ -227,12 +239,11 @@ public class AFSVCmd {
      * @param inData     ：待签名的原始数据
      * @return : 返回Base64编码的签名数据
      */
-
     public byte[] rsaSignature(RSAPriKey privateKey, byte[] inData) throws AFCryptoException {
         logger.info("SV-RSA签名, privateKeyLen:{}, inDataLen:{}", privateKey, inData.length);
         byte[] param = new BytesBuffer()
                 .append(0)
-                .append(0)
+                .append(ConstantNumber.SGD_RSA_SIGN)
                 .append(0)
                 .append(privateKey.size())
                 .append(privateKey.encode())
@@ -250,6 +261,7 @@ public class AFSVCmd {
 
 
     /**
+     * RSA验证签名 内部公钥
      * <p>RSA验证签名</p>
      * <p>使用内部RSA密钥对数据进行验证签名运算</p>
      *
@@ -258,14 +270,13 @@ public class AFSVCmd {
      * @param signatureData ：Base64编码的签名数据
      * @return : true : 验证成功，false ：验证失败
      */
-
-    public boolean rsaVerify(int keyIndex, byte[] inData, byte[] signatureData) throws AFCryptoException {
+    public boolean rsaVerify(int keyIndex, byte[] inData, byte[] signatureData) throws AFCryptoException { //success
         logger.info("SV-RSA验签, keyIndex:{}, inDataLen:{}, signatureDataLen:{}", keyIndex, inData.length, signatureData.length);
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
                 .append(ConstantNumber.SGD_RSA_SIGN)
                 .append(0)
-                .append(0)
+                .append(0)  //公钥长度 因为是内部公钥，所以不需要传入 长度为0
                 .append(signatureData.length)
                 .append(signatureData)
                 .toBytes();
@@ -279,6 +290,7 @@ public class AFSVCmd {
     }
 
     /**
+     * RSA 验证签名 外部公钥
      * <p>RSA验证签名</p>
      * <p>使用外部RSA密钥对数据进行验证签名运算</p>
      *
@@ -291,12 +303,11 @@ public class AFSVCmd {
      * @param signatureData ：Base64编码的签名数据
      * @return : true : 验证成功，false ：验证失败
      */
-
-    public boolean rsaVerify(RSAPubKey publicKey, byte[] inData, byte[] signatureData) throws AFCryptoException {
+    public boolean rsaVerify(RSAPubKey publicKey, byte[] inData, byte[] signatureData) throws AFCryptoException { //success
         logger.info("SV-RSA验签, publicKey:{}, inDataLen:{}, signatureDataLen:{}", publicKey, inData.length, signatureData.length);
         byte[] param = new BytesBuffer()
                 .append(0)
-                .append(0)
+                .append(ConstantNumber.SGD_RSA_SIGN)
                 .append(0)
                 .append(publicKey.size())
                 .append(publicKey.encode())
@@ -314,6 +325,7 @@ public class AFSVCmd {
 
 
     /**
+     * RSA加密 内部公钥
      * <p>RSA加密</p>
      * <p>使用内部密钥进行RSA加密</p>
      *
@@ -321,14 +333,13 @@ public class AFSVCmd {
      * @param inData   ：待加密的原始数据
      * @return ：Base64编码的加密数据
      */
-
-    public byte[] rsaEncrypt(int keyIndex, byte[] inData) throws AFCryptoException {
+    public byte[] rsaEncrypt(int keyIndex, byte[] inData) throws AFCryptoException { //success
         logger.info("SV-RSA加密, keyIndex:{}, inDataLen:{}", keyIndex, inData.length);
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
                 .append(ConstantNumber.SGD_RSA_ENC)
                 .append(0)
-                .append(0)
+                .append(0)  //公钥长度 因为是内部公钥加密 所以公钥长度为0
                 .append(inData.length)
                 .append(inData)
                 .toBytes();
@@ -342,6 +353,7 @@ public class AFSVCmd {
     }
 
     /**
+     * RSA加密 外部公钥
      * <p>RSA加密</p>
      * <p>使用外部密钥进行RSA加密</p>
      *
@@ -353,13 +365,11 @@ public class AFSVCmd {
      * @param inData    ：待加密的原始数据
      * @return ：Base64编码的加密数据
      */
-
-    public byte[] rsaEncrypt(RSAPubKey publicKey, byte[] inData) throws AFCryptoException {
+    public byte[] rsaEncrypt(RSAPubKey publicKey, byte[] inData) throws AFCryptoException { //success
         logger.info("SV-RSA加密, publicKey:{}, inDataLen:{}", publicKey, inData.length);
-
         byte[] param = new BytesBuffer()
                 .append(0)
-                .append(0)
+                .append(ConstantNumber.SGD_RSA_ENC)
                 .append(0)
                 .append(publicKey.size())
                 .append(publicKey.encode())
@@ -375,8 +385,8 @@ public class AFSVCmd {
         return res.getDataBuffer().readOneData();
     }
 
-
     /**
+     * RSA 解密 内部私钥
      * <p>RSA解密</p>
      * <p>使用内部密钥进行RSA解密</p>
      *
@@ -384,14 +394,13 @@ public class AFSVCmd {
      * @param encData  ：Base64编码的加密数据
      * @return ：原始数据
      */
-
-    public byte[] rsaDecrypt(int keyIndex, byte[] encData) throws AFCryptoException {
+    public byte[] rsaDecrypt(int keyIndex, byte[] encData) throws AFCryptoException {  //success
         logger.info("SV-RSA解密, keyIndex:{}, encDataLen:{}", keyIndex, encData.length);
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
                 .append(ConstantNumber.SGD_RSA_ENC)
                 .append(0)
-                .append(0)
+                .append(0)   //私钥长度 因为是内部密钥，所以长度为0
                 .append(encData.length)
                 .append(encData)
                 .toBytes();
@@ -405,6 +414,7 @@ public class AFSVCmd {
     }
 
     /**
+     * RSA 解密 外部私钥
      * <p>RSA解密</p>
      * <p>使用外部密钥进行RSA解密</p>
      *
@@ -424,12 +434,11 @@ public class AFSVCmd {
      * @param encData    ：Base64编码的加密数据
      * @return ：原始数据
      */
-
-    public byte[] rsaDecrypt(RSAPriKey privateKey, byte[] encData) throws AFCryptoException {
+    public byte[] rsaDecrypt(RSAPriKey privateKey, byte[] encData) throws AFCryptoException { //success
         logger.info("SV-RSA解密, privateKey:{}, encDataLen:{}", privateKey, encData.length);
         byte[] param = new BytesBuffer()
                 .append(0)
-                .append(0)
+                .append(ConstantNumber.SGD_RSA_ENC)
                 .append(0)
                 .append(privateKey.size())
                 .append(privateKey.encode())
@@ -448,6 +457,30 @@ public class AFSVCmd {
     }
 
     /**
+     * 获取私钥访问权限
+     *
+     * @param index   索引
+     * @param keyType 密钥类型 3:SM2 4:RSA
+     */
+    public void getPrivateAccess(int index, int keyType) throws AFCryptoException { //success
+        logger.info("SV-CMD 获取私钥访问权限, index: {}, keyType: {}", index, keyType);
+        String pwd = "12345678";
+        byte[] param = new BytesBuffer()
+                .append(index)
+                .append(keyType)
+                .append(pwd.length())
+                .append(pwd.getBytes(StandardCharsets.UTF_8))
+                .toBytes();
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, param, agKey);
+        ResponseMessage responseMessage = client.send(requestMessage);
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+            throw new AFCryptoException("获取私钥访问权限失败");
+        }
+
+    }
+
+    /**
      * <p>SM2内部密钥签名</p>
      * <p>使用签名服务器内部密钥进行 SM2签名运算</p>
      *
@@ -455,9 +488,8 @@ public class AFSVCmd {
      * @param data  ：待签名的数据
      * @return ： base64编码的签名数据
      */
-
-    public byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {
-        logger.info("SM2内部密钥签名, index: {}, data: {}", index, data);
+    public byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {  //success
+        logger.info("SV_CMD SM2内部密钥签名, index: {}, dataLen: {}", index, data.length);
         getPrivateAccess(index, 3);
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
         byte[] hash = afHsmDevice.sm3Hash(data);
@@ -479,30 +511,6 @@ public class AFSVCmd {
     }
 
     /**
-     * 获取私钥访问权限
-     *
-     * @param index   索引
-     * @param keyType 密钥类型 3:SM2 4:RSA
-     */
-    public void getPrivateAccess(int index, int keyType) throws AFCryptoException {
-        logger.info("获取私钥访问权限, index: {}, keyType: {}", index, keyType);
-        String pwd = "12345678";
-        byte[] param = new BytesBuffer()
-                .append(index)
-                .append(keyType)
-                .append(pwd.length())
-                .append(pwd.getBytes(StandardCharsets.UTF_8))
-                .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, param, agKey);
-        ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-            throw new AFCryptoException("获取私钥访问权限失败");
-        }
-
-    }
-
-    /**
      * <p>SM2外部密钥签名</p>
      * <p>SM2外部密钥签名</p>
      *
@@ -511,9 +519,8 @@ public class AFSVCmd {
      *                   <p>SM2PrivateKey ::= INTEGER</p>
      * @return ： base64编码的签名数据
      */
-
-    public byte[] sm2Signature(byte[] data, byte[] privateKey) throws AFCryptoException {
-        logger.info("SM2外部密钥签名, data: {}, privateKey: {}", data, privateKey);
+    public byte[] sm2Signature(byte[] data, byte[] privateKey) throws AFCryptoException {   //success
+        logger.info("SV-CMD SM2外部密钥签名, data: {}, privateKey: {}", data, privateKey);
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
         byte[] hash = afHsmDevice.sm3Hash(data);
         int zero = 0;
@@ -536,120 +543,7 @@ public class AFSVCmd {
     }
 
     /**
-     * <p>基于证书的SM2签名</p>
-     * <p>基于证书的SM2签名</p>
-     *
-     * @param data              ：待签名的数据
-     * @param privateKey        ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                          <p>SM2PrivateKey ::= INTEGER</p>
-     * @param base64Certificate : 签名的外部证书---BASE64编码
-     * @return ： base64编码的签名数据
-     */
-
-    public byte[] sm2SignatureByCertificate(byte[] data, byte[] privateKey, byte[] base64Certificate) throws AFCryptoException {
-        return new byte[0];
-    }
-
-    /**
-     * <p>SM2文件签名</p>
-     * <p>使用签名服务器内部密钥对文件进行 SM2签名运算</p>
-     *
-     * @param index ：待签名的签名服务器内部密钥索引
-     * @param data  ：待签名的文件
-     * @return ： base64编码的签名数据
-     */
-
-    public byte[] sm2SignFile(int index, byte[] data) throws AFCryptoException {
-        logger.info("SM2文件签名, index: {}, dataLen: {}", index, data.length);
-        getPrivateAccess(index, 3);
-        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.sm3Hash(data);
-        int begin = 1;
-        byte[] param = new BytesBuffer()
-                .append(begin)
-                .append(index)
-                .append(hash.length)
-                .append(hash)
-                .toBytes();
-
-        RequestMessage req = new RequestMessage(CMDCode.CMD_INTERNALSIGN_ECC, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SM2内部密钥文件签名失败, 错误码: {}, 错误信息: {}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SM2文件签名失败");
-        }
-        return res.getDataBuffer().readOneData();
-    }
-
-    /**
-     * <p>SM2文件签名</p>
-     * <p>使用外部密钥对文件进行 SM2签名运算</p>
-     *
-     * @param data       ：待签名的文件
-     * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                   <p>SM2PrivateKey ::= INTEGER</p>
-     * @return ： base64编码的签名数据
-     */
-
-    public byte[] sm2SignFile(byte[] data, byte[] privateKey) throws AFCryptoException {
-        logger.info("SM2文件签名, data: {}, privateKey: {}", data, privateKey);
-        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.sm3Hash(data);
-        int zero = 0;
-        byte[] param = new BytesBuffer()
-                .append(zero)
-                .append(ConstantNumber.SGD_SM2_1)
-                .append(zero)
-                .append(privateKey.length)
-                .append(privateKey)
-                .append(hash.length)
-                .append(hash)
-                .toBytes();
-
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SM2外部密钥文件签名失败, 错误码: {}, 错误信息: {}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SM2文件签名失败");
-        }
-        return res.getDataBuffer().readOneData();
-
-    }
-
-
-    /**
-     * <p>基于证书的SM2文件签名</p>
-     *
-     * @param data         待签名的文件
-     * @param privateKey   签名的私钥
-     * @param sm2PublicKey 签名的公钥
-     * @return 签名数据
-     */
-    public byte[] sm2SignFileByCertificate(byte[] data, byte[] privateKey, byte[] sm2PublicKey) throws AFCryptoException {
-        logger.info("基于证书的SM2文件签名, data: {}, privateKey: {}, sm2PublicKey: {}", data, privateKey, sm2PublicKey);
-        int zero = 0;
-        //hash
-        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.sm3HashWithPubKey(data, new SM2PublicKey(sm2PublicKey), ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
-
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, new BytesBuffer()
-                .append(zero)
-                .append(ConstantNumber.SGD_SM2_1)
-                .append(zero)
-                .append(privateKey.length)
-                .append(privateKey)
-                .append(hash.length)
-                .append(hash)
-                .toBytes(), agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("基于证书的SM2文件签名失败, 错误码: {}, 错误信息: {}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("基于证书的SM2文件签名失败");
-        }
-        return res.getDataBuffer().readOneData();
-    }
-
-    /**
+     * SM2验证签名 内部密钥
      * <p>SM2内部密钥验证签名</p>
      * <p>使用签名服务器内部密钥进行 SM2验证签名运算</p>
      *
@@ -662,8 +556,7 @@ public class AFSVCmd {
      *                  <p>}</p>
      * @return : true ：验证签名成功，false ：验证签名失败
      */
-
-    public boolean sm2Verify(int keyIndex, byte[] data, byte[] signature) throws AFCryptoException {
+    public boolean sm2Verify(int keyIndex, byte[] data, byte[] signature) throws AFCryptoException {  //success
         logger.info("SV-SM2内部密钥验证签名");
         getPrivateAccess(keyIndex, 3);
         int begin = 1;
@@ -687,44 +580,7 @@ public class AFSVCmd {
     }
 
     /**
-     * <p>基于证书的SM2验证签名</p>
-     * <p>使用外部证书进行 SM2验证签名运算，根据签名服务器内部CA证书，验证证书有效性</p>
-     *
-     * @param base64Certificate ：待验证签名的外部证书---BASE64编码
-     * @param data              : 待验证签名的原始数据
-     * @param signature         : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                          <p>SM2Signature ::= {</p>
-     *                          <p>R INTEGER, --签名值的第一部分</p>
-     *                          <p>S INTEGER --签名值的第二部分</p>
-     *                          <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
-     */
-
-    public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] data, byte[] signature) throws AFCryptoException {
-        logger.info("基于证书的SM2验证签名");
-        //读取证书数据
-        byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
-        InputStream input = new ByteArrayInputStream(derCert);
-        ASN1Sequence seq = null;
-        try (ASN1InputStream aln = new ASN1InputStream(input)) {
-            seq = (ASN1Sequence) aln.readObject();
-            X509CertificateStructure cert = new X509CertificateStructure(seq);
-            byte[] encodePubKey = cert.getSubjectPublicKeyInfo().getPublicKeyData().getEncoded();
-
-            SM2PublicKey sm2PublicKey = new SM2PublicKey();
-            byte[] sm2PubKey = new byte[4 + 32 + 32];
-            System.arraycopy(BytesOperate.int2bytes(256), 0, sm2PubKey, 0, 4);
-            System.arraycopy(encodePubKey, 4, sm2PubKey, 4, 64);
-            sm2PublicKey.decode(sm2PubKey);
-            return this.SM2VerifyByCertPubKey(data, signature, sm2PublicKey);
-        } catch (Exception e) {
-            logger.error("基于证书的SM2验证签名失败，错误信息:{}", e.getMessage());
-            throw new AFCryptoException("基于证书的SM2验证签名失败");
-        }
-    }
-
-    /**
-     * SM2验证签名 外部公钥
+     * SM2验证签名 外部密钥
      *
      * @param data         待验证签名的原始数据
      * @param signature    待验证签名的签名数据
@@ -732,7 +588,7 @@ public class AFSVCmd {
      * @return true ：验证签名成功，false ：验证签名失败
      * @throws AFCryptoException AFCryptoException
      */
-    public boolean SM2VerifyByCertPubKey(byte[] data, byte[] signature, SM2PublicKey sm2PublicKey) throws AFCryptoException {
+    public boolean SM2VerifyByCertPubKey(byte[] data, byte[] signature, SM2PublicKey sm2PublicKey) throws AFCryptoException {  //success
         AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
         byte[] hash = afHsmDevice.sm3HashWithPubKey(data, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
         int zero = 0;
@@ -757,50 +613,44 @@ public class AFSVCmd {
 
     }
 
+    /**
+     * <p>基于证书的SM2文件签名</p>
+     *
+     * @param data         待签名的文件
+     * @param privateKey   签名的私钥
+     * @param sm2PublicKey 签名的公钥
+     * @return 签名数据
+     */
+    public byte[] sm2SignFileByCertificate(byte[] data, byte[] privateKey, byte[] sm2PublicKey) throws AFCryptoException {
+        logger.info("SV-CMD 基于证书的SM2文件签名, data: {}, privateKey: {}, sm2PublicKey: {}", data, privateKey, sm2PublicKey);
+        int zero = 0;
+        //hash
+        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
+        byte[] hash = afHsmDevice.sm3HashWithPubKey(data, new SM2PublicKey(sm2PublicKey), ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
+
+        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, new BytesBuffer()
+                .append(zero)
+                .append(ConstantNumber.SGD_SM2_1)
+                .append(zero)
+                .append(privateKey.length)
+                .append(privateKey)
+                .append(hash.length)
+                .append(hash)
+                .toBytes(), agKey);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("基于证书的SM2文件签名失败, 错误码: {}, 错误信息: {}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("基于证书的SM2文件签名失败");
+        }
+        return res.getDataBuffer().readOneData();
+    }
 
     /**
      * <p>基于证书的SM2验证签名</p>
-     * <p>使用外部证书进行 SM2验证签名运算, 通过CRL文件验证证书有效性</p>
-     *
-     * @param base64Certificate ： 待验证签名的外部证书---BASE64编码
-     * @param crlData           :  待验证证书的CRL文件数据 --BASE64编码格式
-     * @param data              :  待验证签名的原始数据
-     * @param signature         :  待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                          <p>SM2Signature ::= {</p>
-     *                          <p>R INTEGER, --签名值的第一部分</p>
-     *                          <p>S INTEGER --签名值的第二部分</p>
-     *                          <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
-     */
-
-    public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] crlData, byte[] data, byte[] signature) throws AFCryptoException {
-        return false;
-    }
-
-    /**
-     * <p>SM2内部密钥验证w文件签名</p>
-     * <p>使用签名服务器内部密钥对文件进行 SM2验证签名运算</p>
-     *
-     * @param keyIndex  ：待验证签名的签名服务器内部密钥索引
-     * @param fileName  : 文件名称
-     * @param signature : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                  <p>SM2Signature ::= {</p>
-     *                  <p>R INTEGER, --签名值的第一部分</p>
-     *                  <p>S INTEGER --签名值的第二部分</p>
-     *                  <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
-     */
-
-    public boolean sm2VerifyFile(int keyIndex, byte[] fileName, byte[] signature) throws AFCryptoException {
-        return false;
-    }
-
-    /**
-     * <p>基于证书的SM2验证文件签名</p>
-     * <p>使用外部证书对文件进行SM2验证签名运算，根据签名服务器内部CA证书，验证证书有效性</p>
+     * <p>使用外部证书进行 SM2验证签名运算，根据签名服务器内部CA证书，验证证书有效性</p>
      *
      * @param base64Certificate ：待验证签名的外部证书---BASE64编码
-     * @param fileName          : 文件名称
+     * @param data              : 待验证签名的原始数据
      * @param signature         : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
      *                          <p>SM2Signature ::= {</p>
      *                          <p>R INTEGER, --签名值的第一部分</p>
@@ -808,40 +658,65 @@ public class AFSVCmd {
      *                          <p>}</p>
      * @return : true ：验证签名成功，false ：验证签名失败
      */
+    public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] data, byte[] signature) throws AFCryptoException {
+        logger.info("基于证书的SM2验证签名");
+        //读取证书数据
+        byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
+        InputStream input = new ByteArrayInputStream(derCert);
+        ASN1Sequence seq = null;
+        try (ASN1InputStream aln = new ASN1InputStream(input)) {
+            seq = (ASN1Sequence) aln.readObject();
+            X509CertificateStructure cert = new X509CertificateStructure(seq);
+            byte[] encodePubKey = cert.getSubjectPublicKeyInfo().getPublicKeyData().getEncoded();
 
-    public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] fileName, byte[] signature) throws AFCryptoException {
-        return false;
+            SM2PublicKey sm2PublicKey = new SM2PublicKey();
+            byte[] sm2PubKey = new byte[4 + 32 + 32];
+            System.arraycopy(BytesOperate.int2bytes(256), 0, sm2PubKey, 0, 4);
+            System.arraycopy(encodePubKey, 4, sm2PubKey, 4, 64);
+            sm2PublicKey.decode(sm2PubKey);
+            return this.SM2VerifyByCertPubKey(data, signature, sm2PublicKey);
+        } catch (Exception e) {
+            logger.error("基于证书的SM2验证签名失败，错误信息:{}", e.getMessage());
+            throw new AFCryptoException("基于证书的SM2验证签名失败");
+        }
     }
 
     /**
-     * <p>基于证书的SM2验证签名</p>
-     * <p>使用外部证书对文件进行SM2验证签名运算, 通过CRL文件验证证书有效性</p>
+     * SM2文件签名 内部密钥
+     * <p>SM2文件签名</p>
+     * <p>使用签名服务器内部密钥对文件进行 SM2签名运算</p>
      *
-     * @param base64Certificate ： 待验证签名的外部证书---BASE64编码
-     * @param crlData           : 待验证证书的CRL文件数据 --BASE64编码格式
-     * @param fileName          : 文件名称
-     * @param signature         : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                          <p>SM2Signature ::= {</p>
-     *                          <p>R INTEGER, --签名值的第一部分</p>
-     *                          <p>S INTEGER --签名值的第二部分</p>
-     *                          <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
+     * @param index ：待签名的签名服务器内部密钥索引
+     * @param data  ：待签名的文件
+     * @return ： base64编码的签名数据
      */
-
-    public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] crlData, byte[] fileName, byte[] signature) throws AFCryptoException {
-        return false;
+    public byte[] sm2SignFile(int index, byte[] data) throws AFCryptoException {  //success
+        return sm2Signature(index, data);
     }
 
     /**
-     * <p>sm2加密</p>
-     * <p>使用内部密钥进行SM2加密</p>
+     * SM2文件签名 外部密钥
+     * <p>SM2文件签名</p>
+     * <p>使用外部密钥对文件进行 SM2签名运算</p>
+     *
+     * @param data       ：待签名的文件
+     * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
+     *                   <p>SM2PrivateKey ::= INTEGER</p>
+     * @return ： base64编码的签名数据
+     */
+    public byte[] sm2SignFile(byte[] data, byte[] privateKey) throws AFCryptoException { //success
+        return sm2Signature(data, privateKey);
+    }
+
+
+    /**
+     * SM2内部密钥加密
      *
      * @param keyIndex ：密码设备内部密钥索引
      * @param inData   ：待加密的数据原文
      * @return ：Base64编码的密文数据
      */
-
-    public byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException {
+    public byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException {  //success
         logger.info("sm2Encrypt,keyIndex:{},inDataLen:{}", keyIndex, inData.length);
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
@@ -861,16 +736,14 @@ public class AFSVCmd {
     }
 
     /**
-     * <p>sm2加密</p>
-     * <p>使用外部钥进行SM2加密</p>
+     * SM2 外部密钥加密
      *
      * @param publicKey ：base64编码的SM2公钥数据, 其结构应满足 GM/T 0009-2012中关于SM2公钥结构的数据定义
      *                  <p>SM2PublicKey ::= BIT STRING</p> 其结构为 04||X||Y
      * @param inData    ：待加密的数据原文
      * @return ：Base64编码的密文数据
      */
-
-    public byte[] sm2Encrypt(SM2PublicKey publicKey, byte[] inData) throws AFCryptoException {
+    public byte[] sm2Encrypt(SM2PublicKey publicKey, byte[] inData) throws AFCryptoException {  //success
         logger.info("SV-sm2外部加密,publicKey:{},inDataLen:{}", publicKey, inData.length);
         byte[] param = new BytesBuffer()
                 .append(0)
@@ -890,14 +763,13 @@ public class AFSVCmd {
         return res.getDataBuffer().readOneData();
     }
 
-
     /**
-     * sm2 内部解密
+     * SM2 内部密钥解密
      *
      * @param keyIndex  密钥索引
      * @param SM2Cipher 密文
      */
-    public byte[] sm2Decrypt(int keyIndex, SM2Cipher SM2Cipher) throws AFCryptoException {
+    public byte[] sm2Decrypt(int keyIndex, SM2Cipher SM2Cipher) throws AFCryptoException {  //success
         logger.info("SV-sm2内部解密,keyIndex:{},SM2CipherLen:{}", keyIndex, SM2Cipher.size());
         getPrivateAccess(keyIndex, 3);
         byte[] param = new BytesBuffer()
@@ -918,8 +790,7 @@ public class AFSVCmd {
     }
 
     /**
-     * <p>sm2解密</p>
-     * <p>使用外部钥进行SM2解密</p>
+     * SM2 外部密钥解密
      *
      * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
      *                   <p>SM2PrivateKey ::= INTEGER</p>
@@ -932,8 +803,7 @@ public class AFSVCmd {
      *                   <p>}</p>
      * @return ：原文数据
      */
-
-    public byte[] sm2Decrypt(SM2PrivateKey privateKey, SM2Cipher encData) throws AFCryptoException {
+    public byte[] sm2Decrypt(SM2PrivateKey privateKey, SM2Cipher encData) throws AFCryptoException { //success
         logger.info("SV-sm2外部解密,privateKey:{},encDataLen:{}", privateKey, encData.size());
         byte[] param = new BytesBuffer()
                 .append(0)
@@ -953,13 +823,12 @@ public class AFSVCmd {
         return res.getDataBuffer().readOneData();
     }
 
-
     /**
      * 导出SM2加密公钥
      *
      * @param keyIndex 密钥索引
      */
-    public byte[] getSM2EncPublicKey(int keyIndex) throws AFCryptoException {
+    public byte[] getSM2EncPublicKey(int keyIndex) throws AFCryptoException {  //success
         logger.info("SV-导出SM2加密公钥,keyIndex:{}", keyIndex);
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
@@ -979,7 +848,7 @@ public class AFSVCmd {
      *
      * @param keyIndex 密钥索引
      */
-    public byte[] getSM2SignPublicKey(int keyIndex) throws AFCryptoException {
+    public byte[] getSM2SignPublicKey(int keyIndex) throws AFCryptoException {  //success
         logger.info("SV-导出SM2签名公钥,keyIndex:{}", keyIndex);
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
@@ -997,8 +866,7 @@ public class AFSVCmd {
     /**
      * 获取所有 CA 证书的别名
      */
-
-    public CertAltNameTrustList getCertTrustListAltName() throws AFCryptoException {
+    public CertAltNameTrustList getCertTrustListAltName() throws AFCryptoException {  //success
         logger.info("SV-查询证书信任列表别名");
         RequestMessage req = new RequestMessage(CMDCode.CMD_GET_ALL_ALT_NAME, null, agKey);
         ResponseMessage res = client.send(req);
@@ -1013,22 +881,20 @@ public class AFSVCmd {
         return new CertAltNameTrustList(certList, nameNumber);
     }
 
-    private static byte[] getBytes(byte[] bytesResponse, int offset, int length) {
-        return BytesOperate.subBytes(bytesResponse, offset, length);
-    }
-
 
     /**
      * 根据证书别名获取证书
+     * 根据证书别名获取证书个数
      *
      * @param subCmd  0x01：获取证书个数；0x02：获取证书
      * @param index   证书索引
      * @param altName 证书别名
      * @return 证书列表
      */
-    public CertList getCertListByAltName(int subCmd, int index, byte[] altName) throws AFCryptoException {
+    public CertList getCertListByAltName(int subCmd, int index, byte[] altName) throws AFCryptoException { //
         logger.info("SV-根据证书别名获取信任证书的个数,altName:{}", altName);
-        BytesBuffer buffer = new BytesBuffer().append(subCmd);
+        BytesBuffer buffer = new BytesBuffer()
+                .append(subCmd);
         if (subCmd == 0x02) {
             buffer.append(index);
         }
@@ -1052,8 +918,8 @@ public class AFSVCmd {
         return list;
     }
 
-
     /**
+     * 获取应用实体信息
      * <p>获取应用策略</p>
      * <p>根据策略名称获取应用策略，此应用策略为用户在管理程序中创建。用户获取应用策略后，签名服务器会根据用户设定的策略内容进行相关的服务操作</p>
      *
@@ -1074,6 +940,8 @@ public class AFSVCmd {
         }
         byte[] responseData = res.getData();
         AFSvCryptoInstance instance = new AFSvCryptoInstance();
+
+        //todo  在实体里面decode
         instance.setPolicyName(policyName);
         instance.setKeyIndex(BytesOperate.bytes2int(getBytes(responseData, 0, 4)));
         instance.setKeyType(BytesOperate.bytes2int(getBytes(responseData, 4, 4)));
@@ -1083,71 +951,38 @@ public class AFSVCmd {
 
     }
 
-    /**
-     * <p>删除用户证书列表</p>
-     * <p>根据证书别名删除证书列表</p>
-     *
-     * @param altName ：证书列表别名
-     */
+//    /**
+//     * <p>删除用户证书列表</p>
+//     * <p>根据证书别名删除证书列表</p>
+//     *
+//     * @param altName ：证书列表别名
+//     */
+//
+//    public void deleteCertList(byte[] altName) throws AFCryptoException {
+//        logger.info("SV-删除用户证书列表,altName:{}", altName);
+//        byte[] param = new BytesBuffer()
+//                .append(altName.length)
+//                .append(altName)
+//                .toBytes();
+//        RequestMessage req = new RequestMessage(CMDCode.CMD_DELETE_CERT, param, agKey);
+//        ResponseMessage res = client.send(req);
+//        if (res.getHeader().getErrorCode() != 0) {
+//            logger.error("SV-删除用户证书列表错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+//            throw new AFCryptoException("SV-删除用户证书列表错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+//        }
+//    }
 
-    public void deleteCertList(byte[] altName) throws AFCryptoException {
-        logger.info("SV-删除用户证书列表,altName:{}", altName);
-        byte[] param = new BytesBuffer()
-                .append(altName.length)
-                .append(altName)
-                .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_DELETE_CERT, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SV-删除用户证书列表错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SV-删除用户证书列表错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
-        }
-    }
-
-    /**
-     * <p>获取服务器证书</p>
-     * <p>读取当前应用的服务器的签名证书，如果有签名证书则得到签名证书，否则得到加密证书</p>
-     *
-     * @return ：Base64编码的服务器证书
-     */
-
-    public byte[] getServerCert() throws AFCryptoException {
-        return new byte[0];
-    }
 
     /**
-     * <p>获取服务器证书</p>
-     * <p>根据证书用途，获取当前的服务器证书</p>
-     *
-     * @param usage ：证书用途 1：服务器加密证书，2：服务器签名证书
-     * @return ：Base64编码的证书
-     */
-
-    public byte[] getServerCertByUsage(int usage) throws AFCryptoException {
-        logger.info("SV-获取服务器证书,usage:{}", usage);
-        byte[] param = new BytesBuffer()
-                .append(usage)
-                .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_GET_SERVER_CERT_INFO, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SV-获取服务器证书错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SV-获取服务器证书错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
-        }
-        return res.getDataBuffer().readOneData();
-    }
-
-    /**
-     * <p>根据策略名称，获取相应的证书</p>
+     * 获取应用实体证书数据
      * <p>根据策略名称，获取相应的证书</p>
      *
      * @param policyName : 策略名称
-     * @param certType   : 证书类型 1：加密证书，2：签名证书
+     * @param certType   : 证书类型 1|加密证书; 2|签名证书
      * @return : Base64编码的证书
      */
-
-    public byte[] getCertByPolicyName(byte[] policyName, int certType) throws AFCryptoException {
-        logger.info("SV-根据策略名称，获取相应的证书,policyName:{},certType:{}", policyName, certType);
+    public byte[] getCertByPolicyName(byte[] policyName, int certType) throws AFCryptoException { //success
+        logger.info("SV-根据策略名称(应用实体)，获取相应的证书,policyName:{},certType(1|加密证书; 2|签名证书):{}", policyName, certType);
         byte[] param = new BytesBuffer()
                 .append(policyName.length)
                 .append(policyName)
@@ -1162,17 +997,14 @@ public class AFSVCmd {
         return res.getDataBuffer().readOneData();
     }
 
-
     /**
-     * <p>获取证书信息</p>
-     * <p>获取用户指定的证书信息内容</p>
+     * 获取证书信息
      *
      * @param base64Certificate ：Base64编码的证书文件
-     * @param certInfoType      : 用户待获取的证书内容类型 : 类型定义在类 certParseInfoType 中
+     * @param certInfoType      : 用户待获取的证书内容类型 : 类型定义在类{@link com.af.constant.CertParseInfoType}
      * @return ：用户获取到的证书信息内容
      */
-
-    public byte[] getCertInfo(byte[] base64Certificate, int certInfoType) throws AFCryptoException {
+    public byte[] getCertInfo(byte[] base64Certificate, int certInfoType) throws AFCryptoException { //success
         logger.info("SV-获取证书信息,base64Certificate:{},certInfoType:{}", base64Certificate, certInfoType);
         byte[] param = new BytesBuffer()
                 .append(certInfoType)
@@ -1191,15 +1023,13 @@ public class AFSVCmd {
     }
 
     /**
-     * <p>获取证书扩展信息</p>
-     * <p>获取用户指定的证书扩展信息内容</p>
+     * 根据 OID 获取证书信息
      *
      * @param certData ：Base64编码的证书文件
      * @param oid      : 用户待获取的证书内容类型OID值 : OID值定义在类 certParseInfoType 中
      * @return ：用户获取到的证书信息内容
      */
-
-    public byte[] getCertInfoByOid(byte[] certData, byte[] oid) throws AFCryptoException {
+    public byte[] getCertInfoByOid(byte[] certData, byte[] oid) throws AFCryptoException { //success
         logger.info("SV-获取证书扩展信息,certData:{},oid:{}", certData, oid);
         byte[] param = new BytesBuffer()
                 .append(0)
@@ -1219,165 +1049,39 @@ public class AFSVCmd {
     }
 
     /**
-     * <p>编码数字信封</p>
-     * <p>编码PKCS7格式的带签名的数字信封数据</p>
+     * 获取设备证书
      *
-     * @param keyIndex          : 签名私钥索引
-     * @param signKeyUsage      : 私钥的用途
-     * @param signerCertificate : Base64编码的签名者证书
-     * @param digestAlgorithms  : HASH算法
-     * @param encCertificate    : Base64编码的接收者证书
-     * @param symmAlgorithm     : 对称算法参数
-     * @param data              : 原始数据
-     * @return : Base64编码的数字信封数据
+     * @param usage ：证书用途 2|签名证书 ; 3|加密证书
+     * @return ：Base64编码的证书
      */
-
-    public byte[] encodeDataForPkcs7(int keyIndex, int signKeyUsage, byte[] signerCertificate, int digestAlgorithms, byte[] encCertificate, int symmAlgorithm, byte[] data) throws AFCryptoException {
-        return new byte[0];
+    public byte[] getServerCertByUsage(int usage) throws AFCryptoException { //success
+        logger.info("SV-获取设备证书,usage(2|签名证书 ; 3|加密证书):{}", usage);
+        byte[] param = new BytesBuffer()
+                .append(usage)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GET_SERVER_CERT_INFO, param, agKey);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-获取服务器证书错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-获取服务器证书错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
-     * <p>解码数字信封</p>
-     * <p>解码PKCS7格式的带签名的数字信封数据</p>
-     *
-     * @param keyIndex       ：密钥索引
-     * @param decodeKeyUsage : 密钥用途
-     * @param encodeData     : Base64编码的pkcs7格式的数字信封数据
-     * @return : 解码后的数据，包括原始数据、签名证书、签名值等
-     */
-
-    public AFPkcs7DecodeData decodeDataForPkcs7(int keyIndex, int decodeKeyUsage, byte[] encodeData) throws AFCryptoException {
-        return null;
-    }
-
-    /**
-     * <p>编码签名数据</p>
-     * <p>编码PKCS7格式的签名数据</p>
-     *
-     * @param keyIndex          ：密钥索引
-     * @param signKeyUsage      ：密钥用途
-     * @param signerCertificate ：Base64编码的签名者证书
-     * @param digestAlgorithms  ：HASH算法
-     * @param data              ：待签名的数据
-     * @return ：Base64编码的签名数据
-     */
-
-    public byte[] encodeSignedDataForPkcs7(int keyIndex, int signKeyUsage, byte[] signerCertificate, int digestAlgorithms, byte[] data) throws AFCryptoException {
-        return new byte[0];
-    }
-
-    /**
-     * <p>解码签名数据</p>
-     * <p>解码PKCS7格式的签名数据</p>
-     *
-     * @param encodeData ：Base64编码的pkcs7格式的签名数据
-     * @return : 解码后的数据，包括原始数据、签名证书、签名值等
-     */
-
-    public AFPkcs7DecodeSignedData decodeSignedDataForPkcs7(byte[] encodeData) throws AFCryptoException {
-        return null;
-    }
-
-    /**
-     * <p>编码数字信封</p>
-     * <p>编码PKCS7格式的数字信封</p>
-     *
-     * @param data              ：需要做数字信封的数据
-     * @param encodeCertificate ：Base64编码的接收者证书
-     * @param symmAlgorithm     ：对称算法参数
-     * @return ：Base64编码的数字信封数据
-     */
-
-    public byte[] encodeEnvelopedDataForPkcs7(byte[] data, byte[] encodeCertificate, int symmAlgorithm) throws AFCryptoException {
-        return new byte[0];
-    }
-
-    /**
-     * <p>解码数字信封</p>
-     * <p>解码PKCS7格式的数字信封</p>
-     *
-     * @param keyIndex       ：密钥索引
-     * @param decodeKeyUsage ：密钥用途
-     * @param envelopedData  ：Base64编码的数字信封数据
-     * @return ：数据原文
-     */
-
-    public byte[] decodeEnvelopedDataForPkcs7(int keyIndex, int decodeKeyUsage, byte[] envelopedData) throws AFCryptoException {
-        return new byte[0];
-    }
-
-    /**
-     * <p>编码摘要数据</p>
-     * <p>编码PKCS7格式的摘要数据</p>
-     *
-     * @param digestAlgorithm ：杂凑算法标识
-     * @param data            ：原文数据
-     * @return ：Base64编码的摘要数据
-     */
-
-    public byte[] encodeDigestDataForPkcs7(int digestAlgorithm, byte[] data) throws AFCryptoException {
-        return new byte[0];
-    }
-
-    /**
-     * <p>解码摘要数据</p>
-     * <p>解码PKCS7格式的摘要数据</p>
-     *
-     * @param digestAlgorithm ：杂凑算法标识
-     * @param digestData      ：Base64编码的摘要数据
-     * @return ：解码后的数据，包括原文和摘要值
-     */
-
-    public AFPkcs7DecodeDigestData decodeDigestDataForPkcs7(int digestAlgorithm, byte[] digestData) throws AFCryptoException {
-        return null;
-    }
-
-    /**
-     * <p>编码数字信封</p>
-     * <p>编码基于SM2算法的带签名的数字信封数据</p>
-     *
-     * @param keyIndex          ：密钥索引
-     * @param signKeyUsage      : 密钥用途
-     * @param signerCertificate ：Base64编码的签名者证书
-     * @param digestAlgorithms  ：HASH算法
-     * @param encodeCertificate ：Base64编码的接收者证书
-     * @param symmAlgorithm     ：对称算法参数
-     * @param data              ：原文数据
-     * @return ：Base64编码的数字信封数据
-     */
-
-    public byte[] encodeSignedAndEnvelopedDataForSM2(int keyIndex, int signKeyUsage, byte[] signerCertificate, int digestAlgorithms, byte[] encodeCertificate, int symmAlgorithm, byte[] data) throws AFCryptoException {
-        return new byte[0];
-    }
-
-    /**
-     * <p>解码数字信封</p>
-     * <p>解码基于SM2算法的带签名的数字信封数据</p>
-     *
-     * @param keyIndex               ：密钥索引
-     * @param decodeKeyUsage         ：密钥用途
-     * @param signedAndEnvelopedData ：Base64编码的数字信封数据，其格式应符合GM/T 0010《SM2密码算法加密签名消息语法规范》中SignedAndEnvelopedData的数据类型定义
-     * @return ：解码后的数据，包括原文、签名者证书以及HASH算法标识
-     */
-
-    public AFSM2DecodeSignedAndEnvelopedData decodeSignedAndEnvelopedDataForSM2(int keyIndex, int decodeKeyUsage, byte[] signedAndEnvelopedData) throws AFCryptoException {
-        return null;
-    }
-
-    /**
+     * PKCS7 签名信息编码
      * <p>编码签名数据</p>
      * <p>编码基于SM2算法的签名数据</p>
      *
-     * @param keyType    ：消息签名格式，1：带原文，2：不带原文
+     * @param keyType    ：消息签名格式，1|带原文，0|不带原文
      * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
      *                   <p>SM2PrivateKey ::= INTEGER</p>
      * @param certData   ：Base64编码的签名者证书
      * @param data       ：需要签名的数据
      * @return ：Base64编码的签名数据
      */
-
-    public byte[] encodeSignedDataForSM2(int keyType, SM2PrivateKey privateKey, byte[] certData, byte[] data) throws AFCryptoException {
-        logger.info("SV-编码签名数据, keyType: {}, signerCertificate: {}, data: {}", keyType, certData, data);
+    public byte[] encodeSignedDataForSM2(int keyType, SM2PrivateKey privateKey, byte[] certData, byte[] data) throws AFCryptoException { //success
+        logger.info("SV-编码签名数据, keyType(1|带原文，0|不带原文): {}, signerCertificate: {}, data: {}", keyType, certData, data);
         byte[] param = new BytesBuffer()
                 .append(keyType)
                 .append(privateKey.encode())
@@ -1398,14 +1102,14 @@ public class AFSVCmd {
     }
 
     /**
+     * PKCS7 签名信息解码
      * <p>解码签名数据</p>
      * <p>解码基于SM2算法的签名数据</p>
      *
      * @param signedData ：Base64编码的签名数据，其格式应符合GM/T 0010《SM2密码算法加密签名消息语法规范》中SignedData的数据类型定义
      * @return ：解码后的数据，包括签名者证书，HASH算法标识，被签名的数据以及签名值
      */
-
-    public AFSM2DecodeSignedData decodeSignedDataForSM2(byte[] signedData) throws AFCryptoException {
+    public AFSM2DecodeSignedData decodeSignedDataForSM2(byte[] signedData) throws AFCryptoException { //success
         logger.info("SV-解码签名数据, signedData: {}", signedData);
         byte[] param = new BytesBuffer()
                 .append(signedData.length)
@@ -1419,25 +1123,32 @@ public class AFSVCmd {
         }
         byte[] responseData = res.getData();
 
+        //签名证书长度
         int certLen = BytesOperate.bytes2int(responseData);
+        //签名证书
         byte[] certData = getBytes(responseData, 4, certLen);
+        //HASH算法标识
         int hashAlgID = BytesOperate.bytes2int(responseData, 4 + certLen);
+        //原文数据长度
         int rawDataLen = BytesOperate.bytes2int(responseData, 4 + certLen + 4);
+        //原文数据
         byte[] rawData = getBytes(responseData, 4 + certLen + 4 + 4, rawDataLen);
+        //签名数据长度
         int signDataLen = BytesOperate.bytes2int(responseData, 4 + certLen + 4 + 4 + rawDataLen);
+        //签名数据
         byte[] result = getBytes(responseData, 4 + certLen + 4 + 4 + rawDataLen + 4, signDataLen);
 
         return new AFSM2DecodeSignedData(rawData, BytesOperate.base64EncodeCert(certData), hashAlgID, BytesOperate.base64EncodeData(result));
     }
 
-
     /**
+     * PKCS7 签名信息验证
      * <p>验证签名数据</p>
      *
      * @param rawData  原文数据
      * @param signData 签名数据
      */
-    public boolean verifySignedDataForSM2(byte[] rawData, byte[] signData) throws AFCryptoException {
+    public boolean verifySignedDataForSM2(byte[] rawData, byte[] signData) throws AFCryptoException { //success
         logger.info("SV-验证签名数据, rawData: {}, signData: {}", rawData, signData);
 
         int rawDataLen = null == rawData ? 0 : rawData.length;
@@ -1462,35 +1173,68 @@ public class AFSVCmd {
     }
 
     /**
+     * PKCS7 带签名信息的数字信封编码
      * <p>编码数字信封</p>
      * <p>编码基于SM2算法的数字信封</p>
      *
-     * @param data              ：需要做数字信封的数据
-     * @param encodeCertificate ：Base64编码的接受者证书
-     * @param symmAlgorithm     ：对称算法标识
-     * @return ：Base64编码的数字信封数据
+     * @param privateKey:私钥数据
+     * @param symmetricKey:对称密钥数据
+     * @param signCert            :签名证书
+     * @param encryptCert         :加密证书
+     * @param data                :原文数据
+     * @return :编码后的数字信封数据
      */
-
-    public byte[] encodeEnvelopedDataForSM2(byte[] data, byte[] encodeCertificate, int symmAlgorithm) throws AFCryptoException {
-        return new byte[0];
+    public byte[] encodeEnvelopedDataForSM2(byte[] privateKey, byte[] symmetricKey, byte[] signCert, byte[] encryptCert, byte[] data) throws AFCryptoException { //success
+        logger.info("SV-编码数字信封, privateKey: {}, symmetricKey: {}, signCert: {}, encryptCert: {}, dataLen: {}", privateKey, symmetricKey, signCert, encryptCert, data.length);
+        byte[] param = new BytesBuffer()
+                .append(privateKey.length)
+                .append(privateKey)
+                .append(symmetricKey.length)
+                .append(symmetricKey)
+                .append(0)
+                .append(signCert.length)
+                .append(signCert)
+                .append(ConstantNumber.SGD_SM3)
+                .append(encryptCert.length)
+                .append(encryptCert)
+                .append(0)
+                .append(data.length)
+                .append(data)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.PKCS7_ENCODE_WITH_SIGN, param, agKey);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-编码数字信封,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-编码数字信封,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
     /**
-     * <p>解码数字信封</p>
-     * <p>解码基于SM2算法的数字信封</p>
+     * PKCS7 带签名信息的数字信封解码
      *
-     * @param keyIndex       ：密钥索引
-     * @param decodeKeyUsage ：密钥用途
-     * @param envelopedData  ：Base64编码的数字信封数据，其格式应符合GM/T 0010《SM2密码算法加密签名消息语法规范》中EnvelopedData的数据类型定义
-     * @return : 数据原文
+     * @param privateKey:私钥数据
+     * @param encodeData      :编码后的数字信封数据
      */
-
-    public byte[] decodeEnvelopedDataForSM2(int keyIndex, int decodeKeyUsage, byte[] envelopedData) throws AFCryptoException {
-        return new byte[0];
+    public byte[] decodeEnvelopedDataForSM2(byte[] privateKey, byte[] encodeData) throws AFCryptoException { //success
+        logger.info("SV-解码数字信封, privateKey: {}, encodeData: {}", privateKey, encodeData);
+        byte[] param = new BytesBuffer()
+                .append(privateKey.length)
+                .append(privateKey)
+                .append(encodeData.length)
+                .append(encodeData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.PKCS7_DECODE_WITH_SIGN, param, agKey);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-解码数字信封,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-解码数字信封,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
     }
 
 
-    //=============================2023 05 31 根据协议新增================================
+    //=============================2023 05 31 根据协议新增  todo 后续可精简为cmd层和协议文档 一一对应,从Device层做业务区分================================
 
 
     /**
@@ -1520,7 +1264,7 @@ public class AFSVCmd {
      * @param algorithm     算法标识
      * @param modulusLength 模量长度
      */
-    public byte[] generateKeyPairForSM2(Algorithm algorithm, ModulusLength modulusLength) throws AFCryptoException {
+    public byte[] generateKeyPair(Algorithm algorithm, ModulusLength modulusLength) throws AFCryptoException {
         logger.info("SV-生成密钥对, keyType: {}, modulusLength: {}", algorithm, modulusLength.getLength());
         byte[] param = new BytesBuffer()
                 .append(algorithm.getValue())
@@ -1601,5 +1345,10 @@ public class AFSVCmd {
 
     }
 
+
+    //================================================工具======================================
+    private static byte[] getBytes(byte[] bytesResponse, int offset, int length) {
+        return BytesOperate.subBytes(bytesResponse, offset, length);
+    }
 
 }

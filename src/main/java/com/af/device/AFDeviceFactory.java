@@ -27,7 +27,7 @@ public class AFDeviceFactory {
 
     //签名验签服务器
     public static AFSVDevice getAFSVDevice(String host, int port, String passwd) {
-        return AFSVDevice.getInstance(host, port, passwd);
+        return AFSVDevice.getInstance(host, port, passwd).setAgKey();
     }
 
 

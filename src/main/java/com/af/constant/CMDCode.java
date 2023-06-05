@@ -7,8 +7,10 @@ package com.af.constant;
  */
 public enum CMDCode {
     ;
-    public static final int CMD_ENCRYPT = 0x00100001;
-    public static final int CMD_DECRYPT = 0x00100002;
+    public static final int CMD_ENCRYPT = 0x00100001;  //对称加密
+    public static final int CMD_DECRYPT = 0x00100002;  //对称解密
+    public static final int CMD_ENCRYPT_BATCH = 0x00100004;
+    public static final int CMD_DECRYPT_BATCH = 0x00100005;
 
     public static final int CMD_DEVICEINFO = 0x00020001;
     public static final int CMD_GENERATERANDOM = 0x00020002;   //生成随机数
@@ -27,11 +29,11 @@ public enum CMDCode {
 
     public static final int CMD_GETPRIVATEKEYACCESSRIGHT = 0x00040007;
 
-    public static final int CMD_EXTERNALPUBLICKEYOPERATION_RSA = 0x00080001;
-    public static final int CMD_EXTERNALPRIVATEKEYOPERATION_RSA = 0x00080002;
+    public static final int CMD_EXTERNALPUBLICKEYOPERATION_RSA = 0x00080001; //RSA公钥运算
+    public static final int CMD_EXTERNALPRIVATEKEYOPERATION_RSA = 0x00080002; //RSA私钥运算
 
-    public static final int CMD_INTERNALPUBLICKEYOPERATION_RSA = 0x00080001;
-    public static final int CMD_INTERNALPRIVATEKEYOPERATION_RSA = 0x00080002;
+    public static final int CMD_INTERNALPUBLICKEYOPERATION_RSA = 0x00080001;  //RSA公钥运算
+    public static final int CMD_INTERNALPRIVATEKEYOPERATION_RSA = 0x00080002; //RSA私钥运算
 
     public static final int CMD_EXTERNALSIGN_ECC = 0x00080003;
     public static final int CMD_EXTERNALVERIFY_ECC = 0x00080004;
@@ -42,7 +44,11 @@ public enum CMDCode {
     public static final int CMD_EXTERNALENCRYPT_ECC = 0x00080005;   //SM2内部加密
     public static final int CMD_EXTERNALDECRYPT_ECC = 0x00080006;
 
-    public static final int CMD_CALCULATEMAC = 0x00100003;
+    public static final int CMD_CALCULATEMAC = 0x00100003;  //计算MAC SM1 SM4
+    public static final int CMD_CALCULATEHASH = 0x00500010;  //计算 SM3 HASH
+    public static final int CMD_HASHINIT = 0x00500011;  //HASH init
+    public static final int CMD_HASHUPDATE = 0x00500012; //HASH update
+    public static final int CMD_HASHFINAL = 0x00500013;  //HASH final
 
 
     public static final int CMD_EXPORT_KEY = 0x00400005;
@@ -76,9 +82,9 @@ public enum CMDCode {
     // -------------------签名验签服务器----------------------
 
 
-    public static final int CMD_GENERATEKEYWITHIPK_RSA = 0x00040003;
+    public static final int CMD_GENERATEKEYWITHIPK_RSA = 0x00040003;  //生成 会话密钥
     public static final int CMD_GENERATEKEYWITHEPK_RSA = 0x00040003;
-    public static final int CMD_IMPORTKEYWITHISK_RSA = 0x00040004;
+    public static final int CMD_IMPORTKEYWITHISK_RSA = 0x00040004;  //导入会话密钥
 
 
     public static final int CMD_GENERATEKEYWITHIPK_ECC = 0x00040003;
@@ -104,11 +110,11 @@ public enum CMDCode {
     public static final int CMD_USER_LOGIN = 0x00010001;
     public static final int CMD_ADD_CA_CERT = 0x00010002;
     public static final int CMD_GET_CERT_COUNT = 0x00010003;
-    public static final int CMD_GET_ALL_ALT_NAME = 0x00010004;
+    public static final int CMD_GET_ALL_ALT_NAME = 0x00010004;  //获取所有可用的证书别名
     public static final int CMD_GET_CERT = 0x00010005;
     public static final int CMD_DELETE_CERT = 0x00010006;
     public static final int CMD_VERIFY_CERT_BY_CRL = 0x00010008;
-    public static final int CMD_GET_CERT_INFO = 0x00010009;
+    public static final int CMD_GET_CERT_INFO = 0x00010009;    //获取证书信息
     public static final int CMD_GET_CERT_EXT_TYPE_INFO = 0x0001000A;
     public static final int CMD_GET_SERVER_CERT_INFO = 0x0001000B;
     public static final int CMD_GET_INSTANCE = 0x0001000C;
@@ -130,5 +136,16 @@ public enum CMDCode {
 
     public static final int CMD_VERIFY_CERT = 0x00010007;   //验证证书
 
+    public static final int PKCS7_ENCODE_WITH_SIGN = 0x00010824; //PKCS7 带签名信息的数字信封编码
+
+    public static final int PKCS7_DECODE_WITH_SIGN = 0x00010825;
+
+    public static final int CMD_GETSYMKEYHANDLE = 0x00020005;  //获取对称密钥句柄
+
+    public static final int CMD_GENERATEKEY_ECC = 0x00040003; //生成会话密钥
+
+    public static final int CMD_IMPORTKEY_ECC = 0x00040004;  //导入会话密钥
+
+    public static final int CMD_CONVERTKEY_ECC = 0x00040005; //数字信封转换
 }
 

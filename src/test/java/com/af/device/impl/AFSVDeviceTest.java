@@ -26,7 +26,7 @@ class AFSVDeviceTest {
     static Logger logger = Logger.getLogger("AFSVDeviceTest");
 
     //        static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.1.232", 6001, "abcd1234");
-    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8013, "abcd1234").setAgKey();
+    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8013, "abcd1234");
     static byte[] data = "1234567890abcdef".getBytes();
 
     //证书文件路径
@@ -50,16 +50,6 @@ class AFSVDeviceTest {
         logger.info("已经关闭连接");
     }
 
-
-    /**
-     * 构建请求报文
-     */
-    @Test
-    void test1() throws Exception {
-        byte[] param = new BytesBuffer().append(5).toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATERANDOM, param, SM4Utils.ROOT_KEY);
-        System.out.println(req);
-    }
 
     /**
      * 关闭连接 success
@@ -86,6 +76,9 @@ class AFSVDeviceTest {
         System.out.println(afsvDevice);
     }
 
+
+    //todo  ==================================以下和协议一一对应===============================================================
+
     /**
      * 获取设备信息
      */
@@ -106,6 +99,28 @@ class AFSVDeviceTest {
         System.out.println(Arrays.toString(random));
     }
 
+    //导出公钥信息
+    @Test
+    void testGetPublicKey() throws Exception {
+        //RSA 签名
+        byte[] rsaPublicKey = device.getRSAPublicKey(1, 0);
+        System.out.println( "RSA签名公钥:" + Arrays.toString(rsaPublicKey));
+        //RSA加密
+        byte[] rsaPublicKey2 = device.getRSAPublicKey(1, 1);
+        System.out.println( "RSA加密公钥:" + Arrays.toString(rsaPublicKey2));
+        //SM2 签名
+        byte[] sm2PublicKey = device.getSm2PublicKey(1, 0);
+        System.out.println( "SM2签名公钥:" + Arrays.toString(sm2PublicKey));
+        //SM2加密
+        byte[] sm2PublicKey2 = device.getSm2PublicKey(1, 1);
+        System.out.println( "SM2加密公钥:" + Arrays.toString(sm2PublicKey2));
+    }
+
+    //生成密钥对
+    @Test
+    void testGenerateKeyPair() throws Exception {
+
+    }
 
     //验证证书有效性
     @Test
@@ -326,11 +341,6 @@ class AFSVDeviceTest {
         assert Arrays.equals(data, bytes1);
     }
 
-    //导出公钥
-    @Test
-    void testExportPublicKey() throws Exception {
-        byte[] bytes = device.getSm2PublicKey(1, 0);
-    }
 
     //查询证书信任列表
 

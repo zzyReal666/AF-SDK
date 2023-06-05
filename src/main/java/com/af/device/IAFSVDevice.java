@@ -1,6 +1,9 @@
 package com.af.device;
 
+import com.af.constant.ModulusLength;
+import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.exception.AFCryptoException;
+import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.signAndVerify.*;
 
 import java.io.IOException;
@@ -11,15 +14,16 @@ import java.security.cert.CertificateException;
  * @description
  * @since 2023/5/16 9:21
  */
-public interface IAFSVDevice extends IAFDevice{
+public interface IAFSVDevice extends IAFDevice {
 
 
     /**
      * 获取私钥访问权限
-     * @param index 私钥索引
+     *
+     * @param index   私钥索引
      * @param keyType 私钥类型 3:SM2 4:RSA
      */
-     void getPrivateAccess(int index,int keyType) throws AFCryptoException;
+    void getPrivateAccess(int index, int keyType) throws AFCryptoException;
 
     /**
      * <p>验证证书有效性</p>
@@ -535,6 +539,23 @@ public interface IAFSVDevice extends IAFDevice{
     byte[] getSm2PublicKey(int keyIndex, int keyUsage) throws AFCryptoException;
 
     /**
+     * 生成密钥对 SM2
+     *
+     * @param keyType 密钥类型 SGD_SM2|SGD_SM2_1|SGD_SM2_2|SGD_SM2_3
+     * @param length  模长 {@link ModulusLength}
+     */
+    SM2KeyPair generateSM2KeyPair(int keyType, ModulusLength length) throws AFCryptoException;
+
+
+    /**
+     * 生成密钥对 RSA
+     *
+     * @param length 模长 {@link ModulusLength}
+     */
+    RSAKeyPair generateRSAKeyPair(ModulusLength length) throws AFCryptoException;
+
+
+    /**
      * <p>查询证书信任列表别名</p>
      * <p>查询证书信任列表别名</p>
      *
@@ -573,14 +594,14 @@ public interface IAFSVDevice extends IAFDevice{
      */
     void getInstance(byte[] policyName) throws AFCryptoException;
 
-    /**
-     * <p>删除用户证书列表</p>
-     * <p>根据证书别名删除证书列表</p>
-     *
-     * @param altName ：证书列表别名
-     * @throws AFCryptoException
-     */
-    void deleteCertList(byte[] altName) throws AFCryptoException;
+//    /**
+//     * <p>删除用户证书列表</p>
+//     * <p>根据证书别名删除证书列表</p>
+//     *
+//     * @param altName ：证书列表别名
+//     * @throws AFCryptoException
+//     */
+//    void deleteCertList(byte[] altName) throws AFCryptoException;
 
     /**
      * <p>获取服务器证书</p>

@@ -125,12 +125,12 @@ public class KeyInfoImpl implements KeyInfo {
 
     @Override
     public byte[] exportSymmKey(int index) throws AFCryptoException{
-        logger.info("exportSymmKey,index:{}", index);
+        logger.info("exportSymKey,index:{}", index);
         RequestMessage req = new RequestMessage(CMD_EXPORT_KEY, new BytesBuffer().append(index).toBytes(),agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("exportSymmKey 失败,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("exportSymmKey 失败,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("exportSymKey 失败,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("exportSymKey 失败,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().readOneData();
     }

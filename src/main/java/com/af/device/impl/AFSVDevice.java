@@ -1,7 +1,10 @@
 package com.af.device.impl;
 
+import com.af.constant.Algorithm;
 import com.af.constant.CertParseInfoType;
 import com.af.constant.ConstantNumber;
+import com.af.constant.ModulusLength;
+import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.device.DeviceInfo;
@@ -9,6 +12,7 @@ import com.af.device.IAFSVDevice;
 import com.af.device.cmd.AFSVCmd;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.sm2.SM2Cipher;
@@ -739,6 +743,7 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] sm2SignFile(int index, byte[] fileName) throws AFCryptoException {
+        logger.info("SV_Device 内部密钥文件签名,index:{},fileName:{}", index, new String(fileName));
         String fileData = BytesOperate.readFileByLine(new String(fileName));
         byte[] bytes = cmd.sm2SignFile(index, fileData.getBytes());
         SM2Signature sm2Signature = new SM2Signature(bytes).to256();
@@ -1237,6 +1242,52 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
+     * 生成密钥对 SM2
+     *
+     * @param keyType 密钥类型 0:签名密钥对 1:加密密钥对
+     * @param length  模长 {@link ModulusLength}
+     */
+    @Override
+    public SM2KeyPair generateSM2KeyPair(int keyType, ModulusLength length) throws AFCryptoException {
+        //签名密钥对
+        if (keyType == ConstantNumber.SIGN_PUBLIC_KEY) {
+            byte[] bytes = cmd.generateKeyPair(Algorithm.SDG_SM2_1, ModulusLength.LENGTH_256);
+            SM2KeyPair sm2KeyPair = new SM2KeyPair();
+            sm2KeyPair.decode(bytes);
+            return sm2KeyPair;
+        }
+        //加密密钥对
+        else if (keyType == ConstantNumber.ENC_PUBLIC_KEY) {
+            byte[] bytes = cmd.generateKeyPair(Algorithm.SDG_SM2_2, ModulusLength.LENGTH_256);
+            SM2KeyPair sm2KeyPair = new SM2KeyPair();
+            sm2KeyPair.decode(bytes);
+            return sm2KeyPair;
+        } else {
+            logger.error("密钥类型错误,keyType(0:签名密钥对 1:加密密钥对)={}", keyType);
+            throw new AFCryptoException("密钥类型错误,keyType(0:签名密钥对 1:加密密钥对)=" + keyType);
+        }
+    }
+
+    /**
+     * 生成密钥对 RSA
+     *
+     * @param length 模长 {@link ModulusLength}
+     */
+    @Override
+    public RSAKeyPair generateRSAKeyPair(ModulusLength length) throws AFCryptoException {
+        //length只能是1024或2048
+        if (length != ModulusLength.LENGTH_1024 && length != ModulusLength.LENGTH_2048) {
+            logger.error("RSA密钥模长错误,length(1024|2048)={}", length);
+            throw new AFCryptoException("RSA密钥模长错误,length(1024|2048)=" + length);
+        }
+        byte[] bytes = cmd.generateKeyPair(Algorithm.SDG_RSA, length);
+        RSAKeyPair rsaKeyPair = new RSAKeyPair(bytes);
+        rsaKeyPair.decode(bytes);
+        return rsaKeyPair;
+    }
+
+
+    /**
      * <p>查询证书信任列表别名</p>
      * <p>查询证书信任列表别名</p>
      *
@@ -1286,16 +1337,16 @@ public class AFSVDevice implements IAFSVDevice {
         cmd.getInstance(policyName);
     }
 
-    /**
-     * <p>删除用户证书列表</p>
-     * <p>根据证书别名删除证书列表</p>
-     *
-     * @param altName ：证书列表别名
-     */
-    @Override
-    public void deleteCertList(byte[] altName) throws AFCryptoException {
-        cmd.deleteCertList(altName);
-    }
+//    /**
+//     * <p>删除用户证书列表</p>
+//     * <p>根据证书别名删除证书列表</p>
+//     *
+//     * @param altName ：证书列表别名
+//     */
+//    @Override
+//    public void deleteCertList(byte[] altName) throws AFCryptoException {
+//        cmd.deleteCertList(altName);
+//    }
 
 
     /**
@@ -1373,7 +1424,7 @@ public class AFSVDevice implements IAFSVDevice {
      * <p>获取用户指定的证书信息内容</p>
      *
      * @param base64Certificate ：Base64编码的证书文件
-     * @param certInfoType      : 用户待获取的证书内容类型 : 类型定义在类 certParseInfoType 中
+     * @param certInfoType      : 用户待获取的证书内容类型 : 类型定义在类{@link com.af.constant.CertParseInfoType}
      * @return ：用户获取到的证书信息内容
      */
     @Override
