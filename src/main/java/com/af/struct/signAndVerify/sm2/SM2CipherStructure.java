@@ -42,7 +42,7 @@ public class SM2CipherStructure implements ASN1Encodable {
     public SM2CipherStructure(SM2Cipher cipher) {
         this.x = BigIntegerUtil.toPositiveInteger(cipher.getX());
         this.y = BigIntegerUtil.toPositiveInteger(cipher.getY());
-        byte[] c= new byte[cipher.getLength()];
+        byte[] c= new byte[cipher.getL()];
         System.arraycopy(cipher.getC(), 0, c, 0, c.length);
         this.C = c;
         this.M = cipher.getM();

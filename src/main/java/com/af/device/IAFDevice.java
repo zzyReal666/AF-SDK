@@ -2,6 +2,7 @@ package com.af.device;
 
 
 import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.util.HexUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.crypto.Mode;
 import cn.hutool.crypto.Padding;
@@ -69,7 +70,7 @@ public interface IAFDevice {
          * 2、交换公钥
          */
         SM4 sm4Padding = new SM4(Mode.ECB, Padding.PKCS5Padding, ROOT_KEY);
-        byte[] cPubKey = sm4Padding.encrypt(pubKey);
+        byte[] cPubKey = sm4Padding.encrypt(pubKey);  //只对公钥加密 长度不加密
         byte[] data = new BytesBuffer().append(cPubKey.length).append(cPubKey).toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_EXCHANGE_PUBLIC_KEY, data,null));
         if (res.getHeader().getErrorCode() != 0) {
@@ -114,7 +115,7 @@ public interface IAFDevice {
         for (int i = 0; i < 16; i++) {
             agreementKey[i] = (byte) (ra[i] ^ rb[i]);
         }
-        return ROOT_KEY;
+        return agreementKey;
     }
 
 

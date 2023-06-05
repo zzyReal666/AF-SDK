@@ -1,6 +1,7 @@
 package com.af.struct.signAndVerify.sm2;
 
 import com.af.crypto.key.sm2.SM2PublicKey;
+import com.af.securityAccess.asn1.DERInteger;
 import com.af.utils.BigIntegerUtil;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

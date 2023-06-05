@@ -130,6 +130,7 @@ public enum ConstantNumber {
     //签名验签服务器
     public static final int SIGN_PUBLIC_KEY = 0;   //签名公钥
     public static final int ENC_PUBLIC_KEY = 1;   //加密公钥
+
     public static final String DEFAULT_USER_ID = "1234567812345678";
     public static final int SGD_SERVER_CERT_SIGN = 2;           ///< 服务器签名证书
     public static final int SGD_SERVER_CERT_ENC = 1;          ///< 服务器加密证书
@@ -137,4 +138,13 @@ public enum ConstantNumber {
     public static final int SGD_CERT_SIGN = 2;           ///< 签名证书
     public static final int SGD_CERT_ENC = 1;
 
+
+    //签名密钥对
+    public static final int SGD_SIGN_KEY_PAIR = 0;
+    //加密密钥对
+    public static final int SGD_ENC_KEY_PAIR = 1;
+    //密钥交换密钥对
+    public static final int SGD_EXCHANGE_KEY_PAIR = 2;
+    //SGD密钥对
+    public static final int SGD_KEY_PAIR = 3;
 }

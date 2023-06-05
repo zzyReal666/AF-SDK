@@ -97,7 +97,7 @@ public enum CMDCode {
 
 
     public static final int CMD_DESTROYKEY = 0x0004000a;
-    public static final int CMD_GENERATEKEYWITHKEK = 0x0004000b;
+    public static final int CMD_GENERATEKEYWITHKEK = 0x0004000b;  //生成会话密钥
     public static final int CMD_IMPORTKEYWITHKEK = 0x0004000c;
 
 

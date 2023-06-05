@@ -1,9 +1,11 @@
 package com.af.netty;
 
+import com.af.bean.ReqestMessageForNoEncrypt;
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
+import com.af.bean.ResponseMessageForNoEncrypt;
 import com.af.netty.handler.AFNettyClientHandler;
-import com.af.netty.handler.MessageDecoder;
+import com.af.netty.handler.MyDecoder;
 import com.af.utils.BytesBuffer;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -15,7 +17,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.logging.LoggingHandler;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -74,6 +75,8 @@ public class AFNettyClient {
         this.bootstrap = new Bootstrap().group(new NioEventLoopGroup()).channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY, true)  //不写缓存
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 7000)  //连接超时时间
                 .option(ChannelOption.SO_KEEPALIVE, true); //保持连接
+        //设置最大缓冲
+        bootstrap.option(ChannelOption.SO_RCVBUF, 1024 * 1024 * 10);
         login();
     }
 
@@ -107,8 +110,8 @@ public class AFNettyClient {
             ChannelFuture future = bootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 protected void initChannel(SocketChannel ch) {
-                    ch.pipeline().addLast(new LoggingHandler());
-//                    ch.pipeline().addLast(new MessageDecoder());
+//                    ch.pipeline().addLast(new LoggingHandler());
+                    ch.pipeline().addLast(new MyDecoder());
                     ch.pipeline().addLast(new AFNettyClientHandler(AFNettyClient.this));
                 }
             }).connect(host, port).sync();
@@ -133,9 +136,9 @@ public class AFNettyClient {
 
 
     /**
-     * 发送数据
+     * 加密发送数据
      */
-    public ResponseMessage  send(RequestMessage requestMessage) {
+    public ResponseMessage send(RequestMessage requestMessage) {
         logger.info("==> {}", requestMessage);
         //开始时间
         long startTime = System.currentTimeMillis();
@@ -143,15 +146,38 @@ public class AFNettyClient {
         byte[] req = requestMessage.encode();
         //发送数据
         byte[] res = send(req);
-        ResponseMessage responseMessage = new ResponseMessage(res, requestMessage.isEncrypt());
+        ResponseMessage responseMessage = new ResponseMessage(res, requestMessage.isEncrypt(), requestMessage.getAgKey());
         //结束时间
         long endTime = System.currentTimeMillis();
         //耗时
         long time = endTime - startTime;
         responseMessage.setTime(time);
-        logger.info("<== {}",responseMessage );
+        logger.info("<== {}", responseMessage);
         return responseMessage;
     }
+
+
+    /**
+     * 不加密发送数据
+     */
+    public ResponseMessageForNoEncrypt send(ReqestMessageForNoEncrypt requestMessage) {
+        logger.info("不加密发送==> {}", requestMessage);
+        //开始时间
+        long startTime = System.currentTimeMillis();
+        //编码
+        byte[] req = requestMessage.encode();
+        //发送数据
+        byte[] res = send(req);
+        ResponseMessageForNoEncrypt responseMessage = new ResponseMessageForNoEncrypt(res);
+        //结束时间
+        long endTime = System.currentTimeMillis();
+        //耗时
+        long time = endTime - startTime;
+        responseMessage.setTime(time);
+        logger.info("接收不解密<== {}", responseMessage);
+        return responseMessage;
+    }
+
 
     public byte[] send(byte[] msg) {
         if (channel == null || !channel.isActive()) {
@@ -189,7 +215,7 @@ public class AFNettyClient {
     private void login() {
         byte[] psw = password.getBytes();
         byte[] param = new BytesBuffer().append(psw).toBytes();
-        ResponseMessage responseMessage = send(new RequestMessage(0x00000000, param,null));
+        ResponseMessageForNoEncrypt responseMessage = send(new ReqestMessageForNoEncrypt(0x00000000, param));
         logger.info("服务端版本号{}", new String(responseMessage.getDataBuffer().readOneData()));
         logger.info("客户端版本号{}", new String("1.0.0".getBytes()));
         if (responseMessage.getHeader().getErrorCode() != 0x00000000) {

@@ -24,10 +24,16 @@ class SM4UtilsTest {
 //        assert Arrays.equals(data, decrypt);
 
 
-        String s = " 9185d58cfe9a5ca4257027e7862319d4";
-        //解密
-        byte[] decrypt1 = SM4Utils.decrypt(HexUtil.decodeHex(s), ROOT_KEY);
+//        String s = " 9185d58cfe9a5ca4257027e7862319d4";
+//        //解密
+//        byte[] decrypt1 = SM4Utils.decrypt(HexUtil.decodeHex(s), ROOT_KEY);
+//        System.out.println("解密后的数据：" + Arrays.toString(decrypt1));
+//
+
+        byte[] key = HexUtil.decodeHex("8e66920c829245dd715215146d5e9f79");
+        byte[] decrypt1 = SM4Utils.decrypt(HexUtil.decodeHex("c9b3a739de5838ac23b0bca7f0dfa52f"), key);
         System.out.println("解密后的数据：" + Arrays.toString(decrypt1));
+
 
     }
 

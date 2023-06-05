@@ -1,7 +1,6 @@
 package com.af.bean;
 
 import cn.hutool.core.util.HexUtil;
-import com.af.device.AFDeviceFactory;
 import com.af.utils.BytesBuffer;
 import com.af.utils.SM4Utils;
 import lombok.Getter;
@@ -12,14 +11,14 @@ import org.slf4j.LoggerFactory;
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
- * @since 2023/4/19 18:09
+ * @since 2023/6/5 10:54
  */
 @Getter
-public class ResponseMessage {
+public class ResponseMessageForNoEncrypt {
     /**
      * 日志
      */
-    private static final Logger logger = LoggerFactory.getLogger(ResponseMessage.class);
+    private static final Logger logger = LoggerFactory.getLogger(ResponseMessageForNoEncrypt.class);
 
     /**
      * 响应头 参与通信编码
@@ -31,10 +30,8 @@ public class ResponseMessage {
      */
     private final byte[] data;
 
-    /**
-     * 响应是否加密
-     */
-    private boolean isEncrypt;
+
+
 
     /**
      * 响应时间
@@ -42,7 +39,7 @@ public class ResponseMessage {
     @Setter
     private long time;
 
-    public ResponseMessage(byte[] data) {
+    public ResponseMessageForNoEncrypt(byte[] data) {
         //判空
         if (data == null || data.length < ResponseHeader.HEADER_LENGTH) {
             logger.error("响应数据为空或长度小于响应头长度");
@@ -50,24 +47,6 @@ public class ResponseMessage {
         }
         this.header = new ResponseHeader(data);
         this.data = subBytes(data, ResponseHeader.HEADER_LENGTH, data.length);
-    }
-
-
-    public ResponseMessage(byte[] data, boolean isEncrypt, byte[] agKey) {
-        this.isEncrypt = isEncrypt;
-        //判空
-        if (data == null || data.length < ResponseHeader.HEADER_LENGTH) {
-            logger.error("响应数据为空或长度小于响应头长度");
-            throw new IllegalArgumentException("响应数据为空或长度小于响应头长度");
-        }
-        if (data.length == ResponseHeader.HEADER_LENGTH) {
-            this.header = new ResponseHeader(data);
-            this.data = null;
-            return;
-        }
-        this.header = new ResponseHeader(data);
-        byte[] data1 = subBytes(data, ResponseHeader.HEADER_LENGTH, data.length);
-        this.data = isEncrypt ? SM4Utils.decrypt(data1, agKey) : data1;
     }
 
 
@@ -96,9 +75,8 @@ public class ResponseMessage {
     //toString
     public String toString() {
         return "ResponseMessage(header=" + this.getHeader()
-                + ", isEncrypt=" + this.isEncrypt()
-                + ", time=" + this.getTime()
                 + ", data=" + HexUtil.encodeHexStr(null == this.getData() ? new byte[0] : this.getData())
+                + ", time=" + this.getTime()
                 + ")";
     }
 }

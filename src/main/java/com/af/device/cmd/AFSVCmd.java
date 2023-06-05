@@ -1261,8 +1261,12 @@ public class AFSVCmd {
     /**
      * 生成密钥对
      *
-     * @param algorithm     算法标识
-     * @param modulusLength 模量长度
+     * @param algorithm     算法标识SGD_RSA|SGD_SM2|SGD_SM2_1|SGD_SM2_2|SGD_SM2_3
+     * @param modulusLength 模量长度 RSA 1024|2048|   SM2 256
+     * @return 1、4 字节公钥信息长度
+     * 2、公钥信息
+     * 3、4 字节私钥信息长度
+     * 4、私钥信息
      */
     public byte[] generateKeyPair(Algorithm algorithm, ModulusLength modulusLength) throws AFCryptoException {
         logger.info("SV-生成密钥对, keyType: {}, modulusLength: {}", algorithm, modulusLength.getLength());
@@ -1276,14 +1280,34 @@ public class AFSVCmd {
             logger.error("SV-生成密钥对,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("SV-生成密钥对,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
-        return res.getDataBuffer().readOneData();
+        return res.getData();
     }
+
+
+    /**
+     * 释放密钥信息
+     *
+     * @param keyIndex 密钥索引
+     */
+    public void freeKey(int keyIndex) throws AFCryptoException {
+        logger.info("SV-释放密钥信息, keyIndex: {}", keyIndex);
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_DESTROYKEY, param, agKey);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-释放密钥信息,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-释放密钥信息,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+    }
+
 
     /**
      * RSA 公钥操作
      *
      * @param keyIndex  密钥索引 外部密钥传0
-     * @param pubKey    公钥
+     * @param pubKey    公钥    内部密钥传null
      * @param algorithm 算法标识  SGD_RSA_ENC|SGD_RSA_SIGN
      * @param data      数据
      */
@@ -1293,8 +1317,8 @@ public class AFSVCmd {
                 .append(keyIndex)
                 .append(algorithm.getValue())
                 .append(0)
-                .append(pubKey.size())
-                .append(pubKey.encode())
+                .append(null == pubKey ? 0 : pubKey.size())
+                .append(null == pubKey ? null : pubKey.encode())
                 .append(data.length)
                 .append(data)
                 .toBytes();
@@ -1309,10 +1333,10 @@ public class AFSVCmd {
 
 
     /**
-     * RSA 私钥操作
+     * RSA 私钥操作 签名|解密
      *
      * @param keyIndex  密钥索引 外部密钥传0
-     * @param priKey    私钥
+     * @param priKey    私钥    内部密钥传null
      * @param algorithm 算法标识 SGD_RSA_ENC|SGD_RSA_SIGN
      * @param data      数据
      */
@@ -1322,8 +1346,8 @@ public class AFSVCmd {
                 .append(keyIndex)
                 .append(algorithm.getValue())
                 .append(0)
-                .append(priKey.size())
-                .append(priKey.encode())
+                .append(null == priKey ? 0 : priKey.size())
+                .append(null == priKey ? null : priKey.encode())
                 .append(data.length)
                 .append(data)
                 .toBytes();

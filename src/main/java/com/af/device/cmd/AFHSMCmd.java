@@ -515,6 +515,75 @@ public class AFHSMCmd extends AFCmd {
         return res.getDataBuffer().readOneData();
     }
 
+    /**
+     * 生成会话密钥（使用对称密钥）
+     * @param algorithm  SGD_RSA_ENC|SGD_SM2_2
+     * @param keyIndex  密钥索引
+     * @param keyLength 密钥长度
+     * @return
+     * 1、4 字节会话密钥 ID
+     * 2、4 字节加密信息长度
+     * 3、加密信息
+     */
+    public byte[] generateKeyBySymmKey(Algorithm algorithm, int keyIndex, int keyLength) throws AFCryptoException {
+        logger.info("SV-生成会话密钥（使用对称密钥）, keyType: {}, keyIndex: {}, keyLength: {}", algorithm, keyIndex, keyLength);
+        byte[] param = new BytesBuffer()
+                .append(algorithm.getValue())
+                .append(keyIndex)
+                .append(keyLength)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATEKEYWITHKEK, param, agKey);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-生成会话密钥（使用对称密钥）,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-生成会话密钥（使用对称密钥）,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getData();
+    }
+
+
+    /**
+     * 导入会话密钥密文（使用对称密钥）
+     * @param algorithm 算法标识 SGD_RSA_ENC|SGD_SM2_2
+     * @param keyIndex 密钥索引
+     * @param keyData 密钥密文
+     * @return
+     * 1、4 字节会话密钥 ID
+     * 2、4 字节导入会话密钥长度
+     */
+    public byte[] importKeyBySymmKey(Algorithm algorithm, int keyIndex, byte[] keyData) throws AFCryptoException {
+        logger.info("SV-导入会话密钥密文（使用对称密钥）, keyType: {}, keyIndex: {}, keyData: {}", algorithm, keyIndex, keyData);
+        byte[] param = new BytesBuffer()
+                .append(algorithm.getValue())
+                .append(keyIndex)
+                .append(keyData.length)
+                .append(keyData)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_IMPORTKEYWITHKEK, param, agKey);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-导入会话密钥密文（使用对称密钥）,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-导入会话密钥密文（使用对称密钥）,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getData();
+    }
+
+    /**
+     * 释放密钥信息
+     * @param keyIndex 密钥索引
+     */
+    public void freeKey(int keyIndex) throws AFCryptoException {
+        logger.info("SV-释放密钥信息, keyIndex: {}", keyIndex);
+        byte[] param = new BytesBuffer()
+                .append(keyIndex)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_DESTROYKEY, param, agKey);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-释放密钥信息,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-释放密钥信息,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+    }
 
     /**
      * RSA 公钥操作
@@ -771,7 +840,7 @@ public class AFHSMCmd extends AFCmd {
     }
 
     /**
-     * SM3-HMAC 计算
+     * HASH INIT 计算
      *
      * @param algorithm SGD_SM3|SGD_SHA1...等
      * @param publicKey 公钥 仅在算法为 SGD_SM3 时有效

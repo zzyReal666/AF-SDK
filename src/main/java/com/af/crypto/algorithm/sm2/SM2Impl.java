@@ -49,7 +49,8 @@ public class SM2Impl implements SM2 {
     @Override
     public SM2PublicKey getPublicKey(int index, SM2KeyType type) throws AFCryptoException {
         BytesBuffer buffer = new BytesBuffer();
-        byte[] param = buffer.append(index).append(type.equals(SM2KeyType.SIGN) ?
+        byte[] param = buffer.append(index)
+                .append(type.equals(SM2KeyType.SIGN) ?
                 ConstantNumber.SGD_SM2_1
                 : ConstantNumber.SGD_SM2_2).toBytes();
 

@@ -27,7 +27,7 @@ public enum Algorithm {
     SDG_SM1_ECB("SM1 ECB", 0x00000101),
     SDG_SM1_CBC("SM1 CBC", 0x00000102),
 
-    SDG_SM2("SM2", 0x00020100),
+    SDG_SM2("SM2", 0x00020100),       //椭圆曲线算法
     SDG_SM2_1("SM2_1", 0x00020200),   //SM2签名
     SDG_SM2_2("SM2_2", 0x00020400),   //SM2密钥交换
     SDG_SM2_3("SM2_3", 0x00020800),   //SM2加密

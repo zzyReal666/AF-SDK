@@ -1,11 +1,15 @@
 package com.af.device.impl;
 
+import cn.hutool.core.util.HexUtil;
 import com.af.bean.RequestMessage;
 import com.af.constant.CMDCode;
+import com.af.constant.ModulusLength;
+import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.device.AFDeviceFactory;
 import com.af.device.DeviceInfo;
 import com.af.netty.AFNettyClient;
+import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.signAndVerify.sm2.SM2PrivateKeyStructure;
 import com.af.utils.BigIntegerUtil;
 import com.af.utils.BytesBuffer;
@@ -20,7 +24,8 @@ import java.util.Arrays;
 import java.util.logging.Logger;
 
 
-class AFSVDeviceTest {
+class
+AFSVDeviceTest {
 
     //日志
     static Logger logger = Logger.getLogger("AFSVDeviceTest");
@@ -91,7 +96,6 @@ class AFSVDeviceTest {
     /**
      * 随机数
      *
-     * @throws Exception
      */
     @Test
     void testGetRandom2() throws Exception {
@@ -102,23 +106,97 @@ class AFSVDeviceTest {
     //导出公钥信息
     @Test
     void testGetPublicKey() throws Exception {
-        //RSA 签名
+//        //RSA 签名
         byte[] rsaPublicKey = device.getRSAPublicKey(1, 0);
-        System.out.println( "RSA签名公钥:" + Arrays.toString(rsaPublicKey));
+        System.out.println( "RSA签名公钥:" + new String(rsaPublicKey));
         //RSA加密
         byte[] rsaPublicKey2 = device.getRSAPublicKey(1, 1);
-        System.out.println( "RSA加密公钥:" + Arrays.toString(rsaPublicKey2));
+        System.out.println( "RSA加密公钥:" + new String(rsaPublicKey2));
         //SM2 签名
         byte[] sm2PublicKey = device.getSm2PublicKey(1, 0);
-        System.out.println( "SM2签名公钥:" + Arrays.toString(sm2PublicKey));
+        System.out.println( "SM2签名公钥:" + new String(sm2PublicKey));
         //SM2加密
         byte[] sm2PublicKey2 = device.getSm2PublicKey(1, 1);
-        System.out.println( "SM2加密公钥:" + Arrays.toString(sm2PublicKey2));
+        System.out.println( "SM2加密公钥:" + new String(sm2PublicKey2));
     }
 
     //生成密钥对
     @Test
     void testGenerateKeyPair() throws Exception {
+        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(0, ModulusLength.LENGTH_256);
+        System.out.println("Sm2签名密钥对:" + sm2KeyPair);
+        SM2KeyPair sm2KeyPair1 = device.generateSM2KeyPair(1, ModulusLength.LENGTH_256);
+        System.out.println("Sm2加密密钥对:" + sm2KeyPair1);
+        SM2KeyPair sm2KeyPair2 = device.generateSM2KeyPair(2, ModulusLength.LENGTH_256);
+        System.out.println("Sm2密钥交换密钥对:" + sm2KeyPair2);
+        SM2KeyPair sm2KeyPair3 = device.generateSM2KeyPair(3, ModulusLength.LENGTH_256);
+        System.out.println("Sm2密钥对:" + sm2KeyPair3);
+
+        RSAKeyPair rsaKeyPair = device.generateRSAKeyPair( ModulusLength.LENGTH_1024);
+        System.out.println("RSA密钥对:" + rsaKeyPair);
+    }
+
+    //释放密钥信息
+    @Test
+    void testReleaseKeyPair() throws Exception {
+        device.releaseKeyPair(2);
+    }
+
+    //RSA 操作
+    @Test
+    void testRSA() throws Exception {
+
+        //RSA 内部签名验签
+        byte[] bytes = device.rsaSignature(1, data);
+        boolean b = device.rsaVerify(1, data, bytes);
+
+        //RSA 外部签名验签
+        RSAKeyPair rsaKeyPair = device.generateRSAKeyPair( ModulusLength.LENGTH_1024);
+        byte[] bytes1 = device.rsaSignature(rsaKeyPair.getPriKey().encode(), data);
+        boolean b1 = device.rsaVerify(rsaKeyPair.getPubKey().encode(), data, bytes1);
+
+        //RSA内部密钥加解密
+        byte[] bytes2 = device.rsaEncrypt(1, data);
+        byte[] bytes3 = device.rsaDecrypt(1, bytes2);
+        assert Arrays.equals(data, bytes3);
+
+//        //RSA 外部密钥加解密
+//        byte[] bytes4 = device.rsaEncrypt(rsaKeyPair.getPubKey().encode(), data);
+//        byte[] bytes5 = device.rsaDecrypt(rsaKeyPair.getPriKey().encode(), bytes4);
+//        assert Arrays.equals(data, bytes5);
+
+    }
+    //SM2 操作
+    @Test
+    void testSM2() throws Exception {
+        //SM2 内部签名验签
+        byte[] bytes = device.sm2Signature(1, data);
+        boolean b = device.sm2Verify(1, data, bytes);
+        assert b;
+
+//        //SM2 外部签名验签
+//        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(0, ModulusLength.LENGTH_256);
+//        byte[] bytes1 = device.sm2Signature(sm2KeyPair.getPriKey().encode(), data);
+//        boolean b1 = device.sm2VerifyByPublicKey(sm2KeyPair.getPubKey().encode(), data, bytes1);
+//        assert b1;
+//
+        //SM2内部密钥加解密
+        byte[] bytes2 = device.sm2Encrypt(1, data);
+        byte[] bytes3 = device.sm2Decrypt(1, bytes2);
+        assert Arrays.equals(data, bytes3);
+
+//        //SM2 外部密钥加解密
+//        SM2KeyPair sm2KeyPair1 = device.generateSM2KeyPair(1, ModulusLength.LENGTH_256);
+//        byte[] bytes4 = device.sm2Encrypt(sm2KeyPair1.getPubKey().encode(), data);
+//        byte[] bytes5 = device.sm2Decrypt(sm2KeyPair1.getPriKey().encode(), bytes4);
+//        assert Arrays.equals(data, bytes5);
+
+
+    }
+
+    //对称操作 批量对称
+    @Test
+    void testSymmetric() throws Exception {
 
     }
 
@@ -132,6 +210,53 @@ class AFSVDeviceTest {
         assert i == 0;
 
     }
+
+    //MAC
+    @Test
+    void testMAC() throws Exception {
+
+    }
+    //SM3_HMAC
+    @Test
+    void testSM3_HMAC() throws Exception {
+
+    }
+    //HASH
+    @Test
+    void testHASH() throws Exception {
+
+        //init update final
+
+    }
+
+
+    //获取内部对称密钥句柄
+    @Test
+    void testGetSymmetricKeyHandle() throws Exception {
+
+    }
+    //获取连接个数
+    @Test
+    void testGetConnectionCount() throws Exception {
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     //验证证书是否被吊销 todo crl文件
     @Test
