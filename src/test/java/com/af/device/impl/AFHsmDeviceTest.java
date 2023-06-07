@@ -213,9 +213,9 @@ AFHsmDeviceTest {
         assert verify1;
     }
 
-    //对称加解密
+    //SM4
     @Test
-    void testSym() throws Exception {
+    void testSm4() throws Exception {
         //key
         byte[] key = device.getRandom(16);
         //iv
@@ -258,6 +258,18 @@ AFHsmDeviceTest {
         assert Arrays.equals(data,bytes3);
 
 
+
+
+
+    }
+
+    //SM1
+    @Test
+    void testSm1() throws Exception {
+        //key
+        byte[] key = device.getRandom(16);
+        //iv
+        byte[] iv = device.getRandom(16);
         //SM1 ECB 内部
         byte[] encodeData4 = device.sm1InternalEncryptECB(1,data);
         byte[] decodeData4 = device.sm1InternalDecryptECB(1,encodeData4);
@@ -294,8 +306,6 @@ AFHsmDeviceTest {
         //释放密钥句柄
         device.releaseSessionKey(key4.getId());
         assert Arrays.equals(data,bytes7);
-
-
     }
 
 

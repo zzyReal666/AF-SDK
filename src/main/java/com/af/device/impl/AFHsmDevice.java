@@ -29,6 +29,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 
 /**
@@ -86,6 +88,11 @@ public class AFHsmDevice implements IAFHsmDevice {
      * 获取随机数异常
      */
     public byte[] getRandom(int length) throws AFCryptoException {
+        //参数检查
+        if (length <= 0) {
+            throw new AFCryptoException("随机数长度必须大于0");
+        }
+
         return cmd.getRandom(length);
     }
 
@@ -747,7 +754,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -782,7 +789,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -803,7 +810,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -842,7 +849,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -884,7 +891,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -914,7 +921,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -939,7 +946,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -969,7 +976,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -990,7 +997,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -1020,7 +1027,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -1057,7 +1064,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -1087,7 +1094,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 加密，加密数据不能为空");
         }
         //填充数据
-        plain = Padding(plain);
+        plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
@@ -1454,14 +1461,77 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
+        //list 总长度<2M
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
 
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
 
+        //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, plainList);
-        return null;
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM4 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
+    /**
+     * SM4外部批量加密 ECB
+     */
+    public List<byte[]> sm4ExternalBatchEncryptECB(byte[] keyIndex, List<byte[]> plainList) throws AFCryptoException {
+        //参数检查
+        if (keyIndex == null || keyIndex.length == 0) {
+            logger.error("SM4 批量加密，索引不能为空");
+            throw new AFCryptoException("SM4 批量加密，索引不能为空");
+        }
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM4 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
+        }
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 0, 0, keyIndex, null, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM4 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
     }
 
 
+
+
     //======================================================批量解密======================================================
+
+    /**
+     * SM4 内部批量解密 ECB
+     */
 
 
     /**
@@ -1568,7 +1638,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data 待填充数据
      * @return 填充后数据
      */
-    private static byte[] Padding(byte[] data) {
+    private static byte[] padding(byte[] data) {
         int paddingNumber = 16 - (data.length % 16);
         byte[] paddingData = new byte[paddingNumber];
         Arrays.fill(paddingData, (byte) paddingNumber);
@@ -1578,7 +1648,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         return outData;
     }
 
-//    private static byte[] Padding(byte[] data) {
+//    private static byte[] padding(byte[] data) {
 ////        if ((data.length % 16) == 0) {
 ////            return data;
 ////        }

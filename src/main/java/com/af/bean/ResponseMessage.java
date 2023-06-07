@@ -1,7 +1,6 @@
 package com.af.bean;
 
 import cn.hutool.core.util.HexUtil;
-import com.af.device.AFDeviceFactory;
 import com.af.utils.BytesBuffer;
 import com.af.utils.SM4Utils;
 import lombok.Getter;
@@ -95,10 +94,18 @@ public class ResponseMessage {
 
     //toString
     public String toString() {
+        String data;
+        if (null == this.data || this.data.length == 0) {
+            data = "";
+        } else if (this.data.length > 128) {
+            data = Integer.toString(this.data.length);
+        } else {
+            data = HexUtil.encodeHexStr(this.data);
+        }
         return "ResponseMessage(header=" + this.getHeader()
                 + ", isEncrypt=" + this.isEncrypt()
                 + ", time=" + this.getTime()
-                + ", data=" + HexUtil.encodeHexStr(null == this.getData() ? new byte[0] : this.getData())
+                + ", data=" + data
                 + ")";
     }
 }
