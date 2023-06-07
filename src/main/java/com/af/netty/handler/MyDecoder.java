@@ -35,7 +35,6 @@ public class MyDecoder
         in.resetReaderIndex();
         byte[] data = new byte[lc];
         in.readBytes(data);
-
         //发送给下一个handler
         ctx.fireChannelRead(data);
 

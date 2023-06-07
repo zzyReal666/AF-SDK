@@ -1,13 +1,9 @@
 package com.af.crypto.algorithm.sm3;
 
-import com.af.device.AFDeviceFactory;
-import com.af.device.impl.AFHsmDevice;
-import com.af.struct.impl.sm3.HMac;
-import com.af.struct.impl.sm3.KeyParameter;
-import com.af.struct.impl.sm3.SM3Digest;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.struct.impl.sm3.SM3Digest;
 
 import java.nio.ByteOrder;
 
@@ -52,7 +48,7 @@ public class SM3Impl implements SM3 {
      * @throws AFCryptoException hash异常
      */
     @Override
-    public  byte[] SM3HashWithPublicKey256(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException {
+    public byte[] SM3HashWithPublicKey256(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException {
         SM3Digest digest = new SM3Digest();
         byte[] sm3SignHash = SM3SignerHash(publicKey.encode(), userID);
         byte[] newData = new byte[sm3SignHash.length + data.length];
@@ -66,7 +62,7 @@ public class SM3Impl implements SM3 {
         return hashData;
     }
 
-    private  byte[] SM3SignerHash(byte[] pubkey, byte[] userID) throws AFCryptoException {
+    private byte[] SM3SignerHash(byte[] pubkey, byte[] userID) throws AFCryptoException {
         byte[] a = {
                 (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
                 (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
@@ -118,38 +114,4 @@ public class SM3Impl implements SM3 {
     }
 
 
-
-    /**
-     * SM3 HMAC
-     *
-     * @param index 内部密钥索引  如果使用外部密钥，此参数传-1
-     * @param key   外部密钥 如果使用内部密钥，此参数传null
-     * @param data  待hash数据
-     * @return hash结果
-     * @throws AFCryptoException hash异常
-     */
-    @Override
-    public byte[] SM3HMac(int index, byte[] key, byte[] data) throws AFCryptoException {
-        if (key == null) { // 内部密钥
-            AFHsmDevice device = AFDeviceFactory.getAFHsmDevice(client.getHost(), client.getPort(), client.getPassword());
-             key = device.getKeyInfo().exportSymmKey(index);
-            KeyParameter keyParameter = new KeyParameter(key);
-            SM3Digest digest = new SM3Digest();
-            HMac mac = new HMac(digest);
-            mac.init(keyParameter);
-            mac.update(data, 0, data.length);
-            byte[] result = new byte[mac.getMacSize()];
-            mac.doFinal(result, 0);
-            return result;
-        } else { // 外部密钥
-            KeyParameter keyParameter = new KeyParameter(key);
-            SM3Digest digest = new SM3Digest();
-            HMac mac = new HMac(digest);
-            mac.init(keyParameter);
-            mac.update(data, 0, data.length);
-            byte[] result = new byte[mac.getMacSize()];
-            mac.doFinal(result, 0);
-            return result;
-        }
-    }
 }

@@ -118,7 +118,7 @@ public enum ConstantNumber {
 
     public static final int AF_LEN_1024 = 1024;
     public static final int AF_LEN_2048 = 2048;
-    public static final int AF_LEN_4096 = 1024 * 512;
+    public static final int AF_LEN_4096 =  2 * 1024 * 1024;   // 单位字节 总共2M
     public static final int AF_LEN_MAX = 4096 + 4096;
 
     public static final int LiteRSARef_MAX_BITS = 2048;

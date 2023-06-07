@@ -28,15 +28,7 @@ public interface SM3 {
      */
     byte[] SM3HashWithPublicKey256(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException;
 
-    /**
-     * SM3 HMAC
-     * @param index 内部密钥索引  如果使用外部密钥，此参数传-1
-     * @param key  外部密钥 如果使用内部密钥，此参数传null
-     * @param data 待hash数据
-     * @return hash结果
-     * @throws AFCryptoException hash异常
-     */
-    byte[] SM3HMac(int index, byte[] key, byte[] data) throws AFCryptoException;
+
 
 
 }

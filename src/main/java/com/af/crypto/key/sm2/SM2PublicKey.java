@@ -18,8 +18,8 @@ import lombok.Setter;
 public class SM2PublicKey implements Key {
 
     private int length; //  256/512 模长
-    private byte[] x;   //公钥x
-    private byte[] y;   //公钥y
+    private byte[] x = new byte[64];   //公钥x
+    private byte[] y = new byte[64];   //公钥y
 
     //构造函数 字节数据
     public SM2PublicKey(byte[] data) {
@@ -59,7 +59,7 @@ public class SM2PublicKey implements Key {
 
     public byte[] encode() {
         return new BytesBuffer()
-                .append(length)
+                .append(256)
                 .append(this.x)
                 .append(this.y)
                 .toBytes();
@@ -68,8 +68,6 @@ public class SM2PublicKey implements Key {
     @Override
     public void decode(byte[] pubKey) {
         this.length = BytesOperate.bytes2int(pubKey, 0);
-        this.x = new byte[length / 8];
-        this.y = new byte[length / 8];
         System.arraycopy(pubKey, 4, this.x, 0, this.x.length);
         System.arraycopy(pubKey, 4 + this.x.length, this.y, 0, this.y.length);
     }
@@ -92,7 +90,7 @@ public class SM2PublicKey implements Key {
             byte[] y512 = new byte[64];
             System.arraycopy(this.x, 0, x512, 32, 32);
             System.arraycopy(this.y, 0, y512, 32, 32);
-            return new SM2PublicKey(512, x512, y512);
+            return new SM2PublicKey(256, x512, y512);
         } else {
             throw new RuntimeException("SM2PubKey length error");
         }

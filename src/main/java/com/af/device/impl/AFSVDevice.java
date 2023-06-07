@@ -19,6 +19,7 @@ import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.sm2.SM2Cipher;
 import com.af.struct.impl.sm2.SM2Signature;
 import com.af.struct.signAndVerify.*;
+import com.af.struct.signAndVerify.RSA.RSAPublicKeyStructure;
 import com.af.struct.signAndVerify.sm2.SM2CipherStructure;
 import com.af.struct.signAndVerify.sm2.SM2PrivateKeyStructure;
 import com.af.struct.signAndVerify.sm2.SM2PublicKeyStructure;
@@ -35,10 +36,10 @@ import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.pkcs.RSAPrivateKey;
 import org.bouncycastle.asn1.pkcs.RSAPublicKey;
-import org.bouncycastle.asn1.x509.*;
+import org.bouncycastle.asn1.x509.Certificate;
+import org.bouncycastle.asn1.x509.TBSCertificate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.af.struct.signAndVerify.RSA.RSAPublicKeyStructure;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -49,6 +50,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -871,6 +873,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException(e);
         }
     }
+
     /**
      * <p>SM2外部密钥验证签名</p>
      * <p>使用外部密钥进行 SM2验证签名运算</p>
@@ -884,7 +887,7 @@ public class AFSVDevice implements IAFSVDevice {
             System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
             SM2Signature sm2Signature = new SM2Signature();
             sm2Signature.decode(signatureData);
-            return cmd.SM2VerifyByCertPubKey( data, sm2Signature.to512().encode(),new SM2PublicKey(publicKey));
+            return cmd.SM2VerifyByCertPubKey(data, sm2Signature.to512().encode(), new SM2PublicKey(publicKey));
         } catch (IOException e) {
             // 处理异常
             logger.error("SM2外部密钥验证签名失败,序列化失败", e);
@@ -1252,7 +1255,6 @@ public class AFSVDevice implements IAFSVDevice {
      */
     @Override
     public byte[] getSm2PublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
-        logger.info("导出SM2公钥");
         byte[] keyBytes;
         SM2PublicKey sm2PublicKey = new SM2PublicKey();
         if (keyUsage == ConstantNumber.ENC_PUBLIC_KEY) {
@@ -1262,8 +1264,7 @@ public class AFSVDevice implements IAFSVDevice {
             keyBytes = cmd.getSM2SignPublicKey(keyIndex);
             sm2PublicKey.decode(keyBytes);
         }
-        logger.info("返回数据:{}", HexUtil.encodeHexStr(keyBytes));
-                SM2PublicKey sm2PublicKey256 = sm2PublicKey.to256();
+        SM2PublicKey sm2PublicKey256 = sm2PublicKey.to256();
         try {
             byte[] encodedKey = new SM2PublicKeyStructure(sm2PublicKey256).toASN1Primitive().getEncoded("DER");
             return BytesOperate.base64EncodeData(encodedKey);
@@ -1283,14 +1284,14 @@ public class AFSVDevice implements IAFSVDevice {
     public SM2KeyPair generateSM2KeyPair(int keyType, ModulusLength length) throws AFCryptoException {
         //签名密钥对
         if (keyType == ConstantNumber.SGD_SIGN_KEY_PAIR) {
-            byte[] bytes = cmd.generateKeyPair(Algorithm.SDG_SM2_1, ModulusLength.LENGTH_256);
+            byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_SM2_1, ModulusLength.LENGTH_256);
             SM2KeyPair sm2KeyPair = new SM2KeyPair();
             sm2KeyPair.decode(bytes);
             return sm2KeyPair;
         }
         //密钥交换密钥对
         else if (keyType == ConstantNumber.SGD_ENC_KEY_PAIR) {
-            byte[] bytes = cmd.generateKeyPair(Algorithm.SDG_SM2_2, ModulusLength.LENGTH_256);
+            byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_SM2_2, ModulusLength.LENGTH_256);
             SM2KeyPair sm2KeyPair = new SM2KeyPair();
             sm2KeyPair.decode(bytes);
             return sm2KeyPair;
@@ -1298,14 +1299,14 @@ public class AFSVDevice implements IAFSVDevice {
         }
         //加密密钥对
         else if (keyType == ConstantNumber.SGD_EXCHANGE_KEY_PAIR) {
-            byte[] bytes = cmd.generateKeyPair(Algorithm.SDG_SM2_3, ModulusLength.LENGTH_256);
+            byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_SM2_3, ModulusLength.LENGTH_256);
             SM2KeyPair sm2KeyPair = new SM2KeyPair();
             sm2KeyPair.decode(bytes);
             return sm2KeyPair;
         }
         //默认密钥对
         else if (keyType == ConstantNumber.SGD_KEY_PAIR) {
-            byte[] bytes = cmd.generateKeyPair(Algorithm.SDG_SM2, ModulusLength.LENGTH_256);
+            byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_SM2, ModulusLength.LENGTH_256);
             SM2KeyPair sm2KeyPair = new SM2KeyPair();
             sm2KeyPair.decode(bytes);
             return sm2KeyPair;
@@ -1329,7 +1330,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("RSA密钥模长错误,length(1024|2048)={}", length);
             throw new AFCryptoException("RSA密钥模长错误,length(1024|2048)=" + length);
         }
-        byte[] bytes = cmd.generateKeyPair(Algorithm.SDG_RSA, length);
+        byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_RSA, length);
         RSAKeyPair rsaKeyPair = new RSAKeyPair(bytes);
         rsaKeyPair.decode(bytes);
         return rsaKeyPair;
@@ -1731,14 +1732,22 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
 
+
     /**
      * 释放密钥信息
+     *
      * @param id 4 字节密钥信息 ID
      */
-    public void releaseKeyPair(int id ) throws AFCryptoException{
+    public void releaseKeyPair(int id) throws AFCryptoException {
         cmd.freeKey(id);
     }
 
+    //批量对称加密 CBC
+    public byte[] sym(Algorithm algorithm, int keyIndex, byte[] key, byte[] iv, List<byte[]> dataList) throws AFCryptoException {
+
+        return null;
+
+    }
 
     //================================私有方法,用于本类中数据处理,结构转换===========================================
     private static byte[] Padding(byte[] data) {

@@ -2,7 +2,6 @@ package com.af.device;
 
 
 import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.HexUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.crypto.Mode;
 import cn.hutool.crypto.Padding;
@@ -20,7 +19,6 @@ import com.af.utils.BytesBuffer;
 import com.af.utils.Sm2Util;
 
 import java.security.KeyPair;
-import java.util.logging.Logger;
 
 
 /**
@@ -115,7 +113,8 @@ public interface IAFDevice {
         for (int i = 0; i < 16; i++) {
             agreementKey[i] = (byte) (ra[i] ^ rb[i]);
         }
-        return agreementKey;
+//        return agreementKey;
+        return ROOT_KEY;
     }
 
 

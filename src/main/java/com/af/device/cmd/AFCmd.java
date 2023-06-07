@@ -3,7 +3,6 @@ package com.af.device.cmd;
 import com.af.netty.AFNettyClient;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +18,6 @@ import org.slf4j.LoggerFactory;
 public class AFCmd {
     public final Logger logger = LoggerFactory.getLogger(this.getClass());
     public final AFNettyClient client;
-    public final byte[] agKey;
+    public byte[] agKey;
 
 }

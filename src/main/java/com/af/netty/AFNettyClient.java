@@ -76,7 +76,7 @@ public class AFNettyClient {
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 7000)  //连接超时时间
                 .option(ChannelOption.SO_KEEPALIVE, true); //保持连接
         //设置最大缓冲
-        bootstrap.option(ChannelOption.SO_RCVBUF, 1024 * 1024 * 10);
+        bootstrap.option(ChannelOption.SO_RCVBUF, 1024 * 1024 * 100);
         login();
     }
 

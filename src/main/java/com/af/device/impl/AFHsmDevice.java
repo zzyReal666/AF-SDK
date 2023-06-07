@@ -1,39 +1,31 @@
 package com.af.device.impl;
 
-import com.af.bean.RequestMessage;
-import com.af.bean.ResponseMessage;
-import com.af.constant.*;
-import com.af.crypto.algorithm.sm1.SM1;
-import com.af.crypto.algorithm.sm1.SM1Impl;
-import com.af.crypto.algorithm.sm2.SM2;
-import com.af.crypto.algorithm.sm2.SM2Impl;
+import cn.hutool.core.util.HexUtil;
+import com.af.constant.Algorithm;
+import com.af.constant.ConstantNumber;
+import com.af.constant.ModulusLength;
 import com.af.crypto.algorithm.sm3.SM3;
 import com.af.crypto.algorithm.sm3.SM3Impl;
-import com.af.crypto.algorithm.sm4.SM4;
-import com.af.crypto.algorithm.sm4.SM4Impl;
-import com.af.crypto.key.keyInfo.AFKmsKeyInfo;
-import com.af.crypto.key.keyInfo.AFSymmetricKeyStatus;
-import com.af.crypto.key.keyInfo.KeyInfo;
-import com.af.crypto.key.keyInfo.KeyInfoImpl;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
+import com.af.crypto.key.symmetricKey.SessionKey;
+import com.af.device.DeviceInfo;
+import com.af.device.IAFHsmDevice;
 import com.af.device.cmd.AFHSMCmd;
+import com.af.exception.AFCryptoException;
+import com.af.netty.AFNettyClient;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
-import com.af.struct.impl.sm2.SM2Cipher;
-import com.af.struct.impl.sm2.SM2Signature;
-import com.af.device.DeviceInfo;
-import com.af.device.IAFHsmDevice;
-import com.af.exception.AFCryptoException;
-import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
-import com.af.utils.BytesOperate;
+import com.af.utils.pkcs.AFPkcs1Operate;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -51,21 +43,11 @@ import java.util.List;
 public class AFHsmDevice implements IAFHsmDevice {
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
     private byte[] agKey;  //协商密钥
-    //set agKey
-
     private static AFNettyClient client;  //netty客户端
-    private final SM1 sm1 = new SM1Impl(client, agKey);  //国密SM1算法
-    private final SM2 sm2 = new SM2Impl(client, agKey);  //国密SM2算法
     private final SM3 sm3 = new SM3Impl(client);  //国密SM3算法
-    private final SM4 sm4 = new SM4Impl(client, agKey);  //国密SM4算法
-    private final KeyInfo keyInfo = KeyInfoImpl.getInstance(client, agKey);
-
     private final AFHSMCmd cmd = new AFHSMCmd(client, agKey);
 
     //==============================单例模式===================================
-    protected AFHsmDevice() {
-    }
-
     private static final class InstanceHolder {
         static final AFHsmDevice instance = new AFHsmDevice();
     }
@@ -77,7 +59,8 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     public AFHsmDevice setAgKey() {
         this.agKey = this.keyAgreement(client);
-        logger.info("协商密钥成功");
+        cmd.setAgKey(agKey);
+        logger.info("协商密钥成功,密钥为:{}", HexUtil.encodeHexStr(agKey));
         return this;
     }
     //==============================API===================================
@@ -88,12 +71,11 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return 设备信息
      * 获取设备信息异常
      */
-    @Override
+
     public DeviceInfo getDeviceInfo() throws AFCryptoException {
         return cmd.getDeviceInfo();
 
     }
-
 
     /**
      * 获取随机数
@@ -103,7 +85,6 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return 随机数
      * 获取随机数异常
      */
-    @Override
     public byte[] getRandom(int length) throws AFCryptoException {
         return cmd.getRandom(length);
     }
@@ -118,396 +99,1370 @@ public class AFHsmDevice implements IAFHsmDevice {
     private List<byte[]> splitPackage(byte[] data) {
         int uiIndex;
         byte[] inputData;
-        byte[] paddingData = Padding(data);
         List<byte[]> bytes = new ArrayList<>();
         //分段加密 4096个字节一段 n-1段
-        for (uiIndex = 0; uiIndex != (paddingData.length / ConstantNumber.AF_LEN_4096); ++uiIndex) {
+        for (uiIndex = 0; uiIndex != (data.length / ConstantNumber.AF_LEN_4096); ++uiIndex) {
             inputData = new byte[ConstantNumber.AF_LEN_4096];
-            System.arraycopy(paddingData, ConstantNumber.AF_LEN_4096 * uiIndex, inputData, 0, ConstantNumber.AF_LEN_4096);
+            System.arraycopy(data, ConstantNumber.AF_LEN_4096 * uiIndex, inputData, 0, ConstantNumber.AF_LEN_4096);
             bytes.add(inputData);
         }
-        //最后一段 如果不足4096个字节
-        if ((paddingData.length % ConstantNumber.AF_LEN_4096) != 0) {
-            inputData = new byte[paddingData.length % ConstantNumber.AF_LEN_4096];
-            System.arraycopy(paddingData, ConstantNumber.AF_LEN_4096 * uiIndex, inputData, 0, inputData.length);
+        //最后一段 如果不足4096个字节 取实际长度
+        if ((data.length % ConstantNumber.AF_LEN_4096) != 0) {
+            inputData = new byte[data.length % ConstantNumber.AF_LEN_4096];
+            System.arraycopy(data, ConstantNumber.AF_LEN_4096 * uiIndex, inputData, 0, inputData.length);
             bytes.add(inputData);
         }
         return bytes;
     }
 
-    /**
-     * SM1内部密钥加密
-     *
-     * @param mode  分组模式 ECB/CBC
-     * @param index 内部密钥索引 如果使用外部密钥传-1
-     * @param iv    初始向量  CBC模式下需要 ECB模式下传null
-     * @param data  待加密数据
-     * @return 加密后的数据
-     * 加密异常
-     */
-    @Override
-    public byte[] sm1Encrypt(GroupMode mode, int index, byte[] iv, byte[] data) throws AFCryptoException {
-        List<byte[]> singleData = splitPackage(data); //分包
-        BytesBuffer buffer = new BytesBuffer();
-        switch (mode) {
-            case ECB:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm1.SM1EncryptECB(index, bytes));
-                }
-                break;
-            case CBC:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm1.SM1EncryptCBC(index, iv, bytes));
-                }
-                break;
-            default:
-                break;
-        }
-        return buffer.toBytes();
-
-    }
-
-
-    /**
-     * SM1内部密钥解密
-     *
-     * @param mode  分组模式 ECB/CBC
-     * @param index 内部密钥索引
-     * @param iv    初始向量  CBC模式下需要 ECB模式下传null
-     * @param data  待解密数据
-     * @return 解密后的数据
-     * 解密异常
-     */
-    @Override
-    public byte[] sm1Decrypt(GroupMode mode, int index, byte[] iv, byte[] data) throws AFCryptoException {
-        List<byte[]> groupData = splitPackage(data); //分组
-        BytesBuffer buffer = new BytesBuffer();
-        switch (mode) {
-            case ECB:
-                for (byte[] bytes : groupData) {
-                    //解密后的数据需要去除填充
-                    buffer.append(sm1.SM1DecryptECB(index, bytes));
-                }
-                break;
-            case CBC:
-                for (byte[] bytes : groupData) {
-                    //解密后的数据需要去除填充
-                    buffer.append(sm1.SM1DecryptCBC(index, iv, bytes));
-                }
-                break;
-            default:
-                break;
-        }
-        return cutting(buffer.toBytes());
-    }
-
-    /**
-     * SM1外部密钥加密
-     *
-     * @param mode 分组模式 ECB/CBC
-     * @param key  密钥
-     * @param iv   初始向量  CBC模式下需要 ECB模式下传null
-     * @param data 待加密数据
-     * @return 加密后的数据
-     * 加密异常
-     */
-    @Override
-    public byte[] sm1Encrypt(GroupMode mode, byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
-        List<byte[]> singleData = splitPackage(data); //分包
-        BytesBuffer buffer = new BytesBuffer();
-        switch (mode) {
-            case ECB:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm1.SM1EncryptECB(key, bytes));
-                }
-                break;
-            case CBC:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm1.SM1EncryptCBC(key, iv, bytes));
-                }
-                break;
-            default:
-                break;
-        }
-        return buffer.toBytes();
-
-    }
-
-    /**
-     * SM1外部密钥解密
-     *
-     * @param mode       分组模式 ECB/CBC
-     * @param key        密钥
-     * @param iv         初始向量  CBC模式下需要 ECB模式下传null
-     * @param encodeData 待解密数据
-     * @return 解密后的数据
-     * 解密异常
-     */
-    @Override
-    public byte[] sm1Decrypt(GroupMode mode, byte[] key, byte[] iv, byte[] encodeData) throws AFCryptoException {
-        List<byte[]> singleData = splitPackage(encodeData); //分包
-        BytesBuffer buffer = new BytesBuffer();
-        switch (mode) {
-            case ECB:
-                for (byte[] bytes : singleData) {
-                    //解密后的数据需要去除填充
-                    buffer.append(sm1.SM1DecryptECB(key, bytes));
-                }
-                break;
-            case CBC:
-                for (byte[] bytes : singleData) {
-                    //解密后的数据需要去除填充
-                    buffer.append(sm1.SM1DecryptCBC(key, iv, bytes));
-                }
-                break;
-            default:
-                break;
-        }
-        return cutting(buffer.toBytes());
-    }
+//==============================导出公钥信息===================================
 
     /**
      * 获取SM2签名公钥
      *
-     * @param index  索引
-     * @param length 模长 256/512
+     * @param index 索引
      * @return SM2签名公钥
      * 获取SM2签名公钥异常
      */
-    @Override
-    public SM2PublicKey getSM2SignPublicKey(int index, ModulusLength length) throws AFCryptoException {
-        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
-            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
-            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
-        }
-        SM2PublicKey publicKey = sm2.getPublicKey(index, SM2KeyType.SIGN);
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            return publicKey.to256();
-        }
-        return publicKey;
+    public SM2PublicKey getSM2SignPublicKey(int index) throws AFCryptoException {
+        byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_SM2_1);
+        return new SM2PublicKey(bytes);
     }
 
     /**
      * 获取SM2加密公钥
      *
      * @param index 索引
-     * @return SM2加密公钥 默认512位, 如果需要256位, 请调用{@link SM2PublicKey#to256()}
-     * 获取SM2加密公钥异常
+     * @return SM2加密公钥
      */
-    @Override
-    public SM2PublicKey getSM2EncryptPublicKey(int index, ModulusLength length) throws AFCryptoException {
-        logger.info("获取SM2加密公钥 index: {} length: {}", index, length);
-        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
-            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
-            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
-        }
-        SM2PublicKey publicKey = sm2.getPublicKey(index, SM2KeyType.ENCRYPT);
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            return publicKey.to256();
-        }
-        return publicKey;
+    public SM2PublicKey getSM2EncryptPublicKey(int index) throws AFCryptoException {
+        byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_SM2_2);
+        return new SM2PublicKey(bytes);
     }
 
     /**
-     * 生成SM2密钥对
+     * 获取RSA签名公钥信息
      *
-     * @return SM2密钥对 默认512位, 如果需要256位, 请调用{@link SM2KeyPair#to256()}
-     * 生成SM2密钥对异常
+     * @param index ：密钥索引
+     * @return 返回RSA签名数据结构
      */
-    @Override
-    public SM2KeyPair generateSM2KeyPair(ModulusLength length) throws AFCryptoException {
-        logger.info("生成SM2密钥对");
-        SM2KeyPair keyPair = sm2.generateKeyPair();
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            return keyPair.to256();
-        }
-        return keyPair;
+
+    public RSAPubKey getRSASignPublicKey(int index) throws AFCryptoException {
+        byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_RSA_SIGN);
+        return new RSAPubKey(bytes);
     }
 
     /**
-     * SM2内部密钥加密
+     * 获取RSA加密公钥信息
      *
-     * @param index 索引
-     * @param data  待加密数据
-     * @return 加密后的SM2Cipher对象 默认512位, 如果需要256位, 请调用{@link SM2Cipher#to256()}
-     * 加密异常
+     * @param index ： 密钥索引
+     * @return 返回RSA加密数据结构
      */
-    @Override
-    public SM2Cipher sm2Encrypt(ModulusLength length, int index, byte[] data) throws AFCryptoException {
-        logger.info("SM2内部密钥加密 index: {} length: {}", index, length);
-        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
-            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
-            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
+    public RSAPubKey getRSAEncPublicKey(int index) throws AFCryptoException {
+        byte[] rsaEncPublicKey = cmd.exportPublicKey(index, Algorithm.SGD_RSA_ENC);
+        return new RSAPubKey(rsaEncPublicKey);
+    }
+
+    //=========================================生成密钥对=========================================
+
+    /**
+     * 生成密钥对 SM2
+     *
+     * @param keyType 密钥类型 0:签名密钥对 1:加密密钥对 2:密钥交换密钥对 3:默认密钥对
+     */
+    public SM2KeyPair generateSM2KeyPair(int keyType) throws AFCryptoException {
+        //签名密钥对
+        if (keyType == ConstantNumber.SGD_SIGN_KEY_PAIR) {
+            byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_SM2_1, ModulusLength.LENGTH_256);
+            SM2KeyPair sm2KeyPair = new SM2KeyPair();
+            sm2KeyPair.decode(bytes);
+            return sm2KeyPair;
         }
-        byte[] encData = sm2.sm2Encrypt(index, null, data);
-        SM2Cipher cipher = new SM2Cipher(encData);
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            return cipher.to256();
+        //密钥交换密钥对
+        else if (keyType == ConstantNumber.SGD_ENC_KEY_PAIR) {
+            byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_SM2_2, ModulusLength.LENGTH_256);
+            SM2KeyPair sm2KeyPair = new SM2KeyPair();
+            sm2KeyPair.decode(bytes);
+            return sm2KeyPair;
+
         }
-        return cipher;
+        //加密密钥对
+        else if (keyType == ConstantNumber.SGD_EXCHANGE_KEY_PAIR) {
+            byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_SM2_3, ModulusLength.LENGTH_256);
+            SM2KeyPair sm2KeyPair = new SM2KeyPair();
+            sm2KeyPair.decode(bytes);
+            return sm2KeyPair;
+        }
+        //默认密钥对
+        else if (keyType == ConstantNumber.SGD_KEY_PAIR) {
+            byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_SM2, ModulusLength.LENGTH_256);
+            SM2KeyPair sm2KeyPair = new SM2KeyPair();
+            sm2KeyPair.decode(bytes);
+            return sm2KeyPair;
+        }
+        //异常
+        else {
+            logger.error("密钥类型错误,keyType(0:签名密钥对 1:加密密钥对 2:密钥交换密钥对 3:默认密钥对)={}", keyType);
+            throw new AFCryptoException("密钥类型错误,keyType(0:签名密钥对 1:加密密钥对 2:密钥交换密钥对 3:默认密钥对)=" + keyType);
+        }
     }
 
     /**
-     * SM2内部密钥解密
+     * 生成密钥对 RSA
      *
-     * @param index      索引
-     * @param encodeData 待解密数据
-     * @return 解密后的数据
-     * 解密异常
+     * @param length 模长 {@link ModulusLength}
      */
-    @Override
-    public byte[] sm2Decrypt(ModulusLength length, int index, SM2Cipher encodeData) throws AFCryptoException {
-        logger.info("SM2内部密钥解密 length: {} index: {} encodeData: {}", length, index, encodeData);
-        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
-            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
-            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
+    public RSAKeyPair generateRSAKeyPair(ModulusLength length) throws AFCryptoException {
+        //length只能是1024或2048
+        if (length != ModulusLength.LENGTH_1024 && length != ModulusLength.LENGTH_2048) {
+            logger.error("RSA密钥模长错误,length(1024|2048)={}", length);
+            throw new AFCryptoException("RSA密钥模长错误,length(1024|2048)=" + length);
         }
-        if (ModulusLength.LENGTH_256.equals(length) && 256 == encodeData.getLength()) {
-            encodeData = encodeData.to512();//转换为512位 , 服务端只处理512位
-        }
-        return sm2.SM2Decrypt(index, null, encodeData);
+        byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_RSA, length);
+        RSAKeyPair rsaKeyPair = new RSAKeyPair(bytes);
+        rsaKeyPair.decode(bytes);
+        return rsaKeyPair;
     }
 
-    /**
-     * SM2外部密钥加密
-     *
-     * @param key  密钥
-     * @param data 待加密数据
-     * @return 加密后的数据
-     * 加密异常
-     */
-    @Override
-    public SM2Cipher sm2Encrypt(ModulusLength length, SM2PublicKey key, byte[] data) throws AFCryptoException {
-        logger.info("SM2外部密钥加密 length: {} key: {} data: {}", length, key, data);
-        key = key.to256();
-        byte[] bytes = sm2.sm2Encrypt(0, key, data);
-        SM2Cipher sm2Cipher = new SM2Cipher(bytes);
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            return sm2Cipher.to256();
-        }
-        return sm2Cipher;
-    }
+    //=========================================会话密钥相关=========================================
 
     /**
-     * SM2外部密钥解密
+     * 生成会话密钥 非对称加密
      *
-     * @param key        密钥
-     * @param encodeData 待解密数据
-     * @return 解密后的数据
-     * 解密异常
+     * @param algorithm ：对称算法标识  SGD_RSA_ENC|SGD_SM2_2
+     * @param keyIndex  ：用于加密会话密钥的密钥索引
+     * @param length    ：会话密钥长度 8|16|24|32
+     * @return ：1、4 字节会话密钥 ID 2、4 字节加密信息长度 3、加密信息
      */
-    @Override
-    public byte[] sm2Decrypt(ModulusLength length, SM2PrivateKey key, SM2Cipher encodeData) throws AFCryptoException {
-        logger.info("SM2外部密钥解密 length: {} key: {} encodeData: {}", length, key, encodeData);
-        key = key.to256();
-        encodeData = encodeData.to256();
-        return sm2.SM2Decrypt(0, key, encodeData);
-    }
-
-    /**
-     * SM2 内部密钥签名
-     *
-     * @param length 模量长度 256/512
-     * @param index  密钥索引
-     * @param data   待签名数据
-     *               签名异常
-     */
-    @Override
-    public SM2Signature sm2Signature(ModulusLength length, int index, byte[] data) throws AFCryptoException {
-        logger.info("SM2内部密钥签名 index: {} data: {}", index, data);
-        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
-            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
-            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
+    public SessionKey generateSessionKey(Algorithm algorithm, int keyIndex, int length) throws AFCryptoException {
+        //参数检查
+        if (algorithm != Algorithm.SGD_RSA_ENC && algorithm != Algorithm.SGD_SM2_2) {
+            logger.error("生成会话密钥失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_2):{}", algorithm);
+            throw new AFCryptoException("生成会话密钥失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_2):" + algorithm);
         }
-        byte[] sign = sm2.SM2Sign(index, null, data);
-        SM2Signature sm2Signature = new SM2Signature(sign);
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            return sm2Signature.to256();
-        }
-        return sm2Signature;
-    }
-
-    /**
-     * SM2 内部密钥验签
-     *
-     * @param length    模量长度 256/512
-     * @param index     密钥索引 0-1023
-     * @param data      待验签数据
-     * @param signature 签名
-     * @return 验签结果 true:验签成功 false:验签失败
-     * 验签异常
-     */
-    @Override
-    public boolean sm2Verify(ModulusLength length, int index, byte[] data, SM2Signature signature) throws AFCryptoException {
-        logger.info("SM2内部密钥验签 length: {} index: {} data: {} signature: {}", length, index, data, signature);
-        if (index < 1 || index > ConstantNumber.MAX_ECC_KEY_PAIR_COUNT) {
-            logger.error("用户指定的SM2公钥索引错误, 索引范围为[1, {}],当前指定索引为: {}", ConstantNumber.MAX_ECC_KEY_PAIR_COUNT, index);
-            throw new AFCryptoException("用户指定的SM2公钥索引错误,当前指定索引为: " + index);
-        }
-        // 如果是256模量长度,则转换为512模量长度 后端只以512模量长度验签
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            signature = signature.to512();
-        }
-        return sm2.SM2Verify(index, null, data, signature.encode());
+        byte[] bytes = cmd.generateSessionKey(algorithm, keyIndex, length);
+        BytesBuffer buffer = new BytesBuffer(bytes);
+        SessionKey key = new SessionKey();
+        key.setId(buffer.readInt());
+        key.setLength(buffer.readInt());
+        key.setKey(buffer.read(key.getLength()));
+        return key;
 
     }
 
     /**
-     * SM2 外部密钥签名
+     * 导入会话密钥密文 非对称加密
      *
-     * @param data       待签名数据
-     * @param privateKey 私钥
-     * @return 签名
-     * 签名异常
+     * @param algorithm ：对称算法标识  SGD_RSA_ENC|SGD_SM2_2
+     * @param keyIndex  ：用于加密会话密钥的密钥索引
+     * @param key       ：会话密钥密文
+     * @return 会话密钥id 密钥长度
      */
-    @Override
-    public SM2Signature sm2Signature(ModulusLength length, byte[] data, SM2PrivateKey privateKey) throws AFCryptoException {
-        logger.info("SM2外部密钥签名 data: {} privateKey: {}", data, privateKey);
-        privateKey = privateKey.to256();
-        byte[] sign = sm2.SM2Sign(-1, privateKey, data);
-        SM2Signature sm2Signature = new SM2Signature(sign);
-        if (ModulusLength.LENGTH_256.equals(length)) {
-            return sm2Signature.to256();
+    public SessionKey importSessionKey(Algorithm algorithm, int keyIndex, byte[] key) throws AFCryptoException {
+        //参数检查
+        if (algorithm != Algorithm.SGD_RSA_ENC && algorithm != Algorithm.SGD_SM2_2) {
+            logger.error("导入会话密钥失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_2):{}", algorithm);
+            throw new AFCryptoException("导入会话密钥失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_2):" + algorithm);
+        }
+        //获取私钥访问权限
+        int keyType;
+        if (algorithm == Algorithm.SGD_RSA_ENC) {
+            keyType = 4;
         } else {
-            return sm2Signature;
+            keyType = 3;
         }
+        getPrivateKeyAccessRight(keyIndex, keyType, "12345678");
+        //导入会话密钥
+        byte[] bytes = cmd.importSessionKey(algorithm, keyIndex, key);
+        BytesBuffer buffer = new BytesBuffer(bytes);
+        SessionKey sessionKey = new SessionKey();
+        sessionKey.setId(buffer.readInt());
+        return sessionKey;
     }
 
     /**
-     * SM2 外部密钥验签
+     * 数字信封转换
      *
-     * @param length    模量长度 256/512
-     * @param data      待验签数据
-     * @param signature 签名
-     * @param publicKey 公钥
-     * @return 验签结果 true:验签成功 false:验签失败
-     * 验签异常
+     * @param algorithm 算法标识 SGD_RSA_ENC|SGD_SM2_3
+     * @param keyIndex  密钥索引
+     * @param pubKey    公钥
+     * @param data      加密输入信息
+     * @return 加密输出信息
      */
-    @Override
-    public boolean sm2Verify(ModulusLength length, byte[] data, SM2Signature signature, SM2PublicKey publicKey) throws AFCryptoException {
-        logger.info("SM2外部密钥验签 data: {} signature: {} publicKey: {}", data, signature, publicKey);
-//        if (ModulusLength.LENGTH_256.equals(length)) {
-//            publicKey = publicKey.to256();
-//        }
-//        if (ModulusLength.LENGTH_512.equals(length)) {
-//            publicKey = publicKey.to512();
-//        }
-        publicKey = publicKey.to256();
-        return sm2.SM2Verify(-1, publicKey, data, signature.encode());
+    public byte[] convertEnvelope(Algorithm algorithm, int keyIndex, byte[] pubKey, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (algorithm != Algorithm.SGD_RSA_ENC && algorithm != Algorithm.SGD_SM2_3) {
+            logger.error("数字信封转换失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_3):{}", algorithm);
+            throw new AFCryptoException("数字信封转换失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_3):" + algorithm);
+        }
+        //获取私钥访问权限
+        int keyType;
+        if (algorithm == Algorithm.SGD_RSA_ENC) {
+            keyType = 4;
+        } else {
+            keyType = 3;
+        }
+        getPrivateKeyAccessRight(keyIndex, keyType, "12345678");
+        return cmd.convertEnvelope(algorithm, keyIndex, pubKey, data);
+
     }
 
     /**
-     * SM3哈希 杂凑算法
+     * 生成会话密钥（使用对称密钥）
      *
-     * @param data 待杂凑数据
-     * @return 杂凑值
-     * 杂凑异常
+     * @param algorithm 加密算法标识 SGD_SM1_ECB|SGD_SMS4_ECB
+     * @param keyIndex  加密密钥索引
+     * @param length    会话密钥长度 8|16|24|32
      */
-    @Override
-    public byte[] sm3Hash(byte[] data) throws AFCryptoException {
-        logger.info("SM3哈希 杂凑算法 dataLen: {}", data.length);
-        return sm3.SM3Hash(data);
+    public SessionKey generateSessionKeyBySym(Algorithm algorithm, int keyIndex, int length) throws AFCryptoException {
+        //参数检查
+        if (algorithm != Algorithm.SGD_SM1_ECB && algorithm != Algorithm.SGD_SMS4_ECB) {
+            logger.error("生成会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SMS4_ECB):{}", algorithm);
+            throw new AFCryptoException("生成会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SMS4_ECB):" + algorithm);
+        }
+        if (keyIndex < 0) {
+            logger.error("生成会话密钥失败,加密密钥索引错误,keyIndex:{}", keyIndex);
+            throw new AFCryptoException("生成会话密钥失败,加密密钥索引错误,keyIndex:" + keyIndex);
+        }
+        if (length != 8 && length != 16 && length != 24 && length != 32) {
+            logger.error("生成会话密钥失败,会话密钥长度错误,length(8|16|24|32):{}", length);
+            throw new AFCryptoException("生成会话密钥失败,会话密钥长度错误,length(8|16|24|32):" + length);
+        }
+        byte[] bytes = cmd.generateSessionKeyBySym(algorithm, keyIndex, length);
+        BytesBuffer buffer = new BytesBuffer(bytes);
+        SessionKey key = new SessionKey();
+        key.setId(buffer.readInt());
+        key.setLength(buffer.readInt());
+        key.setKey(buffer.read(key.getLength()));
+        return key;
     }
+
+    /**
+     * 导入会话密钥密文（使用对称密钥）
+     *
+     * @param algorithm 加密算法标识 SGD_SM1_ECB|SGD_SMS4_ECB
+     * @param keyIndex  加密密钥索引
+     * @param key       会话密钥密文
+     */
+    public SessionKey importSessionKeyBySym(Algorithm algorithm, int keyIndex, byte[] key) throws AFCryptoException {
+        //参数检查
+        if (algorithm != Algorithm.SGD_SM1_ECB && algorithm != Algorithm.SGD_SMS4_ECB) {
+            logger.error("导入会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SMS4_ECB):{}", algorithm);
+            throw new AFCryptoException("导入会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SMS4_ECB):" + algorithm);
+        }
+        byte[] bytes = cmd.importSessionKeyBySym(algorithm, keyIndex, key);
+        BytesBuffer buffer = new BytesBuffer(bytes);
+        SessionKey sessionKey = new SessionKey();
+        sessionKey.setId(buffer.readInt());
+        sessionKey.setLength(buffer.readInt());
+        return sessionKey;
+    }
+
+
+    /**
+     * 释放密钥信息
+     *
+     * @param id 4 字节密钥信息 ID
+     */
+    public void releaseSessionKey(int id) throws AFCryptoException {
+        cmd.freeKey(id);
+    }
+
+    /**
+     * 生成协商数据
+     *
+     * @param keyIndex 密钥索引
+     * @param length   模长
+     * @param id       发起方id
+     */
+    public byte[] generateAgreementData(int keyIndex, ModulusLength length, byte[] id) throws AFCryptoException {
+        return cmd.generateAgreementData(keyIndex, length, id);
+    }
+
+    //todo  生成协商数据及密钥
+    public byte[] generateAgreementDataAndKey(int keyIndex, ModulusLength length, byte[] id) throws AFCryptoException {
+        return null;
+    }
+
+    /**
+     * 生成协商密钥
+     *
+     * @param key    回复方公钥
+     * @param temKey 回复方临时公钥
+     * @param id     回复方id
+     * @return 4 字节会话id HexString
+     */
+    public String generateAgreementKey(byte[] key, byte[] temKey, byte[] id) throws AFCryptoException {
+        byte[] bytes = cmd.generateAgreementKey(key, temKey, id);
+        BytesBuffer buffer = new BytesBuffer(bytes);
+        return Integer.toHexString(buffer.readInt());
+    }
+
+//=========================================RSA计算=========================================
+
+    /**
+     * RSA内部加密运算
+     *
+     * @param index ：RSA内部密钥索引
+     * @param data  : 原始数据
+     * @return ：返回运算结果
+     */
+    public byte[] rsaInternalEncrypt(int index, byte[] data) throws AFCryptoException {
+        //填充
+        byte[] bytes = AFPkcs1Operate.pkcs1EncryptionPublicKey(getRSAEncPublicKey(index).getBits(), data);
+        //加密
+        return cmd.rsaPublicKeyOperation(index, null, Algorithm.SGD_RSA_ENC, bytes);
+    }
+
+
+    /**
+     * RSA内部解密运算 私钥解密
+     *
+     * @param index ：RSA内部密钥索引
+     * @param data  : 加密数据
+     * @return ：返回运算结果
+     */
+    public byte[] rsaInternalDecrypt(int index, byte[] data) throws AFCryptoException {
+        //获取私钥访问权限
+        getPrivateKeyAccessRight(index, 4, "12345678");
+        //解密
+        byte[] bytes = cmd.rsaPrivateKeyOperation(index, null, Algorithm.SGD_RSA_ENC, data);
+        //去填充
+        return AFPkcs1Operate.pkcs1DecryptPublicKey(getRSAEncPublicKey(index).getBits(), bytes);
+    }
+
+    /**
+     * RSA外部加密运算 公钥加密
+     *
+     * @param publicKey ：RSA公钥信息
+     * @param data      : 原始数据
+     * @return ：返回运算结果
+     */
+    public byte[] rsaExternalEncrypt(RSAPubKey publicKey, byte[] data) throws AFCryptoException {
+        //填充
+        data = AFPkcs1Operate.pkcs1EncryptionPublicKey(publicKey.getBits(), data);
+        //加密
+        return cmd.rsaPublicKeyOperation(0, publicKey, Algorithm.SGD_RSA_ENC, data);
+    }
+
+    /**
+     * RSA外部解密运算 私钥解密
+     *
+     * @param prvKey ：RSA私钥信息
+     * @param data   : 加密数据
+     * @return ：返回运算结果
+     */
+    public byte[] rsaExternalDecrypt(RSAPriKey prvKey, byte[] data) throws AFCryptoException {
+        //解密
+        data = cmd.rsaPrivateKeyOperation(0, prvKey, Algorithm.SGD_RSA_ENC, data);
+        //去填充
+        return AFPkcs1Operate.pkcs1DecryptPublicKey(prvKey.getBits(), data);
+    }
+
+    /**
+     * RSA内部签名运算 私钥签名
+     *
+     * @param index ：RSA内部密钥索引
+     * @param data  : 原始数据
+     * @return ：返回运算结果
+     */
+
+    public byte[] rsaInternalSign(int index, byte[] data) throws AFCryptoException {
+        //获取私钥访问权限
+        getPrivateKeyAccessRight(index, 4, "12345678");
+        //获取摘要
+        byte[] hash = digestForRSASign(index, -1, data);
+        //填充
+        byte[] bytes = AFPkcs1Operate.pkcs1EncryptionPrivate(getRSASignPublicKey(index).getBits(), hash);
+        //签名
+        return cmd.rsaPrivateKeyOperation(index, null, Algorithm.SGD_RSA_SIGN, bytes);
+    }
+
+    /**
+     * RSA内部验证签名运算 公钥验签
+     *
+     * @param index      ：RSA内部密钥索引
+     * @param signedData : 签名数据
+     * @param rawData    : 原始数据
+     * @return ：true: 验证成功，false：验证失败
+     */
+
+    public boolean rsaInternalVerify(int index, byte[] signedData, byte[] rawData) throws AFCryptoException {
+        //摘要
+        byte[] hash = digestForRSASign(index, -1, rawData);
+        //验签 公钥解密
+        byte[] bytes = cmd.rsaPublicKeyOperation(index, null, Algorithm.SGD_RSA_SIGN, signedData);
+        //去填充
+        bytes = AFPkcs1Operate.pkcs1DecryptionPrivate(getRSASignPublicKey(index).getBits(), bytes);
+        return Arrays.equals(bytes, hash);
+    }
+
+    /**
+     * RSA外部签名运算 私钥签名
+     *
+     * @param prvKey ：RSA私钥信息
+     * @param data   : 原始数据
+     * @return ：返回运算结果
+     */
+
+    public byte[] rsaExternalSign(RSAPriKey prvKey, byte[] data) throws AFCryptoException {
+        //获取摘要
+        byte[] hash = digestForRSASign(-1, prvKey.getBits(), data);
+        //填充
+        hash = AFPkcs1Operate.pkcs1EncryptionPrivate(prvKey.getBits(), hash);
+        //签名 私钥加密
+        return cmd.rsaPrivateKeyOperation(0, prvKey, Algorithm.SGD_RSA_SIGN, hash);
+    }
+
+    /**
+     * RSA外部验证签名运算 公钥验签
+     *
+     * @param publicKey  ：RSA公钥信息
+     * @param signedData : 签名数据
+     * @param rawData    : 原始数据
+     * @return ：true: 验证成功，false：验证失败
+     */
+
+    public boolean rsaExternalVerify(RSAPubKey publicKey, byte[] signedData, byte[] rawData) throws AFCryptoException {
+        //摘要
+        byte[] hash = digestForRSASign(-1, publicKey.getBits(), rawData);
+        //验签 公钥解密
+        byte[] bytes = cmd.rsaPublicKeyOperation(0, publicKey, Algorithm.SGD_RSA_SIGN, signedData);
+        //去填充
+        bytes = AFPkcs1Operate.pkcs1DecryptionPrivate(publicKey.getBits(), bytes);
+        return Arrays.equals(bytes, hash);
+    }
+
+//=====================================================SM2计算==============================================
+
+    /**
+     * SM2内部 加密运算
+     *
+     * @param index 密钥索引
+     * @param plain 明文数据
+     * @return 密文数据
+     */
+    public byte[] sm2InternalEncrypt(int index, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (index < 0) {
+            logger.error("SM2 内部密钥加密，索引不能小于0,当前索引：{}", index);
+            throw new AFCryptoException("SM2 内部密钥加密，索引不能小于0,当前索引：" + index);
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM2 内部密钥加密，加密数据不能为空");
+            throw new AFCryptoException("SM2 内部密钥加密，加密数据不能为空");
+        }
+        if (plain.length > 136) {
+            logger.error("SM2 内部密钥加密，加密数据长度不能大于136,当前长度：{}", plain.length);
+            throw new AFCryptoException("SM2 内部密钥加密，加密数据长度不能大于136,当前长度：" + plain.length);
+        }
+        return cmd.sm2Encrypt(index, null, plain);
+    }
+
+    /**
+     * SM2内部 解密运算
+     *
+     * @param index  密钥索引
+     * @param cipher 密文数据
+     * @return 明文数据
+     */
+    public byte[] sm2InternalDecrypt(int index, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (index < 0) {
+            logger.error("SM2 内部密钥解密，索引不能小于0,当前索引：{}", index);
+            throw new AFCryptoException("SM2 内部密钥解密，索引不能小于0,当前索引：" + index);
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM2 内部密钥解密，解密数据不能为空");
+            throw new AFCryptoException("SM2 内部密钥解密，解密数据不能为空");
+        }
+        //获取私钥访问权限
+        getPrivateKeyAccessRight(index, 3, "12345678");
+        return cmd.sm2Decrypt(index, null, cipher);
+    }
+
+    /**
+     * SM2外部 加密运算
+     *
+     * @param pubKey 公钥信息
+     * @param plain  明文数据
+     * @return 密文数据
+     */
+    public byte[] sm2ExternalEncrypt(SM2PublicKey pubKey, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (pubKey == null) {
+            logger.error("SM2 外部密钥加密，公钥信息不能为空");
+            throw new AFCryptoException("SM2 外部密钥加密，公钥信息不能为空");
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM2 外部密钥加密，加密数据不能为空");
+            throw new AFCryptoException("SM2 外部密钥加密，加密数据不能为空");
+        }
+        return cmd.sm2Encrypt(-1, pubKey.encode(), plain);
+    }
+
+    /**
+     * SM2外部 解密运算
+     *
+     * @param prvKey 私钥信息
+     * @param cipher 密文数据
+     * @return 明文数据
+     */
+    public byte[] sm2ExternalDecrypt(SM2PrivateKey prvKey, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (prvKey == null) {
+            logger.error("SM2 外部密钥解密，私钥信息不能为空");
+            throw new AFCryptoException("SM2 外部密钥解密，私钥信息不能为空");
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM2 外部密钥解密，解密数据不能为空");
+            throw new AFCryptoException("SM2 外部密钥解密，解密数据不能为空");
+        }
+        return cmd.sm2Decrypt(-1, prvKey.encode(), cipher);
+    }
+
+
+    /**
+     * SM2 内部密钥 签名运算 私钥签名
+     *
+     * @param index 密钥索引
+     * @param data  原始数据
+     * @return 签名数据
+     */
+    public byte[] sm2InternalSign(int index, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (index < 0) {
+            logger.error("SM2 内部密钥签名，索引不能小于0,当前索引：{}", index);
+            throw new AFCryptoException("SM2 内部密钥签名，索引不能小于0,当前索引：" + index);
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM2 内部密钥签名，签名数据不能为空");
+            throw new AFCryptoException("SM2 内部密钥签名，签名数据不能为空");
+        }
+        //SM3 摘要
+        byte[] digest = new cn.hutool.crypto.digest.SM3().digest(data);
+        //获取私钥访问权限
+        getPrivateKeyAccessRight(index, 3, "12345678");
+        //签名
+        return cmd.sm2Sign(index, null, digest);
+    }
+
+    /**
+     * SM2 内部密钥 验签运算 公钥验签
+     *
+     * @param index 密钥索引
+     * @param data  原始数据
+     * @param sign  签名数据
+     * @return 验签结果
+     */
+    public boolean sm2InternalVerify(int index, byte[] data, byte[] sign) throws AFCryptoException {
+        //参数检查
+        if (index < 0) {
+            logger.error("SM2 内部密钥验签，索引不能小于0,当前索引：{}", index);
+            throw new AFCryptoException("SM2 内部密钥验签，索引不能小于0,当前索引：" + index);
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM2 内部密钥验签，验签数据不能为空");
+            throw new AFCryptoException("SM2 内部密钥验签，验签数据不能为空");
+        }
+        if (sign == null || sign.length == 0) {
+            logger.error("SM2 内部密钥验签，签名数据不能为空");
+            throw new AFCryptoException("SM2 内部密钥验签，签名数据不能为空");
+        }
+        //SM3 摘要
+        byte[] digest = new cn.hutool.crypto.digest.SM3().digest(data);
+        //验签
+        return cmd.sm2Verify(index, null, digest, sign);
+    }
+
+    /**
+     * SM2 外部密钥 签名运算 私钥签名
+     *
+     * @param prvKey 私钥信息
+     * @param data   原始数据
+     * @return 签名数据
+     */
+    public byte[] sm2ExternalSign(SM2PrivateKey prvKey, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (prvKey == null) {
+            logger.error("SM2 外部密钥签名，私钥信息不能为空");
+            throw new AFCryptoException("SM2 外部密钥签名，私钥信息不能为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM2 外部密钥签名，签名数据不能为空");
+            throw new AFCryptoException("SM2 外部密钥签名，签名数据不能为空");
+        }
+        //SM3 摘要
+        byte[] digest = new cn.hutool.crypto.digest.SM3().digest(data);
+        //签名
+        return cmd.sm2Sign(-1, prvKey.encode(), digest);
+    }
+
+    /**
+     * SM2 外部密钥 验签运算 公钥验签
+     *
+     * @param pubKey 公钥信息
+     * @param data   原始数据
+     * @param sign   签名数据
+     * @return 验签结果
+     */
+    public boolean sm2ExternalVerify(SM2PublicKey pubKey, byte[] data, byte[] sign) throws AFCryptoException {
+        //参数检查
+        if (pubKey == null) {
+            logger.error("SM2 外部密钥验签，公钥信息不能为空");
+            throw new AFCryptoException("SM2 外部密钥验签，公钥信息不能为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM2 外部密钥验签，验签数据不能为空");
+            throw new AFCryptoException("SM2 外部密钥验签，验签数据不能为空");
+        }
+        if (sign == null || sign.length == 0) {
+            logger.error("SM2 外部密钥验签，签名数据不能为空");
+            throw new AFCryptoException("SM2 外部密钥验签，签名数据不能为空");
+        }
+        //SM3 摘要
+        byte[] digest = new cn.hutool.crypto.digest.SM3().digest(data);
+        //验签
+        return cmd.sm2Verify(-1, pubKey.encode(), digest, sign);
+    }
+
+
+    //======================================================对称加密======================================================
+
+    /**
+     * SM4 ECB 内部密钥加密
+     *
+     * @param keyIndex 密钥索引
+     * @param plain    原始数据
+     * @return 加密数据
+     */
+    public byte[] sm4InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM4 加密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM4 加密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM4 加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        //合并数据
+        return mergePackage(bytes);
+    }
+
+
+    /**
+     * SM4 ECB 外部密钥加密
+     *
+     * @param key   密钥信息
+     * @param plain 原始数据
+     * @return 加密数据
+     */
+    public byte[] sm4ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length == 0) {
+            logger.error("SM4 加密，密钥信息不能为空");
+            throw new AFCryptoException("SM4 加密，密钥信息不能为空");
+        }
+        if (key.length != 16) {
+            logger.error("SM4 加密，密钥长度必须为16字节");
+            throw new AFCryptoException("SM4 加密，密钥长度必须为16字节");
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM4 加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_ECB, 0, 0, key, null, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+    /**
+     * SM4 ECB 密钥句柄加密
+     */
+    public byte[] sm4HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (plain == null || plain.length == 0) {
+            logger.error("SM4 加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+
+    /**
+     * SM4 CBC 内部密钥加密
+     *
+     * @param keyIndex 密钥索引
+     * @param iv       初始向量
+     * @param plain    原始数据
+     * @return 加密数据
+     */
+    public byte[] sm4InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM4 加密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM4 加密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (iv == null || iv.length == 0) {
+            logger.error("SM4 加密，初始向量不能为空");
+            throw new AFCryptoException("SM4 加密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM4 加密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM4 加密，初始向量长度必须为16字节");
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM4 加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+    /**
+     * SM4 CBC 外部密钥加密
+     *
+     * @param key   密钥信息
+     * @param iv    初始向量
+     * @param plain 原始数据
+     * @return 加密数据
+     */
+    public byte[] sm4ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length == 0) {
+            logger.error("SM4 加密，密钥信息不能为空");
+            throw new AFCryptoException("SM4 加密，密钥信息不能为空");
+        }
+        if (key.length != 16) {
+            logger.error("SM4 加密，密钥长度必须为16字节");
+            throw new AFCryptoException("SM4 加密，密钥长度必须为16字节");
+        }
+        if (iv == null || iv.length == 0) {
+            logger.error("SM4 加密，初始向量不能为空");
+            throw new AFCryptoException("SM4 加密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM4 加密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM4 加密，初始向量长度必须为16字节");
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM4 加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+
+    /**
+     * SM4 CBC 密钥句柄加密
+     */
+    public byte[] sm4HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (iv == null || iv.length == 0) {
+            logger.error("SM4 加密，初始向量不能为空");
+            throw new AFCryptoException("SM4 加密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM4 加密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM4 加密，初始向量长度必须为16字节");
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM4 加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+    /**
+     * SM1 内部加密 ECB
+     */
+    public byte[] sm1InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM1 加密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM1 加密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM1 加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM1_ECB, 1, keyIndex, null, null, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+
+    /**
+     * SM1 外部加密 ECB
+     */
+    public byte[] sm1ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length == 0) {
+            logger.error("SM1 加密，密钥信息不能为空");
+            throw new AFCryptoException("SM1 加密，密钥信息不能为空");
+        }
+        if (key.length != 16) {
+            logger.error("SM1 加密，密钥长度必须为16字节");
+            throw new AFCryptoException("SM1 加密，密钥长度必须为16字节");
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM1 加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM1_ECB, 0, 0, key, null, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+    /**
+     * SM1 密钥句柄加密 ECB
+     */
+    public byte[] sm1HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (plain == null || plain.length == 0) {
+            logger.error("SM1 加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM1_ECB, 2, keyHandle, null, null, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+    /**
+     * SM1 内部加密 CBC
+     */
+    public byte[] sm1InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
+        //参数检查
+
+        if (iv == null || iv.length == 0) {
+            logger.error("SM1 加密，初始向量不能为空");
+            throw new AFCryptoException("SM1 加密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM1 加密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM1 加密，初始向量长度必须为16字节");
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM1 加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM1_CBC, 1, keyIndex, null, iv, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+    /**
+     * SM1 外部加密 CBC
+     */
+    public byte[] sm1ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length == 0) {
+            logger.error("SM1 加密，密钥信息不能为空");
+            throw new AFCryptoException("SM1 加密，密钥信息不能为空");
+        }
+        if (key.length != 16) {
+            logger.error("SM1 加密，密钥长度必须为16字节");
+            throw new AFCryptoException("SM1 加密，密钥长度必须为16字节");
+        }
+        if (iv == null || iv.length == 0) {
+            logger.error("SM1 加密，初始向量不能为空");
+            throw new AFCryptoException("SM1 加密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM1 加密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM1 加密，初始向量长度必须为16字节");
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM1 加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM1_CBC, 0, 0, key, iv, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+    /**
+     * SM1 密钥句柄加密 CBC
+     */
+    public byte[] sm1HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
+        //参数检查
+
+        if (iv == null || iv.length == 0) {
+            logger.error("SM1 加密，初始向量不能为空");
+            throw new AFCryptoException("SM1 加密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM1 加密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM1 加密，初始向量长度必须为16字节");
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM1 加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 加密，加密数据不能为空");
+        }
+        //填充数据
+        plain = Padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM1_CBC, 2, keyHandle, null, iv, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+    //======================================================对称解密======================================================
+
+    /**
+     * SM4 内部密钥 解密 ECB
+     */
+    public byte[] sm4InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM4 解密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM4 解密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM4 解密，加密数据不能为空");
+            throw new AFCryptoException("SM4 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+
+    }
+
+    /**
+     * SM4 外部密钥 解密 ECB
+     */
+    public byte[] sm4ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length == 0) {
+            logger.error("SM4 解密，密钥信息不能为空");
+            throw new AFCryptoException("SM4 解密，密钥信息不能为空");
+        }
+        if (key.length != 16) {
+            logger.error("SM4 解密，密钥长度必须为16字节");
+            throw new AFCryptoException("SM4 解密，密钥长度必须为16字节");
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM4 解密，加密数据不能为空");
+            throw new AFCryptoException("SM4 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_ECB, 0, -1, key, null, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+    }
+
+    /**
+     * SM4 密钥句柄 解密 ECB
+     */
+    public byte[] sm4HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
+        //参数检查
+
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM4 解密，加密数据不能为空");
+            throw new AFCryptoException("SM4 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+    }
+
+    /**
+     * SM4 内部密钥 解密 CBC
+     */
+    public byte[] sm4InternalDecryptCBC(int keyIndex, byte[] iv, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM4 解密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM4 解密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (iv == null || iv.length == 0) {
+            logger.error("SM4 解密，初始向量不能为空");
+            throw new AFCryptoException("SM4 解密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM4 解密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM4 解密，初始向量长度必须为16字节");
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM4 解密，加密数据不能为空");
+            throw new AFCryptoException("SM4 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+    }
+
+    /**
+     * SM4 外部密钥 解密 CBC
+     */
+    public byte[] sm4ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length == 0) {
+            logger.error("SM4 解密，密钥信息不能为空");
+            throw new AFCryptoException("SM4 解密，密钥信息不能为空");
+        }
+        if (key.length != 16) {
+            logger.error("SM4 解密，密钥长度必须为16字节");
+            throw new AFCryptoException("SM4 解密，密钥长度必须为16字节");
+        }
+        if (iv == null || iv.length == 0) {
+            logger.error("SM4 解密，初始向量不能为空");
+            throw new AFCryptoException("SM4 解密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM4 解密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM4 解密，初始向量长度必须为16字节");
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM4 解密，加密数据不能为空");
+            throw new AFCryptoException("SM4 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_CBC, 0, -1, key, iv, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+    }
+
+    /**
+     * SM4 密钥句柄 解密 CBC
+     */
+    public byte[] sm4HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
+        //参数检查
+
+        if (iv == null || iv.length == 0) {
+            logger.error("SM4 解密，初始向量不能为空");
+            throw new AFCryptoException("SM4 解密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM4 解密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM4 解密，初始向量长度必须为16字节");
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM4 解密，加密数据不能为空");
+            throw new AFCryptoException("SM4 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+    }
+
+    /**
+     * SM1 内部解密 ECB
+     */
+    public byte[] sm1InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM1 解密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM1 解密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM1 解密，加密数据不能为空");
+            throw new AFCryptoException("SM1 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM1_ECB, 1, keyIndex, null, null, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+    }
+
+    /**
+     * SM1 外部解密 ECB
+     */
+    public byte[] sm1ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length == 0) {
+            logger.error("SM1 解密，密钥信息不能为空");
+            throw new AFCryptoException("SM1 解密，密钥信息不能为空");
+        }
+        if (key.length != 16) {
+            logger.error("SM1 解密，密钥长度必须为16字节");
+            throw new AFCryptoException("SM1 解密，密钥长度必须为16字节");
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM1 解密，加密数据不能为空");
+            throw new AFCryptoException("SM1 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM1_ECB, 0, -1, key, null, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+    }
+
+    /**
+     * SM1 密钥句柄 解密 ECB
+     */
+    public byte[] sm1HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM1 解密，加密数据不能为空");
+            throw new AFCryptoException("SM1 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM1_ECB, 2, keyHandle, null, null, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+    }
+
+    /**
+     * SM1 内部解密 CBC
+     */
+    public byte[] sm1InternalDecryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM1 解密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM1 解密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (iv == null || iv.length == 0) {
+            logger.error("SM1 解密，初始向量不能为空");
+            throw new AFCryptoException("SM1 解密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM1 解密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM1 解密，初始向量长度必须为16字节");
+        }
+        if (plain == null || plain.length == 0) {
+            logger.error("SM1 解密，加密数据不能为空");
+            throw new AFCryptoException("SM1 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM1_CBC, 1, keyIndex, null, iv, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+
+    }
+
+    /**
+     * SM1 外部解密 CBC
+     */
+    public byte[] sm1ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length == 0) {
+            logger.error("SM1 解密，密钥信息不能为空");
+            throw new AFCryptoException("SM1 解密，密钥信息不能为空");
+        }
+        if (key.length != 16) {
+            logger.error("SM1 解密，密钥长度必须为16字节");
+            throw new AFCryptoException("SM1 解密，密钥长度必须为16字节");
+        }
+        if (iv == null || iv.length == 0) {
+            logger.error("SM1 解密，初始向量不能为空");
+            throw new AFCryptoException("SM1 解密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM1 解密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM1 解密，初始向量长度必须为16字节");
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM1 解密，加密数据不能为空");
+            throw new AFCryptoException("SM1 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM1_CBC, 0, -1, key, iv, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+    }
+
+    /**
+     * SM1 密钥句柄 解密 CBC
+     */
+    public byte[] sm1HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
+        //参数检查
+        if (iv == null || iv.length == 0) {
+            logger.error("SM1 解密，初始向量不能为空");
+            throw new AFCryptoException("SM1 解密，初始向量不能为空");
+        }
+        if (iv.length != 16) {
+            logger.error("SM1 解密，初始向量长度必须为16字节");
+            throw new AFCryptoException("SM1 解密，初始向量长度必须为16字节");
+        }
+        if (cipher == null || cipher.length == 0) {
+            logger.error("SM1 解密，加密数据不能为空");
+            throw new AFCryptoException("SM1 解密，加密数据不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM1_CBC, 2, keyHandle, null, iv, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合包 去除填充
+        return cutting(mergePackage(bytes));
+    }
+    //======================================================批量加密======================================================
+
+    /**
+     * SM4 内部批量加密 ECB
+     */
+    public List<byte[]> sm4InternalBatchEncryptECB(int keyIndex, List<byte[]> plainList) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM4 批量加密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM4 批量加密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM4 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
+        }
+
+
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, plainList);
+        return null;
+    }
+
+
+    //======================================================批量解密======================================================
+
 
     /**
      * SM3哈希 杂凑算法 <br>
@@ -519,395 +1474,96 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return 杂凑值
      * 杂凑异常
      */
-    @Override
+
     public byte[] sm3HashWithPubKey(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException {
         SM2PublicKey publicKey256 = publicKey.to256();
         return sm3.SM3HashWithPublicKey256(data, publicKey256, userID);
     }
 
-    /**
-     * SM3 HMAC  内部密钥<br>
-     *
-     * @param index 内部密钥索引
-     * @param data  待杂凑数据
-     * @return 消息验证码值
-     * 杂凑异常
-     */
-    @Override
-    public byte[] SM3HMac(int index, byte[] data) throws AFCryptoException {
-        return sm3.SM3HMac(index, null, data);
-    }
+
+    //============================================================工具============================================================
+
 
     /**
-     * SM3 HMAC  外部密钥<br>
+     * 获取私钥访问权限
      *
-     * @param key  密钥
-     * @param data 待杂凑数据
-     * @return 消息验证码值
-     * 杂凑异常
+     * @param keyIndex 密钥索引
+     * @param keyType  密钥类型 4:RSA; 3:SM2;
+     * @param passwd   私钥访问权限口令
      */
-    @Override
-    public byte[] SM3HMac(byte[] key, byte[] data) throws AFCryptoException {
-        return sm3.SM3HMac(-1, key, data);
-    }
-
-    /**
-     * SM4 Mac 内部密钥
-     *
-     * @param index 密钥索引
-     * @param data  待计算数据
-     * @param IV    初始向量
-     * @return 消息验证码值
-     */
-    @Override
-    public byte[] sm4Mac(int index, byte[] data, byte[] IV) throws AFCryptoException {
-        logger.info("sm4Mac index: {} data: {} IV: {}", index, data, IV);
-        return sm4.SM4Mac(index, data, IV);
-    }
-
-    /**
-     * SM4 Mac 外部密钥
-     *
-     * @param key  密钥
-     * @param data 待计算数据
-     * @param IV   初始向量
-     * @return 消息验证码值
-     */
-    @Override
-    public byte[] sm4Mac(byte[] key, byte[] data, byte[] IV) throws AFCryptoException {
-        logger.info("sm4Mac key: {} data: {} IV: {}", key, data, IV);
-        return sm4.SM4Mac(key, data, IV);
-    }
-
-    /**
-     * SM4 内部密钥加密
-     *
-     * @param mode  加密模式 ECB/CBC
-     * @param index 密钥索引
-     * @param data  待加密数据
-     * @param IV    初始向量
-     * @return 加密结果
-     */
-    @Override
-    public byte[] sm4Encrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException {
-        logger.info("sm4Encrypt mode: {} index: {} data: {} IV: {}", mode, index, data, IV);
-        List<byte[]> singleData = splitPackage(data); //分包
-        BytesBuffer buffer = new BytesBuffer();
-        switch (mode) {
-            case ECB:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm4.encrypt(index, bytes));
-                }
-                break;
-            case CBC:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm4.encrypt(index, IV, bytes));
-                }
-                break;
-            default:
-                break;
-        }
-        return buffer.toBytes();
-    }
-
-    /**
-     * SM4 内部密钥解密
-     *
-     * @param mode  加密模式 ECB/CBC
-     * @param index 密钥索引
-     * @param data  待解密数据
-     * @param IV    初始向量
-     * @return 解密结果
-     */
-    @Override
-    public byte[] sm4Decrypt(GroupMode mode, int index, byte[] data, byte[] IV) throws AFCryptoException {
-        logger.info("sm4Decrypt mode: {} index: {} data: {} IV: {}", mode, index, data, IV);
-        List<byte[]> singleData = splitPackage(data); //分包
-        BytesBuffer buffer = new BytesBuffer();
-        switch (mode) {
-            case ECB:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm4.decrypt(index, bytes));
-                }
-                break;
-            case CBC:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm4.decrypt(index, bytes, IV));
-                }
-                break;
-            default:
-                break;
-        }
-        return cutting(buffer.toBytes());
-    }
-
-    /**
-     * SM4 外部密钥加密
-     *
-     * @param mode 加密模式 ECB/CBC
-     * @param key  密钥
-     * @param data 待加密数据
-     * @param IV   初始向量
-     * @return 加密结果
-     */
-    @Override
-    public byte[] sm4Encrypt(GroupMode mode, byte[] key, byte[] data, byte[] IV) throws AFCryptoException {
-        logger.info("sm4Encrypt mode: {} key: {} data: {} IV: {}", mode, key, data, IV);
-        List<byte[]> singleData = splitPackage(data); //分包
-        BytesBuffer buffer = new BytesBuffer();
-        switch (mode) {
-            case ECB:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm4.encrypt(key, bytes));
-                }
-                break;
-            case CBC:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm4.encrypt(key, IV, bytes));
-                }
-                break;
-            default:
-                break;
-        }
-        return buffer.toBytes();
-    }
-
-    /**
-     * SM4 外部密钥解密
-     *
-     * @param mode 加密模式 ECB/CBC
-     * @param key  密钥
-     * @param data 待解密数据
-     * @param IV   初始向量
-     * @return 解密结果
-     */
-    @Override
-    public byte[] sm4Decrypt(GroupMode mode, byte[] key, byte[] data, byte[] IV) throws AFCryptoException {
-        logger.info("sm4Decrypt mode: {} key: {} data: {} IV: {}", mode, key, data, IV);
-        List<byte[]> singleData = splitPackage(data); //分包
-        BytesBuffer buffer = new BytesBuffer();
-        switch (mode) {
-            case ECB:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm4.decrypt(key, bytes));
-                }
-                break;
-            case CBC:
-                for (byte[] bytes : singleData) {
-                    buffer.append(sm4.decrypt(key, bytes, IV));
-                }
-                break;
-            default:
-                break;
-        }
-        return cutting(buffer.toBytes());
-    }
-
-    /**
-     * <p> 获取RSA签名公钥信息 </p>
-     *
-     * @param index ：密钥索引
-     * @return 返回RSA签名数据结构
-     */
-    @Override
-    public RSAPubKey getRSASignPublicKey(int index) throws AFCryptoException {
-        byte[] rsaSignPublicKey = cmd.getRSASignPublicKey(index);
-        return new RSAPubKey(rsaSignPublicKey);
-    }
-
-    /**
-     * <p> 获取RSA加密公钥信息 </p>
-     *
-     * @param index ： 密钥索引
-     * @return 返回RSA加密数据结构
-     */
-    @Override
-    public RSAPubKey getRSAEncPublicKey(int index) throws AFCryptoException {
-        byte[] rsaEncPublicKey = cmd.getRSAEncPublicKey(index);
-        return new RSAPubKey(rsaEncPublicKey);
-    }
-
-    /**
-     * <p> 生成RSA密钥对信息 </p>
-     *
-     * @param bits : 位长，1024 or 2048
-     * @return 返回RSA密钥对数据结构
-     */
-    @Override
-    public RSAKeyPair generateRSAKeyPair(int bits) throws AFCryptoException {
-        return cmd.generateRSAKeyPair(bits);
-    }
-
-    /**
-     * <p> RSA外部加密运算 </p>
-     *
-     * @param publicKey ：RSA公钥信息
-     * @param data      : 原始数据
-     * @return ：返回运算结果
-     */
-    @Override
-    public byte[] RSAExternalEncode(RSAPubKey publicKey, byte[] data) throws AFCryptoException {
-        return cmd.RSAExternalEncode(publicKey, data);
-
-    }
-
-    /**
-     * <p> RSA外部解密运算 </p>
-     *
-     * @param prvKey ：RSA私钥信息
-     * @param data   : 加密数据
-     * @return ：返回运算结果
-     */
-    @Override
-    public byte[] RSAExternalDecode(RSAPriKey prvKey, byte[] data) throws AFCryptoException {
-        return cmd.RSAExternalDecode(prvKey, data);
-    }
-
-    /**
-     * <p> RSA外部签名运算 </p>
-     *
-     * @param prvKey ：RSA私钥信息
-     * @param data   : 原始数据
-     * @return ：返回运算结果
-     */
-    @Override
-    public byte[] RSAExternalSign(RSAPriKey prvKey, byte[] data) throws AFCryptoException {
-        return cmd.RSAExternalSign(prvKey, data);
-    }
-
-    /**
-     * <p> RSA外部验证签名运算 </p>
-     *
-     * @param publicKey ：RSA公钥信息
-     * @param data      : 签名数据
-     * @param rawData   : 原始数据
-     * @return ：true: 验证成功，false：验证失败
-     */
-    @Override
-    public boolean RSAExternalVerify(RSAPubKey publicKey, byte[] data, byte[] rawData) throws AFCryptoException {
-        return cmd.RSAExternalVerify(publicKey, data, rawData);
-    }
-
-    /**
-     * <p> RSA内部加密运算 </p>
-     *
-     * @param index ：RSA内部密钥索引
-     * @param data  : 原始数据
-     * @return ：返回运算结果
-     */
-    @Override
-    public byte[] RSAInternalEncode(int index, byte[] data) throws AFCryptoException {
-        return cmd.RSAInternalEncode(index, data);
-    }
-
-    /**
-     * <p> RSA内部解密运算 </p>
-     *
-     * @param index ：RSA内部密钥索引
-     * @param data  : 加密数据
-     * @return ：返回运算结果
-     */
-    @Override
-    public byte[] RSAInternalDecode(int index, byte[] data) throws AFCryptoException {
-        return cmd.RSAInternalDecode(index, data);
-    }
-
-    /**
-     * <p> RSA内部签名运算</p>
-     *
-     * @param index ：RSA内部密钥索引
-     * @param data  : 原始数据
-     * @return ：返回运算结果
-     */
-    @Override
-    public byte[] RSAInternalSign(int index, byte[] data) throws AFCryptoException {
-        return cmd.RSAInternalSign(index, data);
-    }
-
-    /**
-     * <p> RSA内部验证签名运算 </p>
-     *
-     * @param index   ：RSA内部密钥索引
-     * @param data    : 签名数据
-     * @param rawData : 原始数据
-     * @return ：true: 验证成功，false：验证失败
-     */
-    @Override
-    public boolean RSAInternalVerify(int index, byte[] data, byte[] rawData) throws AFCryptoException {
-        return cmd.RSAInternalVerify(index, data, rawData);
-    }
-
-
-    @Override
-    public int getPrivateKeyAccessRight(int keyIndex, int keyType, byte[] passwd) throws AFCryptoException {
+    private void getPrivateKeyAccessRight(int keyIndex, int keyType, String passwd) throws AFCryptoException {
         logger.info("获取获取私钥访问权限 keyIndex:{}, keyType:{}, passwd:{}", keyIndex, keyType, passwd);
-        return keyInfo.getPrivateKeyAccessRight(keyIndex, keyType, passwd);
+        cmd.getPrivateAccess(keyIndex, keyType, passwd);
     }
 
-//    /**
-//     * 获取设备内部对称密钥状态
-//     *
-//     * @return 设备内部对称密钥状态
-//      获取设备内部对称密钥状态异常
-//     */
-//    @Override
-//    public List<AFSymmetricKeyStatus> getSymmetricKeyStatus() throws AFCryptoException {
-//        return keyInfo.getSymmetricKeyStatus(this.agKey);
-//    }
-//
-//    /**
-//     * 导入非易失对称密钥
-//     *
-//     * @param index   密钥索引
-//     * @param keyData 密钥数据(16进制编码)
-//      导入非易失对称密钥异常
-//     */
-//    @Override
-//    public void importKek(int index, byte[] keyData) throws AFCryptoException {
-//        logger.info("导入非易失对称密钥 index:{}, keyData:{}", index, keyData);
-//        if (index < 1 || index > ConstantNumber.MAX_KEK_COUNT) {
-//            throw new AFCryptoException("密钥索引输入错误");
-//        }
-//
-//        if (keyData.length < 8 || keyData.length > 32 || keyData.length % 8 != 0) {
-//            throw new AFCryptoException("密钥值长度不正确，必须为8字节的倍数，最大长度32字节");
-//        }
-//
-//        List<AFSymmetricKeyStatus> list = getSymmetricKeyStatus();
-//        if (list.stream().anyMatch(afs -> afs.getIndex() == index)) {
-//            throw new AFCryptoException("该索引已存在");
-//        }
-//        keyInfo.importKek(index, BytesOperate.hex2bytes(new String(keyData)), this.agKey);
-//    }
-//
-//    /**
-//     * 销毁非易失对称密钥
-//     *
-//     * @param index 密钥索引
-//      销毁非易失对称密钥异常
-//     */
-//    @Override
-//    public void delKek(int index) throws AFCryptoException {
-//
-//    }
-//
-//    /**
-//     * 生成密钥信息
-//     *
-//     * @param keyType 密钥类型 1:对称密钥; 3:SM2密钥 4:RSA密钥;
-//     * @param keyBits 密钥长度 128/256/512/1024/2048/4096
-//     * @param count   密钥数量
-//     * @return 密钥信息列表
-//      生成密钥信息异常
-//     */
-//    @Override
-//    public List<AFKmsKeyInfo> generateKey(int keyType, int keyBits, int count) throws AFCryptoException {
-//        return null;
-//    }
 
+    /**
+     * 合并数组
+     *
+     * @param bytes 数组集合
+     * @return 合并后的数组
+     */
+    private byte[] mergePackage(List<byte[]> bytes) {
+        int length = 0;
+        for (byte[] aByte : bytes) {
+            length += aByte.length;
+        }
+        byte[] result = new byte[length];
+        int index = 0;
+        for (byte[] aByte : bytes) {
+            System.arraycopy(aByte, 0, result, index, aByte.length);
+            index += aByte.length;
+        }
+        return result;
+    }
+
+    /**
+     * RSA签名验签 摘要运算 private 非API
+     *
+     * @param index   ：RSA内部密钥索引 如果是外部密钥，传-1
+     * @param length: 模长 如果是内部密钥，传-1
+     * @param data    : 原始数据
+     * @return ：digest数据
+     */
+    private byte[] digestForRSASign(int index, int length, byte[] data) throws AFCryptoException {
+        logger.info("RSA签名 摘要计算 index:{},priKey:{}", index, length);
+        //获取公钥模长
+        int bits;
+        if (index > 0 && length == -1) { //内部密钥
+            RSAPubKey pubKey = getRSASignPublicKey(index);
+            bits = pubKey.getBits();
+        } else if (-1 == index && length != -1) { //外部密钥
+            bits = length;
+        } else {
+            logger.error("RSA签名摘要失败,参数错误,index:{},length:{}", index, length);
+            throw new AFCryptoException("RSA签名失败,参数错误,index:" + index + ",length:" + length);
+        }
+        logger.info("RSA签名 摘要计算 当前模长:{}", bits);
+        //摘要算法
+        String algorithm = "";
+        if (bits == 1024) {
+            algorithm = "SHA-1";
+        } else if (bits == 2048) {
+            algorithm = "SHA-256";
+        } else {
+            logger.error("RSA签名失败,公钥模长错误,bits(1024|2048):{}", bits);
+            throw new AFCryptoException("RSA签名失败,公钥模长错误,bits(1024|2048):" + bits);
+        }
+
+        //摘要
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance(algorithm);
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("RSA内部签名失败,摘要失败,摘要算法:{}", algorithm);
+            throw new RuntimeException("RSA内部签名失败,摘要失败,摘要算法:" + algorithm);
+        }
+        return md.digest(data);
+    }
 
     /**
      * 填充
+     * 补齐为16的倍数
      *
      * @param data 待填充数据
      * @return 填充后数据

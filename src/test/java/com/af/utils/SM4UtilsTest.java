@@ -1,6 +1,7 @@
 package com.af.utils;
 
 import cn.hutool.core.util.HexUtil;
+import cn.hutool.crypto.digest.SM3;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -30,11 +31,19 @@ class SM4UtilsTest {
 //        System.out.println("解密后的数据：" + Arrays.toString(decrypt1));
 //
 
-        byte[] key = HexUtil.decodeHex("8e66920c829245dd715215146d5e9f79");
-        byte[] decrypt1 = SM4Utils.decrypt(HexUtil.decodeHex("c9b3a739de5838ac23b0bca7f0dfa52f"), key);
+        byte[] key = HexUtil.decodeHex("d021a872fecbf54b9d11b661220b2d05");
+        byte[] decrypt1 = SM4Utils.decrypt(HexUtil.decodeHex("6512c8c290e8fc80c555d72f57703512"), key);
         System.out.println("解密后的数据：" + Arrays.toString(decrypt1));
 
 
+    }
+
+
+    @Test
+    void testEncrypt2() {
+        byte[] param = "6512c8c290e8fc80c56512c8c290e8fc80c56512c8c290e8fc80c56512c8c290e8fc80c56512c8c290e8fc80c5".getBytes();
+        byte[] digest = new SM3().digest(param);
+        System.out.println("加密后的数据：" +digest.length);
     }
 
 }

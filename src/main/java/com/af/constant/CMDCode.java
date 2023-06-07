@@ -82,21 +82,6 @@ public enum CMDCode {
     // -------------------签名验签服务器----------------------
 
 
-    public static final int CMD_GENERATEKEYWITHIPK_RSA = 0x00040003;  //生成 会话密钥
-    public static final int CMD_GENERATEKEYWITHEPK_RSA = 0x00040003;
-    public static final int CMD_IMPORTKEYWITHISK_RSA = 0x00040004;  //导入会话密钥
-
-
-    public static final int CMD_GENERATEKEYWITHIPK_ECC = 0x00040003;
-    public static final int CMD_GENERATEKEYWITHEPK_ECC = 0x00040003;
-    public static final int CMD_IMPORTKEYWITHISK_ECC = 0x00040004;
-    public static final int CMD_EXCHANGEDIGITENVELOPEBASEONECC = 0x00040005;
-    public static final int CMD_GENERATEAGREEMENTDATAWITHECC = 0x00040006;
-    public static final int CMD_GENERATEAGREEMENTDATAANDKEYWITHECC = 0x00040006;
-    public static final int CMD_GENERATEKEYWITHECC = 0x00040006;
-
-
-    public static final int CMD_DESTROYKEY = 0x0004000a;
     public static final int CMD_GENERATEKEYWITHKEK = 0x0004000b;  //生成会话密钥
     public static final int CMD_IMPORTKEYWITHKEK = 0x0004000c;
 
@@ -130,9 +115,6 @@ public enum CMDCode {
 
     public static final int EXPORT_PUBLIC_KEY = 0x00040001;     //导出公钥
 
-    public static final int RSA_PUBLIC_KEY_OPERATE = 0x00080001;  //RSA公钥运算
-
-    public static final int RSA_PRIVATE_KEY_OPERATE = 0x00080002;  //RSA私钥运算
 
     public static final int CMD_VERIFY_CERT = 0x00010007;   //验证证书
 
@@ -147,5 +129,25 @@ public enum CMDCode {
     public static final int CMD_IMPORTKEY_ECC = 0x00040004;  //导入会话密钥
 
     public static final int CMD_CONVERTKEY_ECC = 0x00040005; //数字信封转换
+
+    public static final int CMD_GENERATE_KEY = 0x00040003; //生成会话密钥
+
+    public static final int CMD_IMPORT_KEY = 0x00040004;  //导入会话密钥
+
+    public static final int CMD_DESTROYKEY = 0x0004000a;    //释放密钥信息
+
+    public static final int CMD_AGREEMENT = 0x00040006; //生成协商数据
+
+    public static final int RSA_PUBLIC_KEY_OPERATE = 0x00080001;  //RSA公钥运算
+
+    public static final int RSA_PRIVATE_KEY_OPERATE = 0x00080002;  //RSA私钥运算
+
+    public static final int SM2_SIGN = 0x00080003;   //SM2签名
+
+    public static final int SM2_VERIFY = 0x00080004;  //SM2验签
+
+    public static final int SM2_ENCRYPT = 0x00080005; //SM2加密
+
+    public static final int SM2_DECRYPT = 0x00080006; //SM2解密
 }
 

@@ -18,23 +18,14 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SM2PrivateKey implements Key {
 
-    private int length; //模长 256/512
-    private byte[] D;   //私钥D
+    private int length; //模长 恒为256
+    private byte[] D = new byte[64];   //私钥D
 
     public SM2PrivateKey(byte[] data) {
         this.decode(data);
     }
 
     public SM2PrivateKey(int length, byte[] d) {
-        //如果length不是256或者512位 抛出异常
-        if (length != 256 && length != 512) {
-            throw new IllegalArgumentException("SM2PriKey长度(length)必须是256或者512,当前长度为:" + length + "位");
-        }
-        //如果d长度不等于length/8
-        if (d.length != length / 8) {
-            throw new IllegalArgumentException("SM2PriKey-D数组长度必须位32或者64字节,当前长度为:" + d.length + "字节");
-        }
-        this.length = length;
         D = d;
     }
 
@@ -44,9 +35,6 @@ public class SM2PrivateKey implements Key {
      * @param length 密钥长度 必须是256或者512
      */
     public void setLength(int length) {
-        if (length != 256 && length != 512) {
-            throw new IllegalArgumentException("SM2PriKey长度(length)必须是256或者512,当前长度为:" + length + "位");
-        }
         this.length = length;
     }
 
@@ -56,10 +44,6 @@ public class SM2PrivateKey implements Key {
      * @param d 私钥D
      */
     public void setD(byte[] d) {
-        if (d.length != 32 && d.length != 64) {
-            throw new IllegalArgumentException("SM2PriKey-D数组长度必须位32或者64字节,当前长度为:" + d.length + "字节");
-        }
-        this.length = d.length * 8;
         D = d;
     }
 
@@ -82,24 +66,22 @@ public class SM2PrivateKey implements Key {
     @Override
     public byte[] encode() {
         BytesBuffer buf = new BytesBuffer();
-        buf.append(this.length);
+        buf.append(256);
         buf.append(this.D);
         return buf.toBytes();
     }
 
     @Override
     public void decode(byte[] encodedKey) {
-
-        //传入字节生成
+        //传入字节生成 不带长度 4+n 只有n
         if (encodedKey.length == 32) {
             this.length = 256;
             System.arraycopy(encodedKey, 0, this.D, 0, EXP_ECCref_MAX_LEN);
         }
-
         //网络通信返回
-        this.length = (encodedKey.length - 4) * 8;  //前4个字节是length 后面的是D,此变量为模长 256/512
-        this.D = new byte[this.length / 8];
-        System.arraycopy(encodedKey, 4, this.D, 0, this.length / 8);
+        this.length = BytesOperate.bytes2int(encodedKey, 0);
+        this.D = new byte[64];
+        System.arraycopy(encodedKey, 4, this.D, 0, this.D.length);
     }
 
     //size
@@ -133,6 +115,6 @@ public class SM2PrivateKey implements Key {
         }
         byte[] d = new byte[64];
         System.arraycopy(D, 0, d, 32, D.length);
-        return new SM2PrivateKey(512, d);
+        return new SM2PrivateKey(256, d);
     }
 }

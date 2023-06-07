@@ -24,22 +24,22 @@ public enum Algorithm {
     //11 SGD_RSA_SIGN 0x00010010 RSA 非对称签名算法
     //12 SGD_RSA_ENC 0x00010020 RSA 非对称加密算法
 
-    SDG_SM1_ECB("SM1 ECB", 0x00000101),
-    SDG_SM1_CBC("SM1 CBC", 0x00000102),
+    SGD_SM1_ECB("SM1 ECB", 0x00000101),
+    SGD_SM1_CBC("SM1 CBC", 0x00000102),
 
-    SDG_SM2("SM2", 0x00020100),       //椭圆曲线算法
-    SDG_SM2_1("SM2_1", 0x00020200),   //SM2签名
-    SDG_SM2_2("SM2_2", 0x00020400),   //SM2密钥交换
-    SDG_SM2_3("SM2_3", 0x00020800),   //SM2加密
+    SGD_SM2("SM2", 0x00020100),       //椭圆曲线算法
+    SGD_SM2_1("SM2_1", 0x00020200),   //SM2签名
+    SGD_SM2_2("SM2_2", 0x00020400),   //SM2密钥交换
+    SGD_SM2_3("SM2_3", 0x00020800),   //SM2加密
 
-    SDG_SM3("SM3", 0x00000001),
+    SGD_SM3("SM3", 0x00000001),
 
-    SDG_SMS4_ECB("SM4 ECB", 0x00000401),
-    SDG_SMS4_CBC("SM4 CBC", 0x00000402),
+    SGD_SMS4_ECB("SM4 ECB", 0x00000401),
+    SGD_SMS4_CBC("SM4 CBC", 0x00000402),
 
-    SDG_RSA("RSA", 0x00010000),
-    SDG_RSA_SIGN("RSA SIGN", 0x00010010),  //RSA签名
-    SDG_RSA_ENC("RSA ENC", 0x00010020);    //RSA加密
+    SGD_RSA("RSA", 0x00010000),
+    SGD_RSA_SIGN("RSA SIGN", 0x00010010),  //RSA签名
+    SGD_RSA_ENC("RSA ENC", 0x00010020);    //RSA加密
 
     private final String name;
     private final int value;

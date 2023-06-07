@@ -2,9 +2,7 @@ package com.af.utils.pkcs;
 
 public class AFPkcs1Operate {
 
-    public AFPkcs1Operate() {
-    }
-
+    //签名填充
     public static byte[] pkcs1EncryptionPrivate(int modulus, byte[] inData) {
         int maxInDataLen = (modulus / 8) - 11;
         if (inData.length > maxInDataLen) {
@@ -29,6 +27,7 @@ public class AFPkcs1Operate {
         return outData;
     }
 
+    //验签去填充
     public static byte[] pkcs1DecryptionPrivate(int modulus, byte[] inData) {
         if (inData.length != (modulus / 8)) {
             throw new RuntimeException("输入数据长度错误");
@@ -63,6 +62,7 @@ public class AFPkcs1Operate {
         return out;
     }
 
+    //加密填充
     public static byte[] pkcs1EncryptionPublicKey(int modulus, byte[] inData) {
         int maxInDataLen = (modulus / 8) - 11;
         if (inData.length > maxInDataLen) {
@@ -90,6 +90,7 @@ public class AFPkcs1Operate {
         return outData;
     }
 
+    //解密去填充
     public static byte[] pkcs1DecryptPublicKey(int modulus, byte[] inData) {
         if (inData.length != modulus / 8) {
             throw new RuntimeException("输入数据长度错误");

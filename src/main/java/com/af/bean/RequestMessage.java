@@ -1,18 +1,11 @@
 package com.af.bean;
 
 import cn.hutool.core.util.HexUtil;
-import com.af.constant.CMDCode;
-import com.af.crypto.algorithm.sm4.SM4;
-import com.af.device.impl.AFTSDevice;
 import com.af.utils.BytesBuffer;
 import com.af.utils.SM4Utils;
 import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -50,7 +43,7 @@ public class RequestMessage {
     public RequestMessage(int cmd, byte[] data, byte[] agKey) {
         if (null == agKey) {
             this.isEncrypt = false;
-        }else {
+        } else {
             this.agKey = agKey;
         }
 
@@ -91,9 +84,18 @@ public class RequestMessage {
     }
 
     public String toString() {
+        String data;
+        if (null == this.data || this.data.length == 0) {  // 无数据
+            data = "";
+        } else if (this.data.length > 128) {               // 数据过长只显示长度
+            data = Integer.toString(this.data.length);
+        } else {                                           // 数据正常
+            data = HexUtil.encodeHexStr(this.data);
+        }
+
         return "RequestMessage(header=" + this.getHeader()
                 + ", isEncrypt=" + this.isEncrypt()
-                + ", data=" + HexUtil.encodeHexStr(null == this.getData() ? "".getBytes() : this.getData())
+                + ", data=" + data
                 + ")";
     }
 }

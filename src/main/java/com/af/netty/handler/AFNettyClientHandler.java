@@ -1,6 +1,5 @@
 package com.af.netty.handler;
 
-import cn.hutool.core.util.HexUtil;
 import com.af.netty.AFNettyClient;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
@@ -26,8 +25,6 @@ public class AFNettyClientHandler extends ChannelInboundHandlerAdapter {
     private final AFNettyClient nettyClient;
     public static byte[] response;
 
-    private boolean ok = false;
-
     public AFNettyClientHandler(AFNettyClient nettyClient) {
         this.nettyClient = nettyClient;
     }
@@ -40,17 +37,13 @@ public class AFNettyClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        logger.info("入站<=" + HexUtil.encodeHexStr((byte[]) msg));
-        response = null; // 清空上次的响应
+        logger.debug("入站<=" + msg);
         response = (byte[]) msg;
         //通知客户端，响应已经接收完毕
         synchronized (nettyClient) {
             nettyClient.notifyAll();
         }
-
     }
-
-
 
 
 }

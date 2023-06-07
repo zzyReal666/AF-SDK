@@ -108,10 +108,6 @@ public class SM2PrivateKeyStructure implements ASN1Encodable {
 
 
 
-
-
-
-
     @Override
     public ASN1Primitive toASN1Primitive() {
         return seq;

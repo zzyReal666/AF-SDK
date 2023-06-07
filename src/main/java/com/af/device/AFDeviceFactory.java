@@ -14,22 +14,18 @@ public class AFDeviceFactory {
 
     //密码机
     public static AFHsmDevice getAFHsmDevice(String host, int port, String passwd) {
-        return AFHsmDevice.getInstance(host, port, passwd);
+        return AFHsmDevice.getInstance(host, port, passwd).setAgKey();
     }
-
-
 
     //时间戳服务器
     public static AFTSDevice getAFTSDevice(String host, int port, String passwd) {
-        return AFTSDevice.getInstance(host, port, passwd);
+        return AFTSDevice.getInstance(host, port, passwd).setAgKey();
     }
-
 
     //签名验签服务器
     public static AFSVDevice getAFSVDevice(String host, int port, String passwd) {
         return AFSVDevice.getInstance(host, port, passwd).setAgKey();
     }
-
 
 
 }
