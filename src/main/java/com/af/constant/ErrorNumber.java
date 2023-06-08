@@ -12,7 +12,6 @@ public class ErrorNumber {
      * 返回的错误码转为错误信息
      *
      * @param RetCode 错误码
-     * @return
      */
     public static String toErrorInfo(int RetCode) {
         return err.containsKey(RetCode) ?
