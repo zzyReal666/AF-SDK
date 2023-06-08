@@ -100,13 +100,13 @@ public enum CMDCode {
     public static final int CMD_DELETE_CERT = 0x00010006;
     public static final int CMD_VERIFY_CERT_BY_CRL = 0x00010008;
     public static final int CMD_GET_CERT_INFO = 0x00010009;    //获取证书信息
-    public static final int CMD_GET_CERT_EXT_TYPE_INFO = 0x0001000A;
-    public static final int CMD_GET_SERVER_CERT_INFO = 0x0001000B;
-    public static final int CMD_GET_INSTANCE = 0x0001000C;
+    public static final int CMD_GET_CERT_EXT_TYPE_INFO = 0x0001000A;  //获取证书扩展信息
+    public static final int CMD_GET_SERVER_CERT_INFO = 0x0001000B;   //获取服务器证书信息 设备证书
+    public static final int CMD_GET_INSTANCE = 0x0001000C;   //获取应用实体信息
     public static final int CMD_GET_CA_CERT_ALTNAME = 0x0001000D;
-    public static final int CMD_GET_CERT_BY_POLICY_NAME = 0x0001000F;
-    public static final int CMD_SM2_SIGNDATA_ENCODE = 0x00010821;
-    public static final int CMD_SM2_SIGNDATA_DECODE = 0x00010822;
+    public static final int CMD_GET_CERT_BY_POLICY_NAME = 0x0001000F;  //获取应用实体证书数据
+    public static final int CMD_SM2_SIGNDATA_ENCODE = 0x00010821;  //PKCS7 签名信息编码
+    public static final int CMD_SM2_SIGNDATA_DECODE = 0x00010822;  //PKCS7 签名信息解码
     public static final int CMD_SM2_SIGNDATA_VERIFY = 0x00010823;
     public static final int CMD_CLOSE = 0x0002000B;
 
@@ -149,5 +149,11 @@ public enum CMDCode {
     public static final int SM2_ENCRYPT = 0x00080005; //SM2加密
 
     public static final int SM2_DECRYPT = 0x00080006; //SM2解密
+
+    public static final int CMD_HEART_BEAT = 0x00500001; //心跳包
+
+    public static final int CMD_GET_CONNECT_COUNT = 0x00500002; //获取连接数
+
+    public static final int CMD_GET_CA_CERT_BY_DN = 0x0001000D;  //根据证书的 DN 信息获取 CA 证书
 }
 

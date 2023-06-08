@@ -3,6 +3,7 @@ package com.af.device.impl;
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
+import com.af.constant.TSMInfoFlag;
 import com.af.device.DeviceInfo;
 import com.af.device.IAFTSDevice;
 import com.af.exception.AFCryptoException;
@@ -86,11 +87,11 @@ public class AFTSDevice implements IAFTSDevice {
      * @param data       预加盖时间戳的用户信息
      * @param extendInfo 扩展信息（DER编码）
      * @param reqType    时间戳服务类型 0代表响应包含TSA证书 1代表响应不包含TSA证书
-     * @param hashAlg    杂凑算法标识
+     * @param hashAlg    杂凑算法标识 SGD_SM3
      * @return ASN1结构请求体
      */
     @Override
-    public byte[] tsRequest(byte[] data, byte[] extendInfo, int reqType, int hashAlg) throws AFCryptoException {
+    public byte[] tsRequest(byte[] data, byte[] extendInfo, int reqType, int hashAlg) throws AFCryptoException { //success
         logger.info("时间戳请求, data: {}, extendInfo: {}, reqType: {}, hashAlg: {}", data, extendInfo, reqType, hashAlg);
         byte[] param = new BytesBuffer()
                 .append(data.length)
@@ -114,7 +115,7 @@ public class AFTSDevice implements IAFTSDevice {
      * 时间戳响应
      *
      * @param asn1Request ASN1结构请求体
-     * @param signAlg     签名算法标识
+     * @param signAlg     签名算法标识 SGD_SM3
      * @return DER编码时间戳
      */
     @Override
@@ -154,8 +155,8 @@ public class AFTSDevice implements IAFTSDevice {
      * 验证时间戳
      *
      * @param tsValue DER编码时间戳
-     * @param hashAlg 杂凑算法标识
-     * @param signAlg 签名算法标识
+     * @param hashAlg 杂凑算法标识 SGD_SM3
+     * @param signAlg 签名算法标识 SGD_SM2|SGD_SM2_1|SGD_SM2_2|SGD_SM2_3
      * @param tsaCert TSA证书，对于不包含TSA证书的时间戳，需要指定证书
      * @return 验证结果
      */
@@ -213,12 +214,12 @@ public class AFTSDevice implements IAFTSDevice {
      * @return 指定信息
      */
     @Override
-    public byte[] getTsDetail(byte[] tsValue, int subject) throws AFCryptoException {
-        logger.info("获取指定的时间戳详细信息, tsValue: {}, subject: {}", tsValue, subject);
+    public byte[] getTsDetail(byte[] tsValue, TSMInfoFlag subject) throws AFCryptoException {
+        logger.info("获取指定的时间戳详细信息, tsValue: {}, subject: {}", tsValue, subject.getValue());
         byte[] param = new BytesBuffer()
                 .append(tsValue.length)
                 .append(tsValue)
-                .append(subject)
+                .append(subject.getValue())
                 .toBytes();
         param = SM4Utils.encrypt(ROOT_KEY, param);
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GET_TS_DETAIL, param, agKey);

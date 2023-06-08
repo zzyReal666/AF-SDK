@@ -127,6 +127,28 @@ public interface IAFDevice {
         if (send.getHeader().getErrorCode() != 0) {
             throw new DeviceException("关闭连接失败，错误码：" + send.getHeader().getErrorCode() + ",错误信息：" + send.getHeader().getErrorInfo());
         }
-
     }
+
+    //心跳
+    default int heartBeat(AFNettyClient client,int id) {
+        byte[] param = new BytesBuffer().append(id).toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_HEART_BEAT,param,null).setIsEncrypt(false);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            throw new DeviceException("心跳失败，错误码：" + res.getHeader().getErrorCode() + ",错误信息：" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readInt();
+    }
+
+    //获取连接个数
+    default int getConnectCount(AFNettyClient client) {
+        RequestMessage req = new RequestMessage(CMDCode.CMD_GET_CONNECT_COUNT).setIsEncrypt(false);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            throw new DeviceException("获取连接个数失败，错误码：" + res.getHeader().getErrorCode() + ",错误信息：" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readInt();
+    }
+
+
 }

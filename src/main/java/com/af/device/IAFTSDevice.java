@@ -1,5 +1,6 @@
 package com.af.device;
 
+import com.af.constant.TSMInfoFlag;
 import com.af.exception.AFCryptoException;
 
 /**
@@ -73,7 +74,7 @@ public interface IAFTSDevice extends IAFDevice {
      * @param subject 时间戳详细信息的项目编号
      * @return 指定信息
      */
-     byte[] getTsDetail(byte[] tsValue, int subject) throws AFCryptoException;
+     byte[] getTsDetail(byte[] tsValue, TSMInfoFlag subject) throws AFCryptoException;
 
 
 }

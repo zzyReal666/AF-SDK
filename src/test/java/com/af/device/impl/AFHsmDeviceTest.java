@@ -1,6 +1,5 @@
 package com.af.device.impl;
 
-import cn.hutool.core.io.FileUtil;
 import com.af.constant.Algorithm;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
@@ -9,22 +8,35 @@ import com.af.crypto.key.symmetricKey.SessionKey;
 import com.af.device.AFDeviceFactory;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPubKey;
+import com.af.struct.impl.agreementData.AgreementData;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Logger;
 
-class
-AFHsmDeviceTest {
+class AFHsmDeviceTest {
 
+    static Logger logger = Logger.getLogger("AFHsmDeviceTest");
     static AFHsmDevice device;
-//    static byte[] data = "123456788765432".getBytes(StandardCharsets.UTF_8);
+    static byte[] data = "123456788765432".getBytes(StandardCharsets.UTF_8);
 
-    static byte[] data = FileUtil.readBytes("D:\\test.zip");
+//    static byte[] data = FileUtil.readBytes("D:\\test.zip");
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
         device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8013, "abcd1234");
+    }
+
+    @AfterAll
+    static void tearDown() throws Exception {
+        logger.info("发送关闭连接请求");
+        device.close(AFSVDevice.client);
+        logger.info("已经关闭连接");
     }
 
 
@@ -145,15 +157,47 @@ AFHsmDeviceTest {
 
     }
 
+    //生成协商数据 生成协商数据及密钥 生成协商密钥
+    @Test
+    void testGenerateAgreementData() throws Exception {
+        AgreementData agreementData = new AgreementData();
+        agreementData.setInitiatorId("szaf_zzy".getBytes());
 
-    //数字信封转换
+        //生成协商数据
+        AgreementData agreementData1 = device.generateAgreementData(1, ModulusLength.LENGTH_256, agreementData);
+        System.out.println("协商数据:" + agreementData1);
+
+        agreementData1.setResponderId("2".getBytes());
+
+        //生成协商数据及密钥
+        AgreementData agreementData2 = device.generateAgreementDataAndKey(1, ModulusLength.LENGTH_256, agreementData);
+        System.out.println("协商数据及密钥:" + agreementData2);
+        //生成协商密钥
+        AgreementData agreementData3 = device.generateAgreementKey(agreementData1);
+        System.out.println("协商密钥:" + agreementData3);
+
+    }
+
+
+    /**
+     * 数字信封转换
+     *
+     * @deprecated 数据本身由内部密钥加密 传入的公钥是外部公钥 计算过程为:内部私钥先解密,再使用我们传入的外部公钥加密,返回加密后的数据
+     */
     @Test
     void testEnvelope() throws Exception {
-        //SM2
         //生成SM2密钥对
         SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(1);
         System.out.println("SM2密钥对:" + sm2KeyPair);
         //使用内部密钥加密data
+        byte[] encodeData = device.sm2InternalEncrypt(1, data);
+
+        //数字信封转换
+        byte[] envelope = device.convertEnvelope(Algorithm.SGD_SM2_3, 1, sm2KeyPair.getPubKey().encode(), encodeData);
+
+        //使用自己的密钥解密
+        byte[] bytes = device.sm2ExternalDecrypt(sm2KeyPair.getPriKey(), envelope);
+        assert Arrays.equals(data, bytes);
     }
 
     //RSA操作 success
@@ -222,14 +266,14 @@ AFHsmDeviceTest {
         byte[] iv = device.getRandom(16);
 
         //SM4 ECB 内部
-        byte[] encodeData = device.sm4InternalEncryptECB(1,data);
-        byte[] decodeData = device.sm4InternalDecryptECB(1,encodeData);
-        assert Arrays.equals(data,decodeData);
+        byte[] encodeData = device.sm4InternalEncryptECB(1, data);
+        byte[] decodeData = device.sm4InternalDecryptECB(1, encodeData);
+        assert Arrays.equals(data, decodeData);
 
         //SM4 ECB 外部
-        byte[] encodeData1 = device.sm4ExternalEncryptECB(key,data);
-        byte[] decodeData1 = device.sm4ExternalDecryptECB(key,encodeData1);
-        assert Arrays.equals(data,decodeData1);
+        byte[] encodeData1 = device.sm4ExternalEncryptECB(key, data);
+        byte[] decodeData1 = device.sm4ExternalDecryptECB(key, encodeData1);
+        assert Arrays.equals(data, decodeData1);
 
         //SM4 ECB 密钥句柄
         SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
@@ -237,17 +281,17 @@ AFHsmDeviceTest {
         byte[] bytes1 = device.sm4HandleDecryptECB(key1.getId(), bytes);
         //释放
         device.releaseSessionKey(key1.getId());
-        assert Arrays.equals(data,bytes1);
+        assert Arrays.equals(data, bytes1);
 
         //SM4 CBC 内部
-        byte[] encodeData2 = device.sm4InternalEncryptCBC(1,iv,data);
-        byte[] decodeData2 = device.sm4InternalDecryptCBC(1,iv,encodeData2);
-        assert Arrays.equals(data,decodeData2);
+        byte[] encodeData2 = device.sm4InternalEncryptCBC(1, iv, data);
+        byte[] decodeData2 = device.sm4InternalDecryptCBC(1, iv, encodeData2);
+        assert Arrays.equals(data, decodeData2);
 
         //SM4 CBC 外部
-        byte[] encodeData3 = device.sm4ExternalEncryptCBC(key,iv,data);
-        byte[] decodeData3 = device.sm4ExternalDecryptCBC(key,iv,encodeData3);
-        assert Arrays.equals(data,decodeData3);
+        byte[] encodeData3 = device.sm4ExternalEncryptCBC(key, iv, data);
+        byte[] decodeData3 = device.sm4ExternalDecryptCBC(key, iv, encodeData3);
+        assert Arrays.equals(data, decodeData3);
 
         //SM4 CBC 密钥句柄
         SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
@@ -255,10 +299,7 @@ AFHsmDeviceTest {
         byte[] bytes3 = device.sm4HandleDecryptCBC(key2.getId(), iv, bytes2);
         //释放密钥句柄
         device.releaseSessionKey(key2.getId());
-        assert Arrays.equals(data,bytes3);
-
-
-
+        assert Arrays.equals(data, bytes3);
 
 
     }
@@ -271,14 +312,14 @@ AFHsmDeviceTest {
         //iv
         byte[] iv = device.getRandom(16);
         //SM1 ECB 内部
-        byte[] encodeData4 = device.sm1InternalEncryptECB(1,data);
-        byte[] decodeData4 = device.sm1InternalDecryptECB(1,encodeData4);
-        assert Arrays.equals(data,decodeData4);
+        byte[] encodeData4 = device.sm1InternalEncryptECB(1, data);
+        byte[] decodeData4 = device.sm1InternalDecryptECB(1, encodeData4);
+        assert Arrays.equals(data, decodeData4);
 
         //SM1 ECB 外部
-        byte[] encodeData5 = device.sm1ExternalEncryptECB(key,data);
-        byte[] decodeData5 = device.sm1ExternalDecryptECB(key,encodeData5);
-        assert Arrays.equals(data,decodeData5);
+        byte[] encodeData5 = device.sm1ExternalEncryptECB(key, data);
+        byte[] decodeData5 = device.sm1ExternalDecryptECB(key, encodeData5);
+        assert Arrays.equals(data, decodeData5);
 
         //SM1 ECB 密钥句柄
         SessionKey key3 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
@@ -286,18 +327,18 @@ AFHsmDeviceTest {
         byte[] bytes5 = device.sm1HandleDecryptECB(key3.getId(), bytes4);
         //释放密钥句柄
         device.releaseSessionKey(key3.getId());
-        assert Arrays.equals(data,bytes5);
+        assert Arrays.equals(data, bytes5);
 
 
         //SM1 CBC 内部
-        byte[] encodeData6 = device.sm1InternalEncryptCBC(1,iv,data);
-        byte[] decodeData6 = device.sm1InternalDecryptCBC(1,iv,encodeData6);
-        assert Arrays.equals(data,decodeData6);
+        byte[] encodeData6 = device.sm1InternalEncryptCBC(1, iv, data);
+        byte[] decodeData6 = device.sm1InternalDecryptCBC(1, iv, encodeData6);
+        assert Arrays.equals(data, decodeData6);
 
         //SM1 CBC 外部
-        byte[] encodeData7 = device.sm1ExternalEncryptCBC(key,iv,data);
-        byte[] decodeData7 = device.sm1ExternalDecryptCBC(key,iv,encodeData7);
-        assert Arrays.equals(data,decodeData7);
+        byte[] encodeData7 = device.sm1ExternalEncryptCBC(key, iv, data);
+        byte[] decodeData7 = device.sm1ExternalDecryptCBC(key, iv, encodeData7);
+        assert Arrays.equals(data, decodeData7);
 
         //SM1 CBC 密钥句柄
         SessionKey key4 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
@@ -305,11 +346,251 @@ AFHsmDeviceTest {
         byte[] bytes7 = device.sm1HandleDecryptCBC(key4.getId(), iv, bytes6);
         //释放密钥句柄
         device.releaseSessionKey(key4.getId());
-        assert Arrays.equals(data,bytes7);
+        assert Arrays.equals(data, bytes7);
     }
 
 
-    //批量对称加解密
-//    @Test
+    //Sm4 批量
+    @Test
+    void testSm4Batch() throws Exception {
+        //key
+        byte[] key = device.getRandom(16);
+        //iv
+        byte[] iv = device.getRandom(16);
 
+        List<byte[]> list = new ArrayList<>();
+        list.add(data);
+        list.add(data);
+        list.add(data);
+
+        //SM4 ECB 内部
+        List<byte[]> encodeList = device.sm4InternalBatchEncryptECB(1, list);
+        List<byte[]> decodeList = device.sm4InternalBatchDecryptECB(1, encodeList);
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList.get(i));
+        }
+
+        //SM4 ECB 外部
+        List<byte[]> encodeList1 = device.sm4ExternalBatchEncryptECB(key, list);
+        List<byte[]> decodeList1 = device.sm4ExternalBatchDecryptECB(key, encodeList1);
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList1.get(i));
+        }
+
+        //SM4 ECB 密钥句柄
+        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+        List<byte[]> encodeList2 = device.sm4HandleBatchEncryptECB(key1.getId(), list);
+        List<byte[]> decodeList2 = device.sm4HandleBatchDecryptECB(key1.getId(), encodeList2);
+        //释放密钥句柄
+        device.releaseSessionKey(key1.getId());
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList2.get(i));
+        }
+
+        //SM4 CBC 内部
+        List<byte[]> encodeList3 = device.sm4InternalBatchEncryptCBC(1, iv, list);
+        List<byte[]> decodeList3 = device.sm4InternalBatchDecryptCBC(1, iv, encodeList3);
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList3.get(i));
+        }
+
+        //SM4 CBC 外部
+        List<byte[]> encodeList4 = device.sm4ExternalBatchEncryptCBC(key, iv, list);
+        List<byte[]> decodeList4 = device.sm4ExternalBatchDecryptCBC(key, iv, encodeList4);
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList4.get(i));
+        }
+
+        //SM4 CBC 密钥句柄
+        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+        List<byte[]> encodeList5 = device.sm4HandleBatchEncryptCBC(key2.getId(), iv, list);
+        List<byte[]> decodeList5 = device.sm4HandleBatchDecryptCBC(key2.getId(), iv, encodeList5);
+        //释放密钥句柄
+        device.releaseSessionKey(key2.getId());
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList5.get(i));
+        }
+
+
+    }
+
+    //SM1 批量
+    @Test
+    void testSm1Batch() throws Exception {
+        //key
+        byte[] key = device.getRandom(16);
+        //iv
+        byte[] iv = device.getRandom(16);
+
+        List<byte[]> list = new ArrayList<>();
+        list.add(data);
+        list.add(data);
+        list.add(data);
+
+        //SM1 ECB 内部
+        List<byte[]> encodeList = device.sm1InternalBatchEncryptECB(1, list);
+        List<byte[]> decodeList = device.sm1InternalBatchDecryptECB(1, encodeList);
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList.get(i));
+        }
+
+        //SM1 ECB 外部
+        List<byte[]> encodeList1 = device.sm1ExternalBatchEncryptECB(key, list);
+        List<byte[]> decodeList1 = device.sm1ExternalBatchDecryptECB(key, encodeList1);
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList1.get(i));
+        }
+
+        //SM1 ECB 密钥句柄
+        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+        List<byte[]> encodeList2 = device.sm1HandleBatchEncryptECB(key1.getId(), list);
+        List<byte[]> decodeList2 = device.sm1HandleBatchDecryptECB(key1.getId(), encodeList2);
+        //释放密钥句柄
+        device.releaseSessionKey(key1.getId());
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList2.get(i));
+        }
+
+        //SM1 CBC 内部
+        List<byte[]> encodeList3 = device.sm1InternalBatchEncryptCBC(1, iv, list);
+        List<byte[]> decodeList3 = device.sm1InternalBatchDecryptCBC(1, iv, encodeList3);
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList3.get(i));
+        }
+
+        //SM1 CBC 外部
+        List<byte[]> encodeList4 = device.sm1ExternalBatchEncryptCBC(key, iv, list);
+        List<byte[]> decodeList4 = device.sm1ExternalBatchDecryptCBC(key, iv, encodeList4);
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList4.get(i));
+        }
+
+        //SM1 CBC 密钥句柄
+        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+        List<byte[]> encodeList5 = device.sm1HandleBatchEncryptCBC(key2.getId(), iv, list);
+        List<byte[]> decodeList5 = device.sm1HandleBatchDecryptCBC(key2.getId(), iv, encodeList5);
+        //释放密钥句柄
+        device.releaseSessionKey(key2.getId());
+        for (int i = 0; i < list.size(); i++) {
+            assert Arrays.equals(list.get(i), decodeList5.get(i));
+        }
+
+    }
+
+    //MAC计算
+    @Test
+    void testMac() throws Exception {
+        //key
+        byte[] key = device.getRandom(16);
+        //iv
+        byte[] iv = device.getRandom(16);
+
+        //SM4 内部
+        byte[] mac = device.sm4InternalMac(1, iv, data);
+
+        //SM4 外部
+        byte[] mac1 = device.sm4ExternalMac(key, iv, data);
+
+        //SM4 密钥句柄
+        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+        byte[] mac2 = device.sm4HandleMac(key1.getId(), iv, data);
+        //释放密钥句柄
+        device.releaseSessionKey(key1.getId());
+
+        //SM1 内部
+        byte[] mac3 = device.sm1InternalMac(1, iv, data);
+
+        //SM1 外部
+        byte[] mac4 = device.sm1ExternalMac(key, iv, data);
+
+        //SM1 密钥句柄
+        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+        byte[] mac5 = device.sm1HandleMac(key2.getId(), iv, data);
+        //释放密钥句柄
+
+    }
+
+    //SM3-HMAC
+    @Test
+    void testSm3HMAC() throws Exception {
+        //key
+        byte[] key = device.getRandom(16);
+        byte[] bytes = device.sm3Hmac(key, data);
+        System.out.println(new String(bytes));
+    }
+
+    //Hash
+    @Test
+    void testHash() throws Exception {
+
+        byte[] userId = "1234567812345678".getBytes();
+        //init
+        device.sm3HashInit();
+
+        //update
+        device.sm3HashUpdate(data);
+        device.sm3HashUpdate(data);
+
+        //final
+        byte[] bytes = device.sm3HashFinal();
+        System.out.println("sm3 hash 分步结果:" + new String(bytes));
+
+        byte[] bytes2 = device.sm3Hash(userId, data);
+        System.out.println("sm3 hash 一步结果:" + new String(bytes2));
+
+
+        //生成Sm2密钥对
+        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(1);
+        //公钥
+        SM2PublicKey pubKey = sm2KeyPair.getPubKey();
+
+        //init with pubKey
+        device.sm3HashInitWithPubKey(pubKey, userId);
+
+        //update
+        device.sm3HashUpdate(data);
+        device.sm3HashUpdate(data);
+
+        //final
+        byte[] bytes1 = device.sm3HashFinal();
+        System.out.println("sm3 hash 带公钥 分步结果:" + new String(bytes1));
+
+        byte[] bytes3 = device.sm3HashWithPubKey(pubKey, userId, data);
+        System.out.println("sm3 hash 带公钥 一步结果:" + new String(bytes3));
+
+
+    }
+
+    //操作文件
+    @Test
+    void testOperateFile() throws Exception {
+
+
+        //创建文件
+        device.createFile("zzyTest", data.length);
+        //写文件
+        device.writeFile("zzyTest", 0, data);
+        //读文件
+        byte[] bytes = device.readFile("zzyTest", 0, data.length);
+        assert Arrays.equals(data, bytes);
+        //删除文件
+        device.deleteFile("zzyTest");
+//        byte[] bytes2 = device.readFile("zzyTest", 0, data.length);
+    }
+
+
+    //获取内部对称密钥句柄
+    @Test
+    void testGetInternalSymKeyHandle() throws Exception {
+        int symKeyHandle = device.getSymKeyHandle(1);
+        System.out.println(Integer.toHexString(symKeyHandle));
+    }
+
+
+    //获取连接个数
+    @Test
+    void testGetConnectNum() throws Exception {
+        int connectNum = device.getConnectCount();
+        System.out.println(connectNum);
+    }
 }

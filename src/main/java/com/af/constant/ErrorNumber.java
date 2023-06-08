@@ -10,6 +10,7 @@ public class ErrorNumber {
 
     /**
      * 返回的错误码转为错误信息
+     *
      * @param RetCode 错误码
      * @return
      */
@@ -19,7 +20,7 @@ public class ErrorNumber {
                 : err.get(SDR_UNKNOWERR) + "[" + toHexString(RetCode) + "]";
     }
 
-    private static  String toHexString(int n) {
+    private static String toHexString(int n) {
         StringBuilder code = new StringBuilder(Integer.toHexString(n));
 
         for (int i = code.length(); i < 8; ++i) {
@@ -30,7 +31,8 @@ public class ErrorNumber {
     }
 
     private static class Error extends HashMap {
-        private Error() {}
+        private Error() {
+        }
 
         public String get(int key) {
             return (String) super.get(key);

@@ -2,7 +2,7 @@ package com.af.constant;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
- * @description 密钥模长 256/512
+ * @description
  * @since 2023/4/28 16:23
  */
 public enum ModulusLength {

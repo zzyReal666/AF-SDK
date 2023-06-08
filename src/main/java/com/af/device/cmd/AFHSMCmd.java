@@ -966,8 +966,8 @@ public class AFHSMCmd extends AFCmd {
         if (res.getHeader().
 
                 getErrorCode() != 0) {
-            logger.error("HSM-CMD-对称解密失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, key.length, iv.length, cipher.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-对称解密失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + key.length + ", ivLen:" + iv.length + ", dataLen:" + cipher.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("HSM-CMD-对称解密失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, cipher.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("HSM-CMD-对称解密失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + cipher.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().
 
@@ -1003,8 +1003,8 @@ public class AFHSMCmd extends AFCmd {
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_ENCRYPT_BATCH, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-对称加密批量失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, key.length, iv.length, dataList.size(), res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-对称加密批量失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + key.length + ", ivLen:" + iv.length + ", dataLen:" + dataList.size() + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("HSM-CMD-对称加密批量失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size(), res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("HSM-CMD-对称加密批量失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + dataList.size() + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getData();
     }
@@ -1024,22 +1024,22 @@ public class AFHSMCmd extends AFCmd {
      * 3、原始数据信息</p>
      */
     public byte[] symDecryptBatch(Algorithm algorithm, int type, int keyIndex, byte[] key, byte[] iv, List<byte[]> dataList) throws AFCryptoException {
-        logger.info("HSM-CMD-对称解密批量, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, key.length, iv.length, dataList.size());
+        logger.info("HSM-CMD-对称解密批量, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size());
         BytesBuffer buffer = new BytesBuffer()
                 .append(algorithm.getValue())
                 .append(type)
                 .append(keyIndex)
-                .append(key.length)
+                .append(null == key ? 0 : key.length)
                 .append(key)
-                .append(iv.length)
+                .append(null == iv ? 0 : iv.length)
                 .append(iv)
                 .append(dataList.size());
         dataList.forEach(data -> buffer.append(data.length).append(data));
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_DECRYPT_BATCH, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-对称解密批量失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, key.length, iv.length, dataList.size(), res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-对称解密批量失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + key.length + ", ivLen:" + iv.length + ", dataLen:" + dataList.size() + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("HSM-CMD-对称解密批量失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size(), res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("HSM-CMD-对称解密批量失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + dataList.size() + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getData();
     }
@@ -1056,22 +1056,22 @@ public class AFHSMCmd extends AFCmd {
      * @return 4字节长度+MAC值
      */
     public byte[] mac(Algorithm algorithm, int type, int keyIndex, byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
-        logger.info("HSM-CMD-MAC计算, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, key.length, iv.length, data.length);
+        logger.info("HSM-CMD-MAC计算, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, data.length);
         BytesBuffer buffer = new BytesBuffer()
                 .append(algorithm.getValue())  //必须为 CBC 类型算法
                 .append(type)
                 .append(keyIndex)
-                .append(key.length)
+                .append(null == key ? 0 : key.length)
                 .append(key)
-                .append(iv.length)
+                .append(null == iv ? 0 : iv.length)
                 .append(iv)
                 .append(data.length)
                 .append(data);
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_CALCULATEMAC, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-MAC计算失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, key.length, iv.length, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-MAC计算失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + key.length + ", ivLen:" + iv.length + ", dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("HSM-CMD-MAC计算失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("HSM-CMD-MAC计算失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().readOneData();
     }
@@ -1108,18 +1108,18 @@ public class AFHSMCmd extends AFCmd {
      * @param userId    用户ID
      */
     public void hashInit(Algorithm algorithm, byte[] publicKey, byte[] userId) throws AFCryptoException {
-        logger.info("HSM-CMD-HASH INIT, algorithm:{}, publicKeyLen:{},  userIdLen:{}", algorithm, publicKey.length, userId.length);
+        logger.info("HSM-CMD-HASH INIT, algorithm:{}, publicKeyLen:{},  userIdLen:{}", algorithm, null == publicKey ? 0 : publicKey.length,null == userId?0: userId.length);
         BytesBuffer buffer = new BytesBuffer()
                 .append(algorithm.getValue())
-                .append(publicKey.length)  // 仅在算法为 SGD_SM3 时有效
+                .append(null == publicKey ? 0 : publicKey.length)  // 仅在算法为 SGD_SM3 时有效
                 .append(publicKey)        //仅在算法为 SGD_SM3 时有效
-                .append(userId.length)
+                .append(null == userId?0: userId.length)
                 .append(userId);
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHINIT, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-HASH INIT失败, algorithm:{}, publicKeyLen:{},  userIdLen:{}, 错误码:{},错误信息:{}", algorithm, publicKey.length, userId.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-HASH INIT失败, algorithm:" + algorithm + ", publicKeyLen:" + publicKey.length + ",  userIdLen:" + userId.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("HSM-CMD-HASH INIT失败, algorithm:{}, publicKeyLen:{},  userIdLen:{}, 错误码:{},错误信息:{}", algorithm, null == publicKey ? 0 : publicKey.length, null == userId?0: userId.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("HSM-CMD-HASH INIT失败, algorithm:" + algorithm + ", publicKeyLen:" + (null == publicKey ? 0 : publicKey.length) + ",  userIdLen:" + (null == userId?0: userId.length) + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
     }
 
@@ -1252,7 +1252,7 @@ public class AFHSMCmd extends AFCmd {
      * @param keyIndex 密钥索引
      * @return 密钥句柄
      */
-    public byte[] getSymKeyHandle(int keyIndex) throws AFCryptoException {
+    public int getSymKeyHandle(int keyIndex) throws AFCryptoException {
         logger.info("HSM-CMD-获取内部对称密钥句柄, keyIndex:{}", keyIndex);
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
@@ -1262,7 +1262,7 @@ public class AFHSMCmd extends AFCmd {
             logger.error("HSM-CMD-获取内部对称密钥句柄失败, keyIndex:{}, 错误码:{},错误信息:{}", keyIndex, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-CMD-获取内部对称密钥句柄失败, keyIndex:" + keyIndex + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
-        return getBytes(res.getData(), 0, 4);
+        return res.getDataBuffer().readInt();
     }
 
     /**

@@ -18,6 +18,7 @@ import com.af.netty.AFNettyClient;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
+import com.af.struct.impl.agreementData.AgreementData;
 import com.af.utils.BytesBuffer;
 import com.af.utils.pkcs.AFPkcs1Operate;
 import lombok.Getter;
@@ -43,13 +44,13 @@ import java.util.stream.IntStream;
  */
 @Getter
 public class AFHsmDevice implements IAFHsmDevice {
+    //region ======================================================成员与单例模式======================================================
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
     private byte[] agKey;  //协商密钥
     private static AFNettyClient client;  //netty客户端
     private final SM3 sm3 = new SM3Impl(client);  //国密SM3算法
     private final AFHSMCmd cmd = new AFHSMCmd(client, agKey);
 
-    //==============================单例模式===================================
     private static final class InstanceHolder {
         static final AFHsmDevice instance = new AFHsmDevice();
     }
@@ -65,7 +66,9 @@ public class AFHsmDevice implements IAFHsmDevice {
         logger.info("协商密钥成功,密钥为:{}", HexUtil.encodeHexStr(agKey));
         return this;
     }
-    //==============================API===================================
+    //endregion
+
+    //region======================================================设备信息 随机数 私钥访问权限======================================================
 
     /**
      * 获取设备信息
@@ -98,31 +101,19 @@ public class AFHsmDevice implements IAFHsmDevice {
 
 
     /**
-     * 加解密分包  4096个字节一段 最后一段如果不足4096个字节 取实际长度
+     * 获取私钥访问权限
      *
-     * @param data 数据
-     * @return 分组后的数据 List<byte[]>
+     * @param keyIndex 密钥索引
+     * @param keyType  密钥类型 4:RSA; 3:SM2;
+     * @param passwd   私钥访问权限口令
      */
-    private List<byte[]> splitPackage(byte[] data) {
-        int uiIndex;
-        byte[] inputData;
-        List<byte[]> bytes = new ArrayList<>();
-        //分段加密 4096个字节一段 n-1段
-        for (uiIndex = 0; uiIndex != (data.length / ConstantNumber.AF_LEN_4096); ++uiIndex) {
-            inputData = new byte[ConstantNumber.AF_LEN_4096];
-            System.arraycopy(data, ConstantNumber.AF_LEN_4096 * uiIndex, inputData, 0, ConstantNumber.AF_LEN_4096);
-            bytes.add(inputData);
-        }
-        //最后一段 如果不足4096个字节 取实际长度
-        if ((data.length % ConstantNumber.AF_LEN_4096) != 0) {
-            inputData = new byte[data.length % ConstantNumber.AF_LEN_4096];
-            System.arraycopy(data, ConstantNumber.AF_LEN_4096 * uiIndex, inputData, 0, inputData.length);
-            bytes.add(inputData);
-        }
-        return bytes;
+    private void getPrivateKeyAccessRight(int keyIndex, int keyType, String passwd) throws AFCryptoException {
+        logger.info("获取获取私钥访问权限 keyIndex:{}, keyType:{}, passwd:{}", keyIndex, keyType, passwd);
+        cmd.getPrivateAccess(keyIndex, keyType, passwd);
     }
+    //endregion
 
-//==============================导出公钥信息===================================
+    // region ======================================================导出公钥======================================================
 
     /**
      * 获取SM2签名公钥
@@ -169,8 +160,9 @@ public class AFHsmDevice implements IAFHsmDevice {
         byte[] rsaEncPublicKey = cmd.exportPublicKey(index, Algorithm.SGD_RSA_ENC);
         return new RSAPubKey(rsaEncPublicKey);
     }
+    //endregion
 
-    //=========================================生成密钥对=========================================
+    //region======================================================生成密钥对======================================================
 
     /**
      * 生成密钥对 SM2
@@ -230,8 +222,9 @@ public class AFHsmDevice implements IAFHsmDevice {
         rsaKeyPair.decode(bytes);
         return rsaKeyPair;
     }
+    //endregion
 
-    //=========================================会话密钥相关=========================================
+    //region======================================================会话密钥相关======================================================
 
     /**
      * 生成会话密钥 非对称加密
@@ -380,32 +373,115 @@ public class AFHsmDevice implements IAFHsmDevice {
      *
      * @param keyIndex 密钥索引
      * @param length   模长
-     * @param id       发起方id
      */
-    public byte[] generateAgreementData(int keyIndex, ModulusLength length, byte[] id) throws AFCryptoException {
-        return cmd.generateAgreementData(keyIndex, length, id);
+    public AgreementData generateAgreementData(int keyIndex, ModulusLength length, AgreementData data) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("生成协商数据失败,密钥索引错误,keyIndex:{}", keyIndex);
+            throw new AFCryptoException("生成协商数据失败,密钥索引错误,keyIndex:" + keyIndex);
+        }
+        if (null == data) {
+            logger.error("生成协商数据失败,协商数据入参为空");
+            throw new AFCryptoException("生成协商数据失败,协商数据入参为空");
+        }
+        if (null == data.getInitiatorId() || data.getInitiatorId().length == 0){
+            logger.error("生成协商数据失败,发起方id为空");
+            throw new AFCryptoException("生成协商数据失败,发起方id为空");
+        }
+
+        //获取私钥访问权限
+        getPrivateKeyAccessRight(keyIndex, 3, "12345678");
+        byte[] bytes = cmd.generateAgreementData(keyIndex, length, data.getInitiatorId());
+        BytesBuffer buffer = new BytesBuffer(bytes);
+        data = new AgreementData();
+        data.setPublicKey(buffer.readOneData());
+        data.setTempPublicKey(buffer.readOneData());
+        return data;
     }
 
-    //todo  生成协商数据及密钥
-    public byte[] generateAgreementDataAndKey(int keyIndex, ModulusLength length, byte[] id) throws AFCryptoException {
-        return null;
+    /**
+     * 生成协商数据及密钥
+     * @param keyIndex
+     * @param length
+     * @param data
+     * @return
+     * @throws AFCryptoException
+     */
+    public AgreementData generateAgreementDataAndKey(int keyIndex, ModulusLength length, AgreementData data) throws AFCryptoException {
+        //region //参数检查
+        if (keyIndex < 0) {
+            logger.error("生成协商数据失败,密钥索引错误,keyIndex:{}", keyIndex);
+            throw new AFCryptoException("生成协商数据失败,密钥索引错误,keyIndex:" + keyIndex);
+        }
+        if (null == data) {
+            logger.error("生成协商数据失败,协商数据入参为空");
+            throw new AFCryptoException("生成协商数据失败,协商数据入参为空");
+        }
+        if (null == data.getInitiatorId() || data.getInitiatorId().length == 0){
+            logger.error("生成协商数据失败,发起方id为空");
+            throw new AFCryptoException("生成协商数据失败,发起方id为空");
+        }
+        if (null == data.getResponderId() || data.getResponderId().length == 0){
+            logger.error("生成协商数据失败,回复方id为空");
+            throw new AFCryptoException("生成协商数据失败,回复方id为空");
+        }
+        if (null == data.getPublicKey() || data.getPublicKey().length == 0){
+            logger.error("生成协商数据失败,公钥为空");
+            throw new AFCryptoException("生成协商数据失败,公钥为空");
+        }
+        if (null == data.getTempPublicKey() || data.getTempPublicKey().length == 0){
+            logger.error("生成协商数据失败,临时公钥为空");
+            throw new AFCryptoException("生成协商数据失败,临时公钥为空");
+        }
+        //endregion
+
+        //获取私钥访问权限
+        getPrivateKeyAccessRight(keyIndex, 3, "12345678");
+        byte[] bytes = cmd.generateAgreementDataAndKey(keyIndex, length, data.getPublicKey(), data.getTempPublicKey(), data.getInitiatorId(), data.getResponderId());
+        BytesBuffer buffer = new BytesBuffer(bytes);
+         data = new AgreementData();
+        data.setSessionId(buffer.readInt());
+        data.setPublicKey(buffer.readOneData());
+        data.setTempPublicKey(buffer.readOneData());
+        return data;
     }
 
     /**
      * 生成协商密钥
-     *
-     * @param key    回复方公钥
-     * @param temKey 回复方临时公钥
-     * @param id     回复方id
-     * @return 4 字节会话id HexString
+     * @param data 协商数据入参 必须publicKey、tempPublicKey、responderId、
+     * @return sessionId
+     * @throws AFCryptoException
      */
-    public String generateAgreementKey(byte[] key, byte[] temKey, byte[] id) throws AFCryptoException {
-        byte[] bytes = cmd.generateAgreementKey(key, temKey, id);
+    public AgreementData generateAgreementKey(AgreementData data) throws AFCryptoException {
+        //region //参数检查
+        if (null == data) {
+            logger.error("生成协商密钥失败,协商数据入参为空");
+            throw new AFCryptoException("生成协商密钥失败,协商数据入参为空");
+        }
+        if (null == data.getPublicKey() || data.getPublicKey().length == 0){
+            logger.error("生成协商密钥失败,公钥为空");
+            throw new AFCryptoException("生成协商密钥失败,公钥为空");
+        }
+        if (null == data.getTempPublicKey() || data.getTempPublicKey().length == 0){
+            logger.error("生成协商密钥失败,临时公钥为空");
+            throw new AFCryptoException("生成协商密钥失败,临时公钥为空");
+        }
+        if (null == data.getResponderId() || data.getResponderId().length == 0){
+            logger.error("生成协商密钥失败,回复方id为空");
+            throw new AFCryptoException("生成协商密钥失败,回复方id为空");
+        }
+        //endregion
+
+        byte[] bytes = cmd.generateAgreementKey(data.getPublicKey(), data.getTempPublicKey(), data.getResponderId());
         BytesBuffer buffer = new BytesBuffer(bytes);
-        return Integer.toHexString(buffer.readInt());
+         data = new AgreementData();
+        data.setSessionId(buffer.readInt());
+        return data;
     }
 
-//=========================================RSA计算=========================================
+    //endregion
+
+    //region======================================================RSA======================================================
 
     /**
      * RSA内部加密运算
@@ -539,8 +615,9 @@ public class AFHsmDevice implements IAFHsmDevice {
         bytes = AFPkcs1Operate.pkcs1DecryptionPrivate(publicKey.getBits(), bytes);
         return Arrays.equals(bytes, hash);
     }
+    //endregion
 
-//=====================================================SM2计算==============================================
+    //region=====================================================SM2计算==============================================
 
     /**
      * SM2内部 加密运算
@@ -732,9 +809,9 @@ public class AFHsmDevice implements IAFHsmDevice {
         //验签
         return cmd.sm2Verify(-1, pubKey.encode(), digest, sign);
     }
+    //endregion
 
-
-    //======================================================对称加密======================================================
+    //region======================================================对称加密======================================================
 
     /**
      * SM4 ECB 内部密钥加密
@@ -765,7 +842,6 @@ public class AFHsmDevice implements IAFHsmDevice {
         //合并数据
         return mergePackage(bytes);
     }
-
 
     /**
      * SM4 ECB 外部密钥加密
@@ -902,7 +978,6 @@ public class AFHsmDevice implements IAFHsmDevice {
         return mergePackage(bytes);
     }
 
-
     /**
      * SM4 CBC 密钥句柄加密
      */
@@ -956,7 +1031,6 @@ public class AFHsmDevice implements IAFHsmDevice {
         }
         return mergePackage(bytes);
     }
-
 
     /**
      * SM1 外部加密 ECB
@@ -1104,8 +1178,9 @@ public class AFHsmDevice implements IAFHsmDevice {
         }
         return mergePackage(bytes);
     }
+    //endregion
 
-    //======================================================对称解密======================================================
+    //region======================================================对称解密======================================================
 
     /**
      * SM4 内部密钥 解密 ECB
@@ -1446,7 +1521,9 @@ public class AFHsmDevice implements IAFHsmDevice {
         //合包 去除填充
         return cutting(mergePackage(bytes));
     }
-    //======================================================批量加密======================================================
+    //endregion
+
+    //region======================================================批量加密======================================================
 
     /**
      * SM4 内部批量加密 ECB
@@ -1489,6 +1566,7 @@ public class AFHsmDevice implements IAFHsmDevice {
                 .mapToObj(i -> buf.readOneData())
                 .collect(Collectors.toList());
     }
+
     /**
      * SM4外部批量加密 ECB
      */
@@ -1509,6 +1587,10 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 0, 0, keyIndex, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -1524,18 +1606,1140 @@ public class AFHsmDevice implements IAFHsmDevice {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * SM4 密钥句柄批量加密 ECB
+     */
+    public List<byte[]> sm4HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
+        //参数检查
 
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM4 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
 
+        }
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM4 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
 
-    //======================================================批量解密======================================================
+    /**
+     * SM4 内部批量加密 CBC
+     */
+    public List<byte[]> sm4InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM4 批量加密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM4 批量加密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM4 批量加密，iv不能为空，且长度必须为16");
+            throw new AFCryptoException("SM4 批量加密，iv不能为空，且长度必须为16");
+        }
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM4 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM4 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * SM4 外部批量加密 CBC
+     */
+    public List<byte[]> sm4ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length != 16) {
+            logger.error("SM4 批量加密，key不能为空，且长度必须为16");
+            throw new AFCryptoException("SM4 批量加密，key不能为空，且长度必须为16");
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM4 批量加密，iv不能为空，且长度必须为16");
+            throw new AFCryptoException("SM4 批量加密，iv不能为空，且长度必须为16");
+        }
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM4 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM4 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * SM4 密钥句柄批量加密 CBC
+     */
+    public List<byte[]> sm4HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+
+        //参数检查
+        if (iv == null || iv.length != 16) {
+            logger.error("SM4 批量加密，iv不能为空，且长度必须为16");
+            throw new AFCryptoException("SM4 批量加密，iv不能为空，且长度必须为16");
+        }
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM4 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM4 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * SM1 内部批量加密 ECB
+     */
+    public List<byte[]> sm1InternalBatchEncryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM1 批量加密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM1 批量加密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM1 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //padding
+        cipherList = cipherList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_ECB, 1, keyIndex, null, null, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM1 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * SM1 外部批量加密 ECB
+     */
+    public List<byte[]> sm1ExternalBatchEncryptECB(byte[] key, List<byte[]> plainList) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length != 16) {
+            logger.error("SM1 批量加密，密钥不能为空，且长度必须为16");
+            throw new AFCryptoException("SM1 批量加密，密钥不能为空，且长度必须为16");
+        }
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM1 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
+
+        }
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_ECB, 0, 0, key, null, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM1 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * SM1 密钥句柄批量加密 ECB
+     */
+    public List<byte[]> sm1HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
+        //参数检查
+
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM4 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_ECB, 2, keyHandle, null, null, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM1 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * SM1 内部密钥批量加密 CBC
+     */
+    public List<byte[]> sm1InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM1 批量加密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM1 批量加密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM1 批量加密，iv不能为空，且长度必须为16");
+            throw new AFCryptoException("SM1 批量加密，iv不能为空，且长度必须为16");
+        }
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM1 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_CBC, 1, keyIndex, null, iv, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM1 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * SM1 外部密钥批量加密 CBC
+     */
+    public List<byte[]> sm1ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+        //参数检查
+        if (null == key || key.length == 0) {
+            logger.error("SM1 批量加密，外部密钥不能为空");
+            throw new AFCryptoException("SM1 批量加密，外部密钥不能为空");
+        }
+        if (null == iv || iv.length == 0) {
+            logger.error("SM1 批量加密，iv不能为空");
+            throw new AFCryptoException("SM1 批量加密，iv不能为空");
+        }
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM1 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_CBC, 0, 0, key, iv, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM1 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * SM1 密钥句柄批量加密 CBC
+     */
+    public List<byte[]> sm1HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+        //参数检查
+        if (null == iv || iv.length == 0) {
+            logger.error("SM1 批量加密，iv不能为空");
+            throw new AFCryptoException("SM1 批量加密，iv不能为空");
+        }
+        if (plainList == null || plainList.size() == 0) {
+            logger.error("SM1 批量加密，加密数据不能为空");
+            throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = plainList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //padding
+        plainList = plainList.stream()
+                .map(AFHsmDevice::padding)
+                .collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_CBC, 2, keyHandle, null, iv, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM1 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        return IntStream.range(0, count)
+                .mapToObj(i -> buf.readOneData())
+                .collect(Collectors.toList());
+    }
+    //endregion
+
+    //region======================================================批量解密======================================================
 
     /**
      * SM4 内部批量解密 ECB
      */
+    public List<byte[]> sm4InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM4 批量解密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM4 批量解密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM4 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM4 外部批量解密 ECB
+     */
+    public List<byte[]> sm4ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length == 0) {
+            logger.error("SM4 批量解密，密钥不能为空");
+            throw new AFCryptoException("SM4 批量解密，密钥不能为空");
+        }
+
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM4 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_ECB, 0, 0, key, null, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM4 密钥句柄批量解密 ECB
+     */
+
+    public List<byte[]> sm4HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM4 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM4 内部批量解密 CBC
+     */
+    public List<byte[]> sm4InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM4 批量解密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM4 批量解密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM4 批量解密，iv长度必须为16");
+            throw new AFCryptoException("SM4 批量解密，iv长度必须为16");
+        }
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM4 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM4 外部密钥批量解密 CBC
+     */
+    public List<byte[]> sm4ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length != 16) {
+            logger.error("SM4 批量解密，密钥长度必须为16");
+            throw new AFCryptoException("SM4 批量解密，密钥长度必须为16");
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM4 批量解密，iv长度必须为16");
+            throw new AFCryptoException("SM4 批量解密，iv长度必须为16");
+        }
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM4 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM4 密钥句柄批量解密 CBC
+     */
+    public List<byte[]> sm4HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+
+        if (iv == null || iv.length != 16) {
+            logger.error("SM4 批量解密，iv长度必须为16");
+            throw new AFCryptoException("SM4 批量解密，iv长度必须为16");
+        }
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM4 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM1 内部密钥批量解密 ECB
+     */
+    public List<byte[]> sm1InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM1 批量解密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM1 批量解密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM1 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM1_ECB, 1, keyIndex, null, null, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM1 外部密钥批量解密 ECB
+     */
+    public List<byte[]> sm1ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length != 16) {
+            logger.error("SM1 批量解密，密钥长度必须为16");
+            throw new AFCryptoException("SM1 批量解密，密钥长度必须为16");
+        }
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM1 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM1_ECB, 0, 0, key, null, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM1 密钥句柄批量解密 ECB
+     */
+    public List<byte[]> sm1HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM1 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM1_ECB, 2, keyHandle, null, null, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM1 内部密钥批量解密 CBC
+     */
+    public List<byte[]> sm1InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM1 批量解密，索引不能小于0,当前索引：{}", keyIndex);
+            throw new AFCryptoException("SM1 批量解密，索引不能小于0,当前索引：" + keyIndex);
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM1 批量解密，iv长度必须为16");
+            throw new AFCryptoException("SM1 批量解密，iv长度必须为16");
+        }
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM1 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM1_CBC, 1, keyIndex, null, iv, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM1 外部密钥批量解密 CBC
+     */
+    public List<byte[]> sm1ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+
+        //参数检查
+        if (key == null || key.length != 16) {
+            logger.error("SM1 批量解密，密钥长度必须为16");
+            throw new AFCryptoException("SM1 批量解密，密钥长度必须为16");
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM1 批量解密，iv长度必须为16");
+            throw new AFCryptoException("SM1 批量解密，iv长度必须为16");
+        }
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM1 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM1_CBC, 0, 0, key, iv, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+
+    /**
+     * SM1 密钥句柄批量解密 CBC
+     */
+    public List<byte[]> sm1HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+        //参数检查
+
+        if (iv == null || iv.length != 16) {
+            logger.error("SM1 批量解密，iv长度必须为16");
+            throw new AFCryptoException("SM1 批量解密，iv长度必须为16");
+        }
+        if (cipherList == null || cipherList.size() == 0) {
+            logger.error("SM1 批量解密，解密数据不能为空");
+            throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
+        }
+        //list 总长度<2M
+        int totalLength = cipherList.stream()
+                .mapToInt(bytes -> bytes.length)
+                .sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM1_CBC, 2, keyHandle, null, iv, cipherList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != cipherList.size()) {
+            logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
+            throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        }
+        return getCollect(buf, count);
+    }
+    //endregion
+
+    //region======================================================MAC 计算======================================================
+
+    /**
+     * SM4 计算MAC 内部密钥
+     */
+    public byte[] sm4InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM4 计算MAC，密钥索引必须大于等于0");
+            throw new AFCryptoException("SM4 计算MAC，密钥索引必须大于等于0");
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM4 计算MAC，iv长度必须为16");
+            throw new AFCryptoException("SM4 计算MAC，iv长度必须为16");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM4 计算MAC，计算数据不能为空");
+            throw new AFCryptoException("SM4 计算MAC，计算数据不能为空");
+        }
+        data = padding(data);
+        return cmd.mac(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, data);
+    }
+
+    /**
+     * SM4 计算MAC 外部密钥
+     */
+    public byte[] sm4ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length != 16) {
+            logger.error("SM4 计算MAC，密钥长度必须为16");
+            throw new AFCryptoException("SM4 计算MAC，密钥长度必须为16");
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM4 计算MAC，iv长度必须为16");
+            throw new AFCryptoException("SM4 计算MAC，iv长度必须为16");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM4 计算MAC，计算数据不能为空");
+            throw new AFCryptoException("SM4 计算MAC，计算数据不能为空");
+        }
+        data = padding(data);
+        return cmd.mac(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, data);
+    }
+
+    /**
+     * SM4 计算MAC 密钥句柄
+     */
+    public byte[] sm4HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
+        //参数检查
+
+        if (iv == null || iv.length != 16) {
+            logger.error("SM4 计算MAC，iv长度必须为16");
+            throw new AFCryptoException("SM4 计算MAC，iv长度必须为16");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM4 计算MAC，计算数据不能为空");
+            throw new AFCryptoException("SM4 计算MAC，计算数据不能为空");
+        }
+        data = padding(data);
+        return cmd.mac(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, data);
+    }
+
+    /**
+     * SM1 计算MAC 内部密钥
+     */
+    public byte[] sm1InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("SM1 计算MAC，密钥索引必须大于等于0");
+            throw new AFCryptoException("SM1 计算MAC，密钥索引必须大于等于0");
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM1 计算MAC，iv长度必须为16");
+            throw new AFCryptoException("SM1 计算MAC，iv长度必须为16");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM1 计算MAC，计算数据不能为空");
+            throw new AFCryptoException("SM1 计算MAC，计算数据不能为空");
+        }
+        data = padding(data);
+        return cmd.mac(Algorithm.SGD_SM1_CBC, 1, keyIndex, null, iv, data);
+    }
+
+    /**
+     * SM1 计算MAC 外部密钥
+     */
+    public byte[] sm1ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length != 16) {
+            logger.error("SM1 计算MAC，密钥长度必须为16");
+            throw new AFCryptoException("SM1 计算MAC，密钥长度必须为16");
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("SM1 计算MAC，iv长度必须为16");
+            throw new AFCryptoException("SM1 计算MAC，iv长度必须为16");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM1 计算MAC，计算数据不能为空");
+            throw new AFCryptoException("SM1 计算MAC，计算数据不能为空");
+        }
+        data = padding(data);
+        return cmd.mac(Algorithm.SGD_SM1_CBC, 0, 0, key, iv, data);
+    }
+
+    /**
+     * SM1 计算MAC 密钥句柄
+     */
+    public byte[] sm1HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
+        //参数检查
+
+        if (iv == null || iv.length != 16) {
+            logger.error("SM1 计算MAC，iv长度必须为16");
+            throw new AFCryptoException("SM1 计算MAC，iv长度必须为16");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM1 计算MAC，计算数据不能为空");
+            throw new AFCryptoException("SM1 计算MAC，计算数据不能为空");
+        }
+        data = padding(data);
+        return cmd.mac(Algorithm.SGD_SM1_CBC, 2, keyHandle, null, iv, data);
+    }
+
+    /**
+     * SM3-HMAC
+     */
+    public byte[] sm3Hmac(byte[] key, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (key == null || key.length == 0) {
+            logger.error("SM3-HMAC，密钥不能为空");
+            throw new AFCryptoException("SM3-HMAC，密钥不能为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM3-HMAC，计算数据不能为空");
+            throw new AFCryptoException("SM3-HMAC，计算数据不能为空");
+        }
+        return cmd.sm3Hmac(key, data);
+    }
+    //endregion
+
+    //region======================================================Hash计算======================================================
+
+    /**
+     * Hash init
+     */
+    public void sm3HashInit() throws AFCryptoException {
+        cmd.hashInit(Algorithm.SGD_SM3, null, null);
+    }
+
+    /**
+     * Hash init 带公钥
+     */
+    public void sm3HashInitWithPubKey(SM2PublicKey publicKey, byte[] userId) throws AFCryptoException {
+        //参数检查
+        if (publicKey == null) {
+            logger.error("SM3 Hash init(带公钥)，公钥不能为空");
+            throw new AFCryptoException("SM3 Hash init(带公钥)，公钥不能为空");
+        }
+        if (userId == null || userId.length == 0) {
+            logger.error("SM3 Hash init(带公钥)，用户ID不能为空");
+            throw new AFCryptoException("SM3 Hash init(带公钥)，用户ID不能为空");
+        }
+        cmd.hashInit(Algorithm.SGD_SM3, publicKey.encode(), userId);
+    }
+
+    /**
+     * Hash update
+     */
+    public void sm3HashUpdate(byte[] data) throws AFCryptoException {
+        //参数检查
+        if (data == null || data.length == 0) {
+            logger.error("SM3 Hash update，计算数据不能为空");
+            throw new AFCryptoException("SM3 Hash update，计算数据不能为空");
+        }
+        cmd.hashUpdate(data);
+    }
+
+    /**
+     * Hash doFinal
+     */
+    public byte[] sm3HashFinal() throws AFCryptoException {
+        return cmd.hashFinal();
+    }
 
 
     /**
-     * SM3哈希 杂凑算法 <br>
+     * SM3 Hash
+     */
+    public byte[] sm3Hash(byte[] userId, byte[] data) throws AFCryptoException {
+        //init
+        sm3HashInit();
+        //update
+        sm3HashUpdate(data);
+        //doFinal
+        return sm3HashFinal();
+
+    }
+
+    /**
+     * SM3 Hash 带公钥
+     */
+    public byte[] sm3HashWithPubKey(SM2PublicKey publicKey, byte[] userId, byte[] data) throws AFCryptoException {
+        //init
+        sm3HashInitWithPubKey(publicKey, userId);
+        //update
+        sm3HashUpdate(data);
+        //doFinal
+        return sm3HashFinal();
+    }
+    //endregion
+
+    //region======================================================文件操作======================================================
+
+    /**
+     * 创建文件
+     */
+    public void createFile(String fileName, int fileSize) throws AFCryptoException {
+        //参数检查
+        if (fileName == null || fileName.length() == 0) {
+            logger.error("创建文件，文件名不能为空");
+            throw new AFCryptoException("创建文件，文件名不能为空");
+        }
+        if (fileSize <= 0) {
+            logger.error("创建文件，文件大小必须大于0");
+            throw new AFCryptoException("创建文件，文件大小必须大于0");
+        }
+        cmd.createFile(fileName, fileSize);
+    }
+
+    /**
+     * 读取文件
+     */
+    public byte[] readFile(String fileName, int offset, int length) throws AFCryptoException {
+        //参数检查
+        if (fileName == null || fileName.length() == 0) {
+            logger.error("读取文件，文件名不能为空");
+            throw new AFCryptoException("读取文件，文件名不能为空");
+        }
+        if (offset < 0) {
+            logger.error("读取文件，偏移量必须大于等于0");
+            throw new AFCryptoException("读取文件，偏移量必须大于等于0");
+        }
+        if (length <= 0) {
+            logger.error("读取文件，读取长度必须大于0");
+            throw new AFCryptoException("读取文件，读取长度必须大于0");
+        }
+        return cmd.readFile(fileName, offset, length);
+    }
+
+    /**
+     * 写入文件
+     */
+    public void writeFile(String fileName, int offset, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (fileName == null || fileName.length() == 0) {
+            logger.error("写入文件，文件名不能为空");
+            throw new AFCryptoException("写入文件，文件名不能为空");
+        }
+        if (offset < 0) {
+            logger.error("写入文件，偏移量必须大于等于0");
+            throw new AFCryptoException("写入文件，偏移量必须大于等于0");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("写入文件，写入数据不能为空");
+            throw new AFCryptoException("写入文件，写入数据不能为空");
+        }
+        cmd.writeFile(fileName, offset, data);
+    }
+
+    /**
+     * 删除文件
+     */
+    public void deleteFile(String fileName) throws AFCryptoException {
+        //参数检查
+        if (fileName == null || fileName.length() == 0) {
+            logger.error("删除文件，文件名不能为空");
+            throw new AFCryptoException("删除文件，文件名不能为空");
+        }
+        cmd.deleteFile(fileName);
+    }
+    //endregion
+
+    //region======================================================获取内部对称密钥句柄 获取连接个数======================================================
+
+    /**
+     * 获取内部对称密钥句柄
+     */
+    public int getSymKeyHandle(int keyIndex) throws AFCryptoException {
+        //参数检查
+        if (keyIndex < 0) {
+            logger.error("获取内部对称密钥句柄，密钥索引必须大于等于0");
+            throw new AFCryptoException("获取内部对称密钥句柄，密钥索引必须大于等于0");
+        }
+        return cmd.getSymKeyHandle(keyIndex);
+    }
+
+    /**
+     * 获取连接个数
+     */
+    public int getConnectCount() throws AFCryptoException {
+        return getConnectCount(client);
+    }
+
+    //endregion
+
+    /**
+     * SM3哈希 杂凑算法
      * 带公钥信息和用户ID
      *
      * @param data      待杂凑数据
@@ -1544,26 +2748,39 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return 杂凑值
      * 杂凑异常
      */
-
     public byte[] sm3HashWithPubKey(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException {
         SM2PublicKey publicKey256 = publicKey.to256();
         return sm3.SM3HashWithPublicKey256(data, publicKey256, userID);
     }
 
 
-    //============================================================工具============================================================
+    //region============================================================工具============================================================
 
 
     /**
-     * 获取私钥访问权限
+     * 加解密分包  4096个字节一段 最后一段如果不足4096个字节 取实际长度
      *
-     * @param keyIndex 密钥索引
-     * @param keyType  密钥类型 4:RSA; 3:SM2;
-     * @param passwd   私钥访问权限口令
+     * @param data 数据
+     * @return 分组后的数据 List<byte[]>
      */
-    private void getPrivateKeyAccessRight(int keyIndex, int keyType, String passwd) throws AFCryptoException {
-        logger.info("获取获取私钥访问权限 keyIndex:{}, keyType:{}, passwd:{}", keyIndex, keyType, passwd);
-        cmd.getPrivateAccess(keyIndex, keyType, passwd);
+
+    private List<byte[]> splitPackage(byte[] data) {
+        int uiIndex;
+        byte[] inputData;
+        List<byte[]> bytes = new ArrayList<>();
+        //分段加密 4096个字节一段 n-1段
+        for (uiIndex = 0; uiIndex != (data.length / ConstantNumber.AF_LEN_4096); ++uiIndex) {
+            inputData = new byte[ConstantNumber.AF_LEN_4096];
+            System.arraycopy(data, ConstantNumber.AF_LEN_4096 * uiIndex, inputData, 0, ConstantNumber.AF_LEN_4096);
+            bytes.add(inputData);
+        }
+        //最后一段 如果不足4096个字节 取实际长度
+        if ((data.length % ConstantNumber.AF_LEN_4096) != 0) {
+            inputData = new byte[data.length % ConstantNumber.AF_LEN_4096];
+            System.arraycopy(data, ConstantNumber.AF_LEN_4096 * uiIndex, inputData, 0, inputData.length);
+            bytes.add(inputData);
+        }
+        return bytes;
     }
 
 
@@ -1680,6 +2897,25 @@ public class AFHsmDevice implements IAFHsmDevice {
         System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
         return outData;
     }
+
+    /**
+     * 从 buf中读取每个解密后的明文 并且批量 cutting
+     *
+     * @param buf   数据buf
+     * @param count 个数
+     * @return 明文list, 每个明文都是cutting后的
+     */
+    private static List<byte[]> getCollect(BytesBuffer buf, int count) {
+        return IntStream.range(0, count)
+                .mapToObj(i -> {
+                    try {
+                        return cutting(buf.readOneData());
+                    } catch (AFCryptoException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .collect(Collectors.toList());
+    }
 //    private static byte[] cutting(byte[] data) {
 //        int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
 //        if (paddingNumber >= 16) paddingNumber = 0;
@@ -1692,4 +2928,6 @@ public class AFHsmDevice implements IAFHsmDevice {
 //        System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
 //        return outData;
 //    }
+
+    //endregion
 }
