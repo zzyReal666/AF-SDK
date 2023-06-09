@@ -127,6 +127,9 @@ public interface IAFDevice {
         if (send.getHeader().getErrorCode() != 0) {
             throw new DeviceException("关闭连接失败，错误码：" + send.getHeader().getErrorCode() + ",错误信息：" + send.getHeader().getErrorInfo());
         }
+        //关闭连接
+        client.close();
+
     }
 
     //心跳

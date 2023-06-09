@@ -1758,9 +1758,7 @@ public class AFSVCmd {
      */
     public boolean verifySignedDataForSM2(byte[] rawData, byte[] signData) throws AFCryptoException { //success
         logger.info("SV-验证签名数据, rawData: {}, signData: {}", rawData, signData);
-
         int rawDataLen = null == rawData ? 0 : rawData.length;
-
         BytesBuffer buffer = new BytesBuffer()
                 .append(signData.length)
                 .append(signData)

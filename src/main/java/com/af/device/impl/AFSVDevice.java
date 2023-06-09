@@ -26,6 +26,7 @@ import com.af.struct.signAndVerify.sm2.*;
 import com.af.utils.BigIntegerUtil;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
+import com.af.utils.base64.Base64;
 import com.af.utils.pkcs.AFPkcs1Operate;
 import lombok.Getter;
 import lombok.Setter;
@@ -799,7 +800,7 @@ public class AFSVDevice implements IAFSVDevice {
 
     public byte[] sm2Signature(byte[] data, byte[] privateKey) throws AFCryptoException {
         try {
-            SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey);
+            SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey).to512();
             byte[] encodeKey = sm2PrivateKey.encode();
             SM2Signature sm2Signature = new SM2Signature(cmd.sm2Signature(data, encodeKey)).to256();
             SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);                              // 转换为ASN1结构
@@ -3407,7 +3408,7 @@ public class AFSVDevice implements IAFSVDevice {
         }
         //endregion
         //解析私钥
-        SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(priKey);
+        SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(priKey).to512();
         //获取证书
         byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
         //编码签名数据
@@ -3426,19 +3427,18 @@ public class AFSVDevice implements IAFSVDevice {
      */
     public byte[] encodeSignedDataForSM2(boolean ifCarryText, byte[] privateKey, byte[] signerCertificate, byte[] data) throws AFCryptoException {
         try {
-            // 解码私钥
-            byte[] decodeKey = BytesOperate.base64DecodePrivateKey(new String(privateKey));
-            InputStream inputData = new ByteArrayInputStream(decodeKey);
-            ASN1InputStream inputStream = new ASN1InputStream(inputData);
-            ASN1Sequence asn1Encodables = (ASN1Sequence) inputStream.readObject();
-            SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(asn1Encodables);
-            SM2PrivateKey sm2PrivateKey = sm2PrivateKeyStructure.toSM2PrivateKey();
+            // 解析私钥
+            SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey).to512();
             // 解码证书
             byte[] derCert = BytesOperate.base64DecodeCert(new String(signerCertificate));
             // 编码签名数据
-            byte[] bytes = cmd.encodeSignedDataForSM2(ifCarryText ? 1 : 0, sm2PrivateKey, derCert, data);
+            int flag = 0;
+            if (ifCarryText) {
+                flag = 1;
+            }
+            byte[] bytes = cmd.encodeSignedDataForSM2(flag,sm2PrivateKey, derCert, data);
             return BytesOperate.base64EncodeData(bytes);
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("编码基于SM2算法的签名数据错误");
             throw new AFCryptoException(e);
         }
@@ -3492,7 +3492,7 @@ public class AFSVDevice implements IAFSVDevice {
         }
         //endregion
         //解析私钥
-        SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(priKey);
+        SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(priKey).to512();
         //获取证书
         byte[] derSignCert = BytesOperate.base64DecodeCert(new String(signCert));
         byte[] derEncCert = BytesOperate.base64DecodeCert(new String(encCert));
@@ -3514,7 +3514,9 @@ public class AFSVDevice implements IAFSVDevice {
         }
         //endregion
         //解析私钥
-        SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(priKey);
+        SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(priKey).to512();
+        //base64解析签名数据
+        encodeData = Base64.decode(encodeData);
         //解码签名数据
         byte[] bytes = cmd.decodeEnvelopedDataForSM2(sm2PrivateKey.encode(), encodeData);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -3544,7 +3546,7 @@ public class AFSVDevice implements IAFSVDevice {
             ASN1Primitive obj = inputStream.readObject();
             SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
             //自定义私钥结构
-            return new SM2PrivateKey(256, BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey()));
+            return new SM2PrivateKey(256, BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey())).to512();
         } catch (IOException e) {
             logger.error("SM2 ASN1结构转换为自定义SM2私钥结构错误");
             throw new AFCryptoException("SM2 ASN1结构转换为自定义SM2私钥结构错误");

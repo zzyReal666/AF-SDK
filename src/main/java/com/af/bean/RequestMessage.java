@@ -85,17 +85,22 @@ public class RequestMessage {
 
     public String toString() {
         String data;
+
+
+        String result = "RequestMessage(header=" + this.getHeader()
+                + ", isEncrypt=" + this.isEncrypt();
+
         if (null == this.data || this.data.length == 0) {  // 无数据
             data = "";
+            result += ", data=" + data;
         } else if (this.data.length > 128) {               // 数据过长只显示长度
             data = Integer.toString(this.data.length);
+            result += ", dataLen=" + data;
         } else {                                           // 数据正常
             data = HexUtil.encodeHexStr(this.data);
+            result += ", data=" + data;
         }
-
-        return "RequestMessage(header=" + this.getHeader()
-                + ", isEncrypt=" + this.isEncrypt()
-                + ", data=" + data
-                + ")";
+        result += ")";
+        return result;
     }
 }

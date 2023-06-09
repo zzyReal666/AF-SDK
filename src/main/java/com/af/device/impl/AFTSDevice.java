@@ -1,20 +1,16 @@
 package com.af.device.impl;
 
-import com.af.bean.RequestMessage;
-import com.af.bean.ResponseMessage;
-import com.af.constant.CMDCode;
+import com.af.constant.Algorithm;
 import com.af.constant.TSMInfoFlag;
 import com.af.device.DeviceInfo;
 import com.af.device.IAFTSDevice;
+import com.af.device.cmd.AFTSMCmd;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
-import com.af.utils.BytesBuffer;
-import com.af.utils.SM4Utils;
+import com.af.utils.BytesOperate;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.charset.StandardCharsets;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -32,6 +28,8 @@ public class AFTSDevice implements IAFTSDevice {
     private static AFNettyClient client = null;
     private byte[] agKey;
 
+    private final AFTSMCmd cmd = new AFTSMCmd(client, agKey);
+
     //私有化构造方法
     private AFTSDevice() {
     }
@@ -46,16 +44,16 @@ public class AFTSDevice implements IAFTSDevice {
         client = AFNettyClient.getInstance(host, port, passwd);
         return SingletonHolder.INSTANCE;
     }
+
     /**
      * 协商密钥
      */
     public AFTSDevice setAgKey() {
         this.agKey = this.keyAgreement(client);
+        cmd.setAgKey(agKey);
         logger.info("协商密钥成功");
         return this;
     }
-
-
 
 
     /**
@@ -81,153 +79,86 @@ public class AFTSDevice implements IAFTSDevice {
         return new byte[0];
     }
 
+
     /**
      * 时间戳请求
      *
-     * @param data       预加盖时间戳的用户信息
-     * @param extendInfo 扩展信息（DER编码）
-     * @param reqType    时间戳服务类型 0代表响应包含TSA证书 1代表响应不包含TSA证书
-     * @param hashAlg    杂凑算法标识 SGD_SM3
-     * @return ASN1结构请求体
+     * @param data    预加盖时间戳的用户信息
+     * @param reqType 时间戳服务类型 0代表响应包含TSA证书 1代表响应不包含TSA证书
+     * @return 时间戳请求信息数据（DER 编码）
      */
-    @Override
-    public byte[] tsRequest(byte[] data, byte[] extendInfo, int reqType, int hashAlg) throws AFCryptoException { //success
-        logger.info("时间戳请求, data: {}, extendInfo: {}, reqType: {}, hashAlg: {}", data, extendInfo, reqType, hashAlg);
-        byte[] param = new BytesBuffer()
-                .append(data.length)
-                .append(data)
-                .append(reqType)
-                .append(extendInfo == null ? 0 : extendInfo.length)
-                .append(extendInfo)
-                .append(hashAlg)
-                .toBytes();
-        param = SM4Utils.encrypt(ROOT_KEY, param);
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_CREATE_TS_REQUEST, param, agKey);
-        ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("时间戳请求失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-            throw new AFCryptoException("时间戳请求失败, 错误码: " + responseMessage.getHeader().getErrorCode() + ", 错误信息: " + responseMessage.getHeader().getErrorInfo());
-        }
-        return responseMessage.getDataBuffer().readOneData();
+    public byte[] tsRequest(byte[] data, int reqType) throws AFCryptoException { //success
+        return cmd.tsRequest(data, null, reqType, Algorithm.SGD_SM3.getValue());
     }
 
     /**
      * 时间戳响应
      *
-     * @param asn1Request ASN1结构请求体
-     * @param signAlg     签名算法标识 SGD_SM3
-     * @return DER编码时间戳
+     * @param asn1Request 时间戳请求信息数据（DER 编码）
+     * @return 时间戳响应数据（DER 编码）
      */
-    @Override
-    public byte[] tsResponse(byte[] asn1Request, int signAlg) throws AFCryptoException {
-        logger.info("时间戳响应, asn1Request: {}, signAlg: {}", asn1Request, signAlg);
-        byte[] param = new BytesBuffer()
-                .append(asn1Request.length)
-                .append(asn1Request)
-                .append(signAlg)
-                .toBytes();
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_TS_RESPONSE, param, agKey);
-        ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("时间戳响应失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-            throw new AFCryptoException("时间戳响应失败, 错误码: " + responseMessage.getHeader().getErrorCode() + ", 错误信息: " + responseMessage.getHeader().getErrorInfo());
-        }
-        return responseMessage.getDataBuffer().readOneData();
+    public byte[] tsResponse(byte[] asn1Request) throws AFCryptoException {
+        return cmd.tsResponse(asn1Request, Algorithm.SGD_SM3.getValue());
     }
 
     /**
      * 时间戳请求并响应
      *
-     * @param data       预加盖时间戳的用户信息
-     * @param extendInfo 扩展信息（DER编码）
-     * @param reqType    时间戳服务类型 0代表响应包含TSA证书 1代表响应不包含TSA证书
-     * @param hashAlg    杂凑算法标识
-     * @param signAlg    签名算法标识
+     * @param data    预加盖时间戳的用户信息
+     * @param reqType 时间戳服务类型 0代表响应包含TSA证书 1代表响应不包含TSA证书
      * @return DER编码时间戳
      */
-    @Override
-    public byte[] tsRequestAndResponse(byte[] data, byte[] extendInfo, int reqType, int hashAlg, int signAlg) throws AFCryptoException {
-        byte[] requestData = tsRequest(data, extendInfo, reqType, hashAlg);
-        return tsResponse(requestData, signAlg);
+    public byte[] tsRequestAndResponse(byte[] data, int reqType) throws AFCryptoException {
+        byte[] requestData = tsRequest(data, reqType);
+        return tsResponse(requestData);
     }
 
     /**
-     * 验证时间戳
+     * 时间戳验证
      *
-     * @param tsValue DER编码时间戳
-     * @param hashAlg 杂凑算法标识 SGD_SM3
-     * @param signAlg 签名算法标识 SGD_SM2|SGD_SM2_1|SGD_SM2_2|SGD_SM2_3
-     * @param tsaCert TSA证书，对于不包含TSA证书的时间戳，需要指定证书
-     * @return 验证结果
+     * @param tsValue  时间戳响应信息
+     * @param signAlg  签名算法标识（SGD_SM2|SGD_SM2_1|SGD_SM2_2|SGD_SM2_3）
+     * @param signCert TSA证书
      */
-    @Override
-    public boolean tsVerify(byte[] tsValue, int hashAlg, int signAlg, byte[] tsaCert) throws AFCryptoException {
-        logger.info("验证时间戳, tsValue: {}, hashAlg: {}, signAlg: {}, tsaCert: {}", tsValue, hashAlg, signAlg, tsaCert);
-        byte[] param = new BytesBuffer()
-                .append(tsValue.length)
-                .append(tsValue)
-                .append(signAlg)
-                .append(hashAlg)
-                .append(tsaCert == null ? 0 : tsaCert.length)
-                .append(tsaCert)
-                .toBytes();
-        param = SM4Utils.encrypt(ROOT_KEY, param);
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_TS_VERIFY, param, agKey);
-        ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode() == 0) {
-            return true;
+
+    public boolean tsVerify(byte[] tsValue, int signAlg, byte[] signCert) throws AFCryptoException {
+        //region //======>参数检查
+        if (tsValue == null || tsValue.length == 0) {
+            throw new AFCryptoException("tsValue is null");
         }
-        logger.error("验证时间戳失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-        return false;
+        //endregion
+        byte[] derSignCert;
+        if (null == signCert) {
+            derSignCert = null;
+        } else {
+            derSignCert = BytesOperate.base64DecodeCert(new String(signCert));
+        }
+        return cmd.tsVerify(tsValue, signAlg, Algorithm.SGD_SM3.getValue(), derSignCert);
     }
 
+
     /**
-     * 获取时间戳主要信息
+     * 获取时间戳信息
      *
-     * @param tsValue DER编码时间戳
-     * @return 返回数据格式为：TSA通用名|签发时间
+     * @param tsValue 时间戳响应信息
      */
-    @Override
     public String getTsInfo(byte[] tsValue) throws AFCryptoException {
-        logger.info("获取时间戳主要信息, tsValue: {}", tsValue);
-        byte[] param = new BytesBuffer()
-                .append(tsValue.length)
-                .append(tsValue)
-                .toBytes();
-        param = SM4Utils.encrypt(ROOT_KEY, param);
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GET_TS_INFO, param, agKey);
-        ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("获取时间戳主要信息失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-            throw new AFCryptoException("获取时间戳主要信息失败, 错误码: " + responseMessage.getHeader().getErrorCode() + ", 错误信息: " + responseMessage.getHeader().getErrorInfo());
+        if (tsValue == null || tsValue.length == 0) {
+            throw new AFCryptoException("tsValue is null");
         }
-        byte[] issue = responseMessage.getDataBuffer().readOneData();
-        byte[] time = responseMessage.getDataBuffer().readOneData();
-        return new String(issue, StandardCharsets.UTF_8) + "|" + new String(time, StandardCharsets.UTF_8);
+        return cmd.getTsInfo(tsValue);
     }
 
     /**
-     * 获取指定的时间戳详细信息
-     *
-     * @param tsValue DER编码时间戳
-     * @param subject 时间戳详细信息的项目编号
-     * @return 指定信息
+     * 获取时间戳详细信息
+     * @param tsValue 时间戳响应信息
+     * @param infoFlag 信息标识
+     * @return 时间戳详细信息
      */
-    @Override
-    public byte[] getTsDetail(byte[] tsValue, TSMInfoFlag subject) throws AFCryptoException {
-        logger.info("获取指定的时间戳详细信息, tsValue: {}, subject: {}", tsValue, subject.getValue());
-        byte[] param = new BytesBuffer()
-                .append(tsValue.length)
-                .append(tsValue)
-                .append(subject.getValue())
-                .toBytes();
-        param = SM4Utils.encrypt(ROOT_KEY, param);
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GET_TS_DETAIL, param, agKey);
-        ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("获取指定的时间戳详细信息失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-            throw new AFCryptoException("获取指定的时间戳详细信息失败, 错误码: " + responseMessage.getHeader().getErrorCode() + ", 错误信息: " + responseMessage.getHeader().getErrorInfo());
+    public byte[] getTsDetailInfo(byte[] tsValue, TSMInfoFlag infoFlag) throws AFCryptoException {
+        if (tsValue == null || tsValue.length == 0) {
+            throw new AFCryptoException("tsValue is null");
         }
-        return responseMessage.getDataBuffer().readOneData();
+        return cmd.getTsDetail(tsValue, infoFlag);
     }
 }

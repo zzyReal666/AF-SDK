@@ -96,11 +96,11 @@ public class SM2PrivateKey implements Key {
      * @return SM2PriKey
      */
     public SM2PrivateKey to256() {
-        if (this.length == 256) {
+        if (this.D.length == 32) {
             return this;
         }
         byte[] D = new byte[32];
-        System.arraycopy(this.D, 32, D, 0, D.length);
+        System.arraycopy(this.D, 32, D, 0, 32);
         return new SM2PrivateKey(256, D);
     }
 
@@ -110,11 +110,11 @@ public class SM2PrivateKey implements Key {
      * @return SM2PriKey
      */
     public SM2PrivateKey to512() {
-        if (this.length == 512) {
+        if (this.D.length == 64) {
             return this;
         }
         byte[] d = new byte[64];
-        System.arraycopy(D, 0, d, 32, D.length);
+        System.arraycopy(D, 0, d, 32, 32);
         return new SM2PrivateKey(256, d);
     }
 }

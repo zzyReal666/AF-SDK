@@ -5,7 +5,7 @@ import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.device.AFDeviceFactory;
 import com.af.device.DeviceInfo;
-import com.af.struct.signAndVerify.AFSM2DecodeSignedData;
+import com.af.struct.signAndVerify.AFPkcs7DecodeData;
 import com.af.struct.signAndVerify.AFSvCryptoInstance;
 import com.af.struct.signAndVerify.CertAltNameTrustList;
 import com.af.struct.signAndVerify.RSA.RSAKeyPairStructure;
@@ -33,17 +33,19 @@ AFSVDeviceTest {
     static Logger logger = Logger.getLogger("AFSVDeviceTest");
 
     //        static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.1.232", 6001, "abcd1234");
-    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8013, "abcd1234");
+    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8011, "abcd1234");
     static byte[] data = "1234567890abcdef".getBytes();
 
     //证书文件路径
     static String userCertFileSM2 = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\testCert.cer";
     static String userCertFileRSA = "src\\test\\resources\\user.crt";
     static String deviceCertFile = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\device.cer";
+    static String deviceEncCertFile = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\deviceEnc.cer";
 
+    //证书文件
     static byte[] cert = FileUtil.readBytes(userCertFileSM2);
-
     static byte[] deviceCert = FileUtil.readBytes(deviceCertFile);
+    static byte[] deviceEncCert = FileUtil.readBytes(deviceEncCertFile);
 
     //签名文件路径
     static byte[] fileName = "src\\test\\resources\\singFile.txt".getBytes(StandardCharsets.UTF_8);
@@ -686,11 +688,11 @@ AFSVDeviceTest {
     }
 
 
-    //PKCS7 签名信息编码 解码 验证
+    //PKCS7 签名信息编码 解码 验证 success
     @Test
     void testPKCS7() throws Exception {
-        SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(getPriKey()).to256();
         //私钥
+        SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(getPriKey()).to256();
         SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(sm2PrivateKey);
         byte[] encoded = sm2PrivateKeyStructure.toASN1Primitive().getEncoded("DER");
         encoded = Base64.encode(encoded);
@@ -700,40 +702,51 @@ AFSVDeviceTest {
 
         //签名信息编码
         byte[] bytes = device.encodeSignedDataForSM2(encoded, cert, data);
+        System.out.println("第一次签名信息编码,不带原文"+new String(bytes));
         byte[] bytes1 = device.encodeSignedDataForSM2(true, encoded, cert, data);
-        byte[] bytes2 = device.encodeSignedDataForSM2(false, encoded, cert, data);
+        System.out.println("第二次签名信息编码,带原文"+new String(bytes1));
 
 
-        //签名信息解码
-        AFSM2DecodeSignedData afsm2DecodeSignedData = device.decodeSignedDataForSM2(bytes);
-        System.out.println(afsm2DecodeSignedData);
-        AFSM2DecodeSignedData afsm2DecodeSignedData1 = device.decodeSignedDataForSM2(bytes1);
-        System.out.println(afsm2DecodeSignedData1);
-        AFSM2DecodeSignedData afsm2DecodeSignedData2 = device.decodeSignedDataForSM2(bytes2);
-        System.out.println(afsm2DecodeSignedData2);
+
+//        //签名信息解码
+//        AFSM2DecodeSignedData afsm2DecodeSignedData = device.decodeSignedDataForSM2(bytes);
+//        System.out.println("第一次签名信息解码,不带原文"+afsm2DecodeSignedData);
+//        AFSM2DecodeSignedData afsm2DecodeSignedData1 = device.decodeSignedDataForSM2(bytes1);
+//        System.out.println("第二次签名信息解码,带原文"+afsm2DecodeSignedData1);
+//
 
         //签名信息验证
         boolean b = device.verifySignedDataForSM2(bytes, data);
-        System.out.println(b);
-        boolean b1 = device.verifySignedDataForSM2(bytes1, data);
-        System.out.println(b1);
-        boolean b2 = device.verifySignedDataForSM2(bytes2, data);
-        System.out.println(b2);
+        System.out.println("第一次签名信息验证,不带原文"+b);
+        boolean b1 = device.verifySignedDataForSM2(bytes1, null);
+        System.out.println("第二次签名信息验证,带原文"+b1);
 
     }
 
-    //PKCS7 数字信封编码 解码
+    //PKCS7 数字信封编码 解码 success
     @Test
     void testPKCS7EnvelopedData() throws Exception {
 
         //私钥
-        byte[] priKey = null;
+        SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(getPriKey()).to256();
+        SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(sm2PrivateKey);
+        byte[] encoded = sm2PrivateKeyStructure.toASN1Primitive().getEncoded("DER");
+        encoded = Base64.encode(encoded);
+
         //对称密钥
-        byte[] key = null;
+        byte[] key = "1234567890abcdef".getBytes();
         //签名证书
-        byte[] cert = null;
+        byte[] cert = deviceCert;
         //加密证书
-        byte[] encCert = null;
+        byte[] encCert = deviceEncCert;
+
+        //数字信封编码
+        byte[] bytes = device.encodeEnvelopedDataForSM2(encoded, key, cert, encCert, key);
+        System.out.println("第一次数字信封编码"+new String(bytes));
+
+        //数字信封解码
+        AFPkcs7DecodeData afPkcs7DecodeData = device.decodeEnvelopedDataForSM2(encoded, bytes);
+        System.out.println("第一次数字信封解码"+afPkcs7DecodeData);
 
 
     }

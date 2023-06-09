@@ -55,6 +55,9 @@ public class AFNettyClient {
 
 
     //netty
+    @Setter
+    private boolean isAvailable = true;
+    //是否可用
     private final Bootstrap bootstrap;
     private Channel channel;
     private final String host;
@@ -77,6 +80,9 @@ public class AFNettyClient {
                 .option(ChannelOption.SO_KEEPALIVE, true); //保持连接
         //设置最大缓冲
         bootstrap.option(ChannelOption.SO_RCVBUF, 1024 * 1024 * 100);
+        //连接
+        connect();
+        //登录
         login();
     }
 
@@ -97,7 +103,6 @@ public class AFNettyClient {
         }
         return instance;
     }
-
 
     /**
      * 连接
@@ -180,9 +185,6 @@ public class AFNettyClient {
 
 
     public byte[] send(byte[] msg) {
-        if (channel == null || !channel.isActive()) {
-            connect();
-        }
         try {
             //msg 转为 ByteBuf
             ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
@@ -224,6 +226,18 @@ public class AFNettyClient {
         }
 
     }
+
+
+    public void close() {
+        if (channel != null) {
+            channel.close();
+            isAvailable = false;
+        }
+    }
+
+
+
+
 
 
 }
