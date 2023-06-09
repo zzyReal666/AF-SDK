@@ -10,8 +10,8 @@ public class CertParseInfoType {
     public static int SGD_CERT_VALID_TIME = 0x00000006; ///< 证书有效期
     public static int SGD_CERT_SUBJECT = 0x00000007; ///< 证书拥有者信息
     public static int SGD_CERT_DER_PUBLIC_KEY = 0x00000008; ///< 证书公钥信息
-    public static int SGD_CERT_DER_EXTENSIONS = 0x00000009; ///< 证书扩展项信息
 
+    public static int SGD_CERT_DER_EXTENSIONS = 0x00000009; ///< 证书扩展项信息
     public static int SGD_EXT_AUTHORITYKEYIDENTIFIER_INFO = 0x00000011; ///< 颁发者秘钥标识符
     public static int SGD_EXT_SUBJECTKEYIDENTIFIER_INFO = 0x00000012; ///< 证书持有者秘钥标识符
     public static int SGD_EXT_KEYUSAGE_INFO = 0x00000013; ///< 秘钥用途

@@ -1469,9 +1469,9 @@ public class AFSVCmd {
         }
         byte[] responseData = res.getData();
         int nameNumber = BytesOperate.bytes2int(getBytes(responseData, 0, 4));
-//        int certListLen = BytesOperate.bytes2int(getBytes(responseData, 4, 4));
-//        byte[] certList = getBytes(responseData, 4 + 4, certListLen);
-        byte[] certList = res.getDataBuffer().readOneData();
+        int certListLen = BytesOperate.bytes2int(getBytes(responseData, 4, 4));
+        byte[] certList = getBytes(responseData, 4 + 4, certListLen);
+//        byte[] certList = res.getDataBuffer().readOneData();
         return new CertAltNameTrustList(certList, nameNumber);
     }
 
@@ -1603,7 +1603,7 @@ public class AFSVCmd {
      */
 
     public AFSvCryptoInstance getInstance(byte[] policyName) throws AFCryptoException {
-        logger.info("SV-获取应用策略,policyName:{}", policyName);
+        logger.info("SV-获取应用实体信息,policyName:{}", new String(policyName));
         byte[] param = new BytesBuffer()
                 .append(policyName.length)
                 .append(policyName)
@@ -1611,14 +1611,14 @@ public class AFSVCmd {
         RequestMessage req = new RequestMessage(CMDCode.CMD_GET_INSTANCE, param, agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SV-获取应用策略错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SV-获取应用策略错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-获取应用实体信息,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-获取应用实体信息,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         byte[] responseData = res.getData();
         AFSvCryptoInstance instance = new AFSvCryptoInstance();
 
         //todo  在实体里面decode
-        instance.setPolicyName(policyName);
+        instance.setPolicyName(new String(policyName));
         instance.setKeyIndex(BytesOperate.bytes2int(getBytes(responseData, 0, 4)));
         instance.setKeyType(BytesOperate.bytes2int(getBytes(responseData, 4, 4)));
         instance.setPolicy(BytesOperate.bytes2int(getBytes(responseData, 4 + 4, 4)));
@@ -1771,12 +1771,7 @@ public class AFSVCmd {
         byte[] param = buffer.toBytes();
         RequestMessage req = new RequestMessage(CMDCode.CMD_SM2_SIGNDATA_VERIFY, param, agKey);
         ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SV-验证签名数据,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SV-验证签名数据,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
-        }
-        return true;
-
+        return res.getHeader().getErrorCode() == 0;
 
     }
 
@@ -1838,7 +1833,7 @@ public class AFSVCmd {
             logger.error("SV-解码数字信封,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("SV-解码数字信封,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
-        return res.getDataBuffer().readOneData();
+        return res.getData();
     }
 
     //endregion

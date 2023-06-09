@@ -25,6 +25,26 @@ public class SM2PrivateKeyStructure implements ASN1Encodable {
         this.seq = seq;
     }
 
+    /**
+     * 自定义私钥结构 转化为ASN1结构
+     *
+     * @param key 自定义私钥结构
+     */
+    public SM2PrivateKeyStructure(SM2PrivateKey key) {
+        BigInteger D = BigIntegerUtil.toPositiveInteger(key.getD());
+        this.isCA = false;
+        ASN1EncodableVector v = new ASN1EncodableVector();
+        v.add(new ASN1Integer(1));
+        if (this.isCA) {
+            byte[] bytes = BigIntegers.asUnsignedByteArray(D);
+            v.add(new DEROctetString(bytes));
+        } else {
+            v.add(new ASN1Integer(D));
+        }
+
+        this.seq = new DERSequence(v);
+    }
+
     public SM2PrivateKeyStructure(BigInteger key) {
         this.isCA = false;
         ASN1EncodableVector v = new ASN1EncodableVector();
@@ -65,17 +85,17 @@ public class SM2PrivateKeyStructure implements ASN1Encodable {
 
     public BigInteger getKey() {
         if (this.isCA) {
-            ASN1OctetString octs = (ASN1OctetString)this.seq.getObjectAt(1);
+            ASN1OctetString octs = (ASN1OctetString) this.seq.getObjectAt(1);
             return new BigInteger(1, octs.getOctets());
         } else {
-            ASN1Integer key = (ASN1Integer)this.seq.getObjectAt(1);
+            ASN1Integer key = (ASN1Integer) this.seq.getObjectAt(1);
             return key.getValue();
         }
     }
 
 
     public DERBitString getPublicKey() {
-        return (DERBitString)this.getObjectInTag(1);
+        return (DERBitString) this.getObjectInTag(1);
     }
 
     public ASN1Object getParameters() {
@@ -84,10 +104,10 @@ public class SM2PrivateKeyStructure implements ASN1Encodable {
 
     private ASN1Object getObjectInTag(int tagNo) {
         Enumeration<?> e = this.seq.getObjects();
-        while(e.hasMoreElements()) {
-            ASN1Encodable obj = (ASN1Encodable)e.nextElement();
+        while (e.hasMoreElements()) {
+            ASN1Encodable obj = (ASN1Encodable) e.nextElement();
             if (obj instanceof ASN1TaggedObject) {
-                ASN1TaggedObject tag = (ASN1TaggedObject)obj;
+                ASN1TaggedObject tag = (ASN1TaggedObject) obj;
                 if (tag.getTagNo() == tagNo) {
                     return tag.getObject();
                 }
@@ -97,15 +117,18 @@ public class SM2PrivateKeyStructure implements ASN1Encodable {
     }
 
 
-
+    /**
+     * ASN1结构转化为自定义私钥结构
+     *
+     * @return 自定义私钥结构
+     */
     public SM2PrivateKey toSM2PrivateKey() {
         byte[] d = BigIntegerUtil.asUnsigned32ByteArray(this.getKey());
         SM2PrivateKey sm2PrivateKey = new SM2PrivateKey();
         sm2PrivateKey.setLength(d.length);
         sm2PrivateKey.setD(d);
-        return sm2PrivateKey ;
+        return sm2PrivateKey;
     }
-
 
 
     @Override

@@ -1,6 +1,6 @@
 package com.af.struct.signAndVerify.RSA;
 
-import com.af.crypto.key.RSA.RSAPriKey;
+import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.utils.BigIntegerUtil;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

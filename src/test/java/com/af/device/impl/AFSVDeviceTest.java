@@ -2,13 +2,16 @@ package com.af.device.impl;
 
 import cn.hutool.core.io.FileUtil;
 import com.af.constant.ModulusLength;
-import com.af.crypto.key.sm2.SM2KeyPair;
-import com.af.crypto.key.sm2.SM2PublicKey;
+import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.device.AFDeviceFactory;
 import com.af.device.DeviceInfo;
-import com.af.struct.impl.RSA.RSAKeyPair;
+import com.af.struct.signAndVerify.AFSM2DecodeSignedData;
 import com.af.struct.signAndVerify.AFSvCryptoInstance;
 import com.af.struct.signAndVerify.CertAltNameTrustList;
+import com.af.struct.signAndVerify.RSA.RSAKeyPairStructure;
+import com.af.struct.signAndVerify.sm2.SM2KeyPairStructure;
+import com.af.struct.signAndVerify.sm2.SM2PrivateKeyStructure;
+import com.af.utils.base64.Base64;
 import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -36,7 +39,11 @@ AFSVDeviceTest {
     //证书文件路径
     static String userCertFileSM2 = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\testCert.cer";
     static String userCertFileRSA = "src\\test\\resources\\user.crt";
+    static String deviceCertFile = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\device.cer";
+
     static byte[] cert = FileUtil.readBytes(userCertFileSM2);
+
+    static byte[] deviceCert = FileUtil.readBytes(deviceCertFile);
 
     //签名文件路径
     static byte[] fileName = "src\\test\\resources\\singFile.txt".getBytes(StandardCharsets.UTF_8);
@@ -105,109 +112,109 @@ AFSVDeviceTest {
         System.out.println(Arrays.toString(random));
     }
 
-    //导出公钥信息
-    @Test
-    void testGetPublicKey() throws Exception {
-        //RSA签名
-        byte[] rsaPublicKey = device.getRSAPublicKey(1, 0);
-        System.out.println("RSA签名公钥:" + new String(rsaPublicKey));
-        //RSA加密
-        byte[] rsaPublicKey2 = device.getRSAPublicKey(1, 1);
-        System.out.println("RSA加密公钥:" + new String(rsaPublicKey2));
-        //SM2 签名
-        byte[] sm2PublicKey = device.getSm2PublicKey(1, 0);
-        System.out.println("SM2签名公钥:" + new String(sm2PublicKey));
-        //SM2加密
-        byte[] sm2PublicKey2 = device.getSm2PublicKey(1, 1);
-        System.out.println("SM2加密公钥:" + new String(sm2PublicKey2));
-    }
+//    //导出公钥信息
+//    @Test
+//    void testGetPublicKey() throws Exception {
+//        //RSA签名
+//        byte[] rsaPublicKey = device.getRSAPublicKey(1, 0);
+//        System.out.println("RSA签名公钥:" + new String(rsaPublicKey));
+//        //RSA加密
+//        byte[] rsaPublicKey2 = device.getRSAPublicKey(1, 1);
+//        System.out.println("RSA加密公钥:" + new String(rsaPublicKey2));
+//        //SM2 签名
+//        byte[] sm2PublicKey = device.getSm2PublicKey(1, 0);
+//        System.out.println("SM2签名公钥:" + new String(sm2PublicKey));
+//        //SM2加密
+//        byte[] sm2PublicKey2 = device.getSm2PublicKey(1, 1);
+//        System.out.println("SM2加密公钥:" + new String(sm2PublicKey2));
+//    }
 
     //导出公钥 success
     @Test
     void testExportPublicKey() throws Exception {
-//        //SM2
-//        SM2PublicKey sm2EncryptPublicKey = device.getSM2EncryptPublicKey(1);
-//        System.out.println("SM2加密公钥:" + sm2EncryptPublicKey);
-//        SM2PublicKey sm2SignPublicKey = device.getSM2SignPublicKey(1);
-//        System.out.println("SM2签名公钥:" + sm2SignPublicKey);
-//
-//        //RSA
-//        RSAPubKey rsaSignPublicKey = device.getRSASignPublicKey(1);
-//        System.out.println("RSA签名公钥:" + rsaSignPublicKey);
-//        RSAPubKey rsaEncryptPublicKey = device.getRSAEncPublicKey(1);
-//        System.out.println("RSA加密公钥:" + rsaEncryptPublicKey);
+        //SM2
+        byte[] sm2EncryptPublicKey = device.getSM2EncryptPublicKey(1);
+        System.out.println("SM2加密公钥:" + new String(sm2EncryptPublicKey));
+        byte[] sm2SignPublicKey = device.getSM2SignPublicKey(1);
+        System.out.println("SM2签名公钥:" + new String(sm2SignPublicKey));
+
+        //RSA
+        byte[] rsaSignPublicKey = device.getRSASignPublicKey(1);
+        System.out.println("RSA签名公钥:" + new String(rsaSignPublicKey));
+        byte[] rsaEncPublicKey = device.getRSAEncPublicKey(1);
+        System.out.println("RSA加密公钥:" + new String(rsaEncPublicKey));
 
     }
 
     //生成密钥对
     @Test
     void testGenerateKeyPair() throws Exception {
-        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(0);
-        System.out.println("Sm2签名密钥对:" + sm2KeyPair);
-        SM2KeyPair sm2KeyPair1 = device.generateSM2KeyPair(1);
-        System.out.println("Sm2加密密钥对:" + sm2KeyPair1);
-        SM2KeyPair sm2KeyPair2 = device.generateSM2KeyPair(2);
-        System.out.println("Sm2密钥交换密钥对:" + sm2KeyPair2);
-        SM2KeyPair sm2KeyPair3 = device.generateSM2KeyPair(3);
-        System.out.println("Sm2密钥对:" + sm2KeyPair3);
+        SM2KeyPairStructure sm2KeyPairStructure = device.generateSM2KeyPair(0);
+        System.out.println("Sm2签名密钥对:" + sm2KeyPairStructure);
+        SM2KeyPairStructure sm2KeyPairStructure1 = device.generateSM2KeyPair(1);
+        System.out.println("Sm2加密密钥对:" + sm2KeyPairStructure1);
+        SM2KeyPairStructure sm2KeyPairStructure2 = device.generateSM2KeyPair(2);
+        System.out.println("Sm2密钥交换密钥对:" + sm2KeyPairStructure2);
+        SM2KeyPairStructure sm2KeyPairStructure3 = device.generateSM2KeyPair(3);
+        System.out.println("Sm2密钥对:" + sm2KeyPairStructure3);
 
-        RSAKeyPair rsaKeyPair = device.generateRSAKeyPair(ModulusLength.LENGTH_1024);
-        System.out.println("RSA密钥对:" + rsaKeyPair);
+        RSAKeyPairStructure rsaKeyPairStructure = device.generateRSAKeyPair(ModulusLength.LENGTH_1024);
+        System.out.println("RSA密钥对:" + rsaKeyPairStructure);
     }
 
 
-    //RSA 操作
-    @Test
-    void testRSA() throws Exception {
-
-        //RSA 内部签名验签
-        byte[] bytes = device.rsaSignature(1, data);
-        boolean b = device.rsaVerify(1, data, bytes);
-
-        //RSA 外部签名验签
-        RSAKeyPair rsaKeyPair = device.generateRSAKeyPair(ModulusLength.LENGTH_1024);
-        byte[] bytes1 = device.rsaSignature(rsaKeyPair.getPriKey().encode(), data);
-        boolean b1 = device.rsaVerify(rsaKeyPair.getPubKey().encode(), data, bytes1);
-
-        //RSA内部密钥加解密
-        byte[] bytes2 = device.rsaEncrypt(1, data);
-        byte[] bytes3 = device.rsaDecrypt(1, bytes2);
-        assert Arrays.equals(data, bytes3);
-
-        //RSA 外部密钥加解密
-        byte[] bytes4 = device.rsaEncrypt(rsaKeyPair.getPubKey().encode(), data);
-        byte[] bytes5 = device.rsaDecrypt(rsaKeyPair.getPriKey().encode(), bytes4);
-        assert Arrays.equals(data, bytes5);
-
-    }
-
-    //SM2 操作
-    @Test
-    void testSM2() throws Exception {
-        //SM2 内部签名验签
-        byte[] bytes = device.sm2Signature(1, data);
-        boolean b = device.sm2Verify(1, data, bytes);
-        assert b;
-
-        //SM2 外部签名验签
-        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(0);
-        byte[] bytes1 = device.sm2Signature(sm2KeyPair.getPriKey().encode(), data);
-        boolean b1 = device.sm2VerifyByPublicKey(sm2KeyPair.getPubKey().encode(), data, bytes1);
-        assert b1;
-
-        //SM2内部密钥加解密
-        byte[] bytes2 = device.sm2Encrypt(1, data);
-        byte[] bytes3 = device.sm2Decrypt(1, bytes2);
-        assert Arrays.equals(data, bytes3);
-
-        //SM2 外部密钥加解密
-        SM2KeyPair sm2KeyPair1 = device.generateSM2KeyPair(1);
-        byte[] bytes4 = device.sm2Encrypt(sm2KeyPair1.getPubKey().encode(), data);
-        byte[] bytes5 = device.sm2Decrypt(sm2KeyPair1.getPriKey().encode(), bytes4);
-        assert Arrays.equals(data, bytes5);
-
-
-    }
+//    //RSA 操作
+//    @Test
+//    void testRSA() throws Exception {
+//
+//        //RSA 内部签名验签
+//        byte[] bytes = device.rsaSignature(1, data);
+//        boolean b = device.rsaVerify(1, data, bytes);
+//
+//        //RSA 外部签名验签
+//        RSAKeyPair rsaKeyPair = device.generateRSAKeyPair(ModulusLength.LENGTH_1024);
+//        byte[] bytes1 = device.rsaSignature(rsaKeyPair.getPriKey().encode(), data);
+//        boolean b1 = device.rsaVerify(rsaKeyPair.getPubKey().encode(), data, bytes1);
+//
+//        //RSA内部密钥加解密
+//        byte[] bytes2 = device.rsaEncrypt(1, data);
+//        byte[] bytes3 = device.rsaDecrypt(1, bytes2);
+//        assert Arrays.equals(data, bytes3);
+//
+//        //RSA 外部密钥加解密
+//        byte[] bytes4 = device.rsaEncrypt(rsaKeyPair.getPubKey().encode(), data);
+//        byte[] bytes5 = device.rsaDecrypt(rsaKeyPair.getPriKey().encode(), bytes4);
+//        assert Arrays.equals(data, bytes5);
+//
+//    }
+//
+//    //SM2 操作
+//    @Test
+//    void testSM2() throws Exception {
+//        //SM2 内部签名验签
+//        byte[] bytes = device.sm2Signature(1, data);
+//        boolean b = device.sm2Verify(1, data, bytes);
+//        assert b;
+//
+//        //SM2 外部签名验签
+//        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(0);
+//        byte[] bytes1 = device.sm2Signature(sm2KeyPair.getPriKey().encode(), data);
+//        boolean b1 = device.sm2VerifyByPublicKey(sm2KeyPair.getPubKey().encode(), data, bytes1);
+//        assert b1;
+//
+//        //SM2内部密钥加解密
+//        byte[] bytes2 = device.sm2Encrypt(1, data);
+//        byte[] bytes3 = device.sm2Decrypt(1, bytes2);
+//        assert Arrays.equals(data, bytes3);
+//
+//        //SM2 外部密钥加解密
+//        SM2KeyPair sm2KeyPair1 = device.generateSM2KeyPair(1);
+//        byte[] bytes4 = device.sm2Encrypt(sm2KeyPair1.getPubKey().encode(), data);
+//        byte[] bytes5 = device.sm2Decrypt(sm2KeyPair1.getPriKey().encode(), bytes4);
+//        assert Arrays.equals(data, bytes5);
+//
+//
+//    }
 
     //SM4
     @Test
@@ -471,47 +478,47 @@ AFSVDeviceTest {
         System.out.println(new String(bytes));
     }
 
-    //Hash
-    @Test
-    void testHash() throws Exception {
-
-        byte[] userId = "1234567812345678".getBytes();
-        //init
-        device.sm3HashInit();
-
-        //update
-        device.sm3HashUpdate(data);
-        device.sm3HashUpdate(data);
-
-        //final
-        byte[] bytes = device.sm3HashFinal();
-        System.out.println("sm3 hash 分步结果:" + new String(bytes));
-
-        byte[] bytes2 = device.sm3Hash(userId, data);
-        System.out.println("sm3 hash 一步结果:" + new String(bytes2));
-
-
-        //生成Sm2密钥对
-        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(1);
-        //公钥
-        SM2PublicKey pubKey = sm2KeyPair.getPubKey();
-
-        //init with pubKey
-        device.sm3HashInitWithPubKey(pubKey, userId);
-
-        //update
-        device.sm3HashUpdate(data);
-        device.sm3HashUpdate(data);
-
-        //final
-        byte[] bytes1 = device.sm3HashFinal();
-        System.out.println("sm3 hash 带公钥 分步结果:" + new String(bytes1));
-
-        byte[] bytes3 = device.sm3HashWithPubKey(pubKey, userId, data);
-        System.out.println("sm3 hash 带公钥 一步结果:" + new String(bytes3));
-
-
-    }
+//    //Hash
+//    @Test
+//    void testHash() throws Exception {
+//
+//        byte[] userId = "1234567812345678".getBytes();
+//        //init
+//        device.sm3HashInit();
+//
+//        //update
+//        device.sm3HashUpdate(data);
+//        device.sm3HashUpdate(data);
+//
+//        //final
+//        byte[] bytes = device.sm3HashFinal();
+//        System.out.println("sm3 hash 分步结果:" + new String(bytes));
+//
+//        byte[] bytes2 = device.sm3Hash(userId, data);
+//        System.out.println("sm3 hash 一步结果:" + new String(bytes2));
+//
+//
+//        //生成Sm2密钥对
+//        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(1);
+//        //公钥
+//        SM2PublicKey pubKey = sm2KeyPair.getPubKey();
+//
+//        //init with pubKey
+//        device.sm3HashInitWithPubKey(pubKey, userId);
+//
+//        //update
+//        device.sm3HashUpdate(data);
+//        device.sm3HashUpdate(data);
+//
+//        //final
+//        byte[] bytes1 = device.sm3HashFinal();
+//        System.out.println("sm3 hash 带公钥 分步结果:" + new String(bytes1));
+//
+//        byte[] bytes3 = device.sm3HashWithPubKey(pubKey, userId, data);
+//        System.out.println("sm3 hash 带公钥 一步结果:" + new String(bytes3));
+//
+//
+//    }
 
 
     //获取连接个数
@@ -526,30 +533,39 @@ AFSVDeviceTest {
 
     //region //SV独有
 
-    //根据别名获取 CA 证书个数
+    // 根据别名获取 CA 证书个数 success
     @Test
     void testGetCACertCount() throws Exception {
-        int zzy = device.getCertCountByAltName("zzy".getBytes());
+
+        //qq
+        int zzy = device.getCertCountByAltName("qq".getBytes());
         System.out.println(zzy);
 
+        //证书链
+        int certChain = device.getCertCountByAltName("证书链".getBytes());
+        System.out.println(certChain);
+
     }
 
-    //根据别名获取 CA 证书
+    // 根据别名获取 CA 证书 success
     @Test
     void testGetCACertByAltName() throws Exception {
-        CertAltNameTrustList certTrustListAltName = device.getCertTrustListAltName();
-        System.out.println(new String(""));
+        byte[] certByAltName = device.getCertByAltName("qq".getBytes(), 1);
+        System.out.println(new String(certByAltName));
+
+        byte[] certByAltName2 = device.getCertByAltName("证书链".getBytes(), 1);
+        System.out.println(new String(certByAltName2));
     }
 
 
-    //获取所有 CA 证书的别名
+    //获取所有 CA 证书的别名 success
     @Test
     void testGetAllCACertAltName() throws Exception {
         CertAltNameTrustList certTrustListAltName = device.getCertTrustListAltName();
         System.out.println(new String(certTrustListAltName.getCertList()));
     }
 
-    //验证证书（一）
+    //验证证书（一） success
     @Test
     void testVerifyCert() throws Exception {
         int i = device.validateCertificate(cert);
@@ -557,7 +573,7 @@ AFSVDeviceTest {
 //        device.isCertificateRevoked(cert);
     }
 
-    //验证证书（二）
+    //验证证书（二） ignore
     @Test
     @Ignore
     void testVerifyCert2() throws Exception {
@@ -566,12 +582,12 @@ AFSVDeviceTest {
         assert !certificateRevoked;
     }
 
-    //获取证书信息
+    //获取证书信息 success
     @Test
     void testGetCertInfo() throws Exception {
         byte[] cert = FileUtil.readBytes(userCertFileSM2);
         for (int i = 1; i < 36; i++) {
-            if (3 == i || 4 == i || 6 == i || 9 == i || 10 ==i) {
+            if (3 == i || 4 == i || 6 == i || 9 == i || 10 == i) {
                 continue;
             }
             byte[] certInfo = device.getCertInfo(cert, i);
@@ -583,7 +599,7 @@ AFSVDeviceTest {
 //        System.out.println(sm2PublicKey);
     }
 
-    //根据 OID 获取证书信息  public static byte[] Subject_Directory_Attributes = "2.5.29.9".getBytes(StandardCharsets.UTF_8);
+    // 根据 OID 获取证书信息 success
     @Test
     void testGetCertInfoByOid() throws Exception {
         //region 证书信息 OID
@@ -637,43 +653,104 @@ AFSVDeviceTest {
         System.out.println(new String(deviceCert));
     }
 
-    //获取应用实体信息
+    //获取应用实体信息 success
     @Test
     void testGetAppEntityInfo() throws Exception {
-        AFSvCryptoInstance instance = device.getInstance("zzy".getBytes());
+        AFSvCryptoInstance instance = device.getInstance("zzytest");
         System.out.println(instance);
     }
 
-    //根据证书的 DN 信息获取 CA 证书 颁发者信息
+    //根据证书的 DN 信息获取 CA 证书 颁发者信息 success
     @Test
     void testGetCACertByDN() throws Exception {
-        byte[] dn = null;
+        byte[] dn = "C=CN,ST=Beijing,L=HaiDian,O=GMCert.org,CN=GMCert GM Root CA - 01".getBytes();
         byte[] caCertByDN = device.getCaCertByDn(dn);
         System.out.println(new String(caCertByDN));
     }
 
-    //获取应用实体证书数据
+    //获取应用实体证书数据 success
     @Test
     void testGetAppEntityCert() throws Exception {
-        byte[] policyName = "".getBytes();
-        byte[] appEntityCert = device.getCertByPolicyName(policyName, 1);
-        System.out.println(new String(appEntityCert));
+        String policyName = "zzytest";
+        byte[] signCertByPolicyName = device.getSignCertByPolicyName(policyName);
+        System.out.println(new String(signCertByPolicyName));
     }
 
 
-    //PKCS7
+    //获取证书的OCSP地址
+    @Test
+    void testGetOCSPURL() throws Exception {
+        byte[] cert = FileUtil.readBytes(userCertFileSM2);
+        byte[] ocspURL = device.getOcspUrl(cert);
+        System.out.println(new String(ocspURL));
+    }
+
+
+    //PKCS7 签名信息编码 解码 验证
     @Test
     void testPKCS7() throws Exception {
+        SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(getPriKey()).to256();
+        //私钥
+        SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(sm2PrivateKey);
+        byte[] encoded = sm2PrivateKeyStructure.toASN1Primitive().getEncoded("DER");
+        encoded = Base64.encode(encoded);
+        //签名证书
+        byte[] cert = deviceCert;
+
+
         //签名信息编码
+        byte[] bytes = device.encodeSignedDataForSM2(encoded, cert, data);
+        byte[] bytes1 = device.encodeSignedDataForSM2(true, encoded, cert, data);
+        byte[] bytes2 = device.encodeSignedDataForSM2(false, encoded, cert, data);
+
 
         //签名信息解码
+        AFSM2DecodeSignedData afsm2DecodeSignedData = device.decodeSignedDataForSM2(bytes);
+        System.out.println(afsm2DecodeSignedData);
+        AFSM2DecodeSignedData afsm2DecodeSignedData1 = device.decodeSignedDataForSM2(bytes1);
+        System.out.println(afsm2DecodeSignedData1);
+        AFSM2DecodeSignedData afsm2DecodeSignedData2 = device.decodeSignedDataForSM2(bytes2);
+        System.out.println(afsm2DecodeSignedData2);
 
         //签名信息验证
+        boolean b = device.verifySignedDataForSM2(bytes, data);
+        System.out.println(b);
+        boolean b1 = device.verifySignedDataForSM2(bytes1, data);
+        System.out.println(b1);
+        boolean b2 = device.verifySignedDataForSM2(bytes2, data);
+        System.out.println(b2);
 
-        //带签名信息的数字信封编码
+    }
 
-        //带签名信息的数字信封解码
+    //PKCS7 数字信封编码 解码
+    @Test
+    void testPKCS7EnvelopedData() throws Exception {
 
+        //私钥
+        byte[] priKey = null;
+        //对称密钥
+        byte[] key = null;
+        //签名证书
+        byte[] cert = null;
+        //加密证书
+        byte[] encCert = null;
+
+
+    }
+
+    @Test
+    void test111() {
+        SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(getPriKey());
+        System.out.println(sm2PrivateKey);
+    }
+
+    //获取设备私钥
+    private byte[] getPriKey() {
+        String s = "AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAl3YS3pFS/9AER8kalJdsukEGKCvcojT3/gi8d3Kxh4sAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJ5DrFDxCNoyjTvBZyfs+79sSTgZbIVx/+cpEvD/MqQ0AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAtxQvC680o3tk6HvtX+RM6+hUI7s9qu+nZlDRoewyvIU=";
+        byte[] decode = Base64.decode(s);
+        //删除前132字节
+        byte[] bytes = Arrays.copyOfRange(decode, 132, decode.length);
+        return bytes;
     }
 
 
