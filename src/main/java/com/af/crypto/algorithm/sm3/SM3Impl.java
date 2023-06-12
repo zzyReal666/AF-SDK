@@ -2,7 +2,6 @@ package com.af.crypto.algorithm.sm3;
 
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.exception.AFCryptoException;
-import com.af.netty.AFNettyClient;
 import com.af.struct.impl.sm3.SM3Digest;
 
 import java.nio.ByteOrder;
@@ -15,11 +14,7 @@ import java.nio.ByteOrder;
 public class SM3Impl implements SM3 {
 
 
-    private final AFNettyClient client;
 
-    public SM3Impl(AFNettyClient client) {
-        this.client = client;
-    }
 
 
     /**

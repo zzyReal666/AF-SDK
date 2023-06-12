@@ -6,6 +6,7 @@ import com.af.constant.Algorithm;
 import com.af.constant.CertParseInfoType;
 import com.af.constant.ConstantNumber;
 import com.af.constant.ModulusLength;
+import com.af.crypto.algorithm.sm3.SM3Impl;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
@@ -997,16 +998,31 @@ public class AFSVDevice implements IAFSVDevice {
         //从证书中解析出公钥
         SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(base64CertificatePath);
         //对数据进行SM3杂凑 带公钥方式
+        SM3Impl sm3 = new SM3Impl();
+        data = sm3.SM3HashWithPublicKey256(data, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
+        //SM2签名
+        byte[] bytes = cmd.sm2Sign(-1, sm2PrivateKey.encode(), data);
+        // AF结构
+        SM2Signature sm2Signature = new SM2Signature(bytes).to256();
+        // ASN1结构
+        SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);
+        // DER编码
+        byte[] encoded = new byte[0];
+        try {
+            encoded = sm2SignStructure.toASN1Primitive().getEncoded("DER");
+        } catch (IOException e) {
+            logger.error("SM2签名DER编码失败", e);
+            throw new AFCryptoException(e);
+        }
 
-        return null;
-
-
+        return BytesOperate.base64EncodeData(encoded);
 
     }
 
     /**
      * 从证书中解析出SM2公钥
-     * @param base64CertificatePath  证书路径 证书本身需要Base64编码
+     *
+     * @param base64CertificatePath 证书路径 证书本身需要Base64编码
      * @return SM2PublicKey SM2公钥 512位
      */
     private static SM2PublicKey parseSM2PublicKeyFromCert(byte[] base64CertificatePath) throws AFCryptoException {

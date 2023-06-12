@@ -48,7 +48,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
     private byte[] agKey;  //协商密钥
     private static AFNettyClient client;  //netty客户端
-    private final SM3 sm3 = new SM3Impl(client);  //国密SM3算法
+    private final SM3 sm3 = new SM3Impl();  //国密SM3算法
     private final AFHSMCmd cmd = new AFHSMCmd(client, agKey);
 
     private static final class InstanceHolder {
