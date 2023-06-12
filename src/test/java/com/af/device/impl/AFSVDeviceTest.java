@@ -50,7 +50,6 @@ AFSVDeviceTest {
     //签名文件路径
     static byte[] fileName = "src\\test\\resources\\singFile.txt".getBytes(StandardCharsets.UTF_8);
 
-
     //SM2公钥  base64
     static String sm2PubKeyDataBase64 = "AAEAAIHQcN4xEd3myIvZRFdf+M2jtBbh3Ik8aON7J55A91AAApm2+TtovD7Pl5dSQ/5RFbQcZQk9pm3orfKkgRYp/kY=";
     //SM2私钥 base64
@@ -69,7 +68,6 @@ AFSVDeviceTest {
 
 
     //region //与HSM共有
-
     /**
      * 关闭连接 success
      */
@@ -78,8 +76,8 @@ AFSVDeviceTest {
         device.close(AFSVDevice.client);
     }
 
-    /**
-     * 获取私钥访问权限
+     /**
+     * 获取私钥访问权限 success
      */
     @Test
     void testGetPrivateKeyAccessRight() throws Exception {
@@ -97,7 +95,7 @@ AFSVDeviceTest {
 
 
     /**
-     * 获取设备信息
+     * 获取设备信息 success
      */
     @Test
     void testGetDeviceInfo() throws Exception {
@@ -106,30 +104,13 @@ AFSVDeviceTest {
     }
 
     /**
-     * 随机数
+     * 随机数 success
      */
     @Test
     void testGetRandom2() throws Exception {
         byte[] random = device.getRandom(5);
         System.out.println(Arrays.toString(random));
     }
-
-//    //导出公钥信息
-//    @Test
-//    void testGetPublicKey() throws Exception {
-//        //RSA签名
-//        byte[] rsaPublicKey = device.getRSAPublicKey(1, 0);
-//        System.out.println("RSA签名公钥:" + new String(rsaPublicKey));
-//        //RSA加密
-//        byte[] rsaPublicKey2 = device.getRSAPublicKey(1, 1);
-//        System.out.println("RSA加密公钥:" + new String(rsaPublicKey2));
-//        //SM2 签名
-//        byte[] sm2PublicKey = device.getSm2PublicKey(1, 0);
-//        System.out.println("SM2签名公钥:" + new String(sm2PublicKey));
-//        //SM2加密
-//        byte[] sm2PublicKey2 = device.getSm2PublicKey(1, 1);
-//        System.out.println("SM2加密公钥:" + new String(sm2PublicKey2));
-//    }
 
     //导出公钥 success
     @Test
@@ -165,58 +146,50 @@ AFSVDeviceTest {
     }
 
 
-//    //RSA 操作
-//    @Test
-//    void testRSA() throws Exception {
-//
-//        //RSA 内部签名验签
-//        byte[] bytes = device.rsaSignature(1, data);
-//        boolean b = device.rsaVerify(1, data, bytes);
-//
-//        //RSA 外部签名验签
-//        RSAKeyPair rsaKeyPair = device.generateRSAKeyPair(ModulusLength.LENGTH_1024);
-//        byte[] bytes1 = device.rsaSignature(rsaKeyPair.getPriKey().encode(), data);
-//        boolean b1 = device.rsaVerify(rsaKeyPair.getPubKey().encode(), data, bytes1);
-//
-//        //RSA内部密钥加解密
-//        byte[] bytes2 = device.rsaEncrypt(1, data);
-//        byte[] bytes3 = device.rsaDecrypt(1, bytes2);
-//        assert Arrays.equals(data, bytes3);
-//
-//        //RSA 外部密钥加解密
-//        byte[] bytes4 = device.rsaEncrypt(rsaKeyPair.getPubKey().encode(), data);
-//        byte[] bytes5 = device.rsaDecrypt(rsaKeyPair.getPriKey().encode(), bytes4);
-//        assert Arrays.equals(data, bytes5);
-//
-//    }
-//
-//    //SM2 操作
-//    @Test
-//    void testSM2() throws Exception {
-//        //SM2 内部签名验签
-//        byte[] bytes = device.sm2Signature(1, data);
-//        boolean b = device.sm2Verify(1, data, bytes);
-//        assert b;
-//
-//        //SM2 外部签名验签
-//        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(0);
-//        byte[] bytes1 = device.sm2Signature(sm2KeyPair.getPriKey().encode(), data);
-//        boolean b1 = device.sm2VerifyByPublicKey(sm2KeyPair.getPubKey().encode(), data, bytes1);
-//        assert b1;
-//
-//        //SM2内部密钥加解密
-//        byte[] bytes2 = device.sm2Encrypt(1, data);
-//        byte[] bytes3 = device.sm2Decrypt(1, bytes2);
-//        assert Arrays.equals(data, bytes3);
-//
-//        //SM2 外部密钥加解密
-//        SM2KeyPair sm2KeyPair1 = device.generateSM2KeyPair(1);
-//        byte[] bytes4 = device.sm2Encrypt(sm2KeyPair1.getPubKey().encode(), data);
-//        byte[] bytes5 = device.sm2Decrypt(sm2KeyPair1.getPriKey().encode(), bytes4);
-//        assert Arrays.equals(data, bytes5);
-//
-//
-//    }
+    //RSA 操作
+    @Test
+    void testRSA() throws Exception {
+        //生成密钥对
+        RSAKeyPairStructure rsaKeyPairStructure = device.generateRSAKeyPair(ModulusLength.LENGTH_1024);
+        //私钥
+        byte[] rsaSignPublicKey = rsaKeyPairStructure.getPriKey();
+        //公钥
+        byte[] rsaEncPublicKey = rsaKeyPairStructure.getPubKey();
+
+        //RSA 内部签名验签
+        byte[] bytes = device.rsaSignature(1, data);
+        boolean b = device.rsaVerify(1, data, bytes);
+        assert b;
+
+        //RSA 外部签名验签
+        byte[] bytes1 = device.rsaSignature(rsaSignPublicKey, data);
+        boolean b1 = device.rsaVerify(rsaEncPublicKey, data, bytes1);
+        assert b1;
+
+        //RSA 内部密钥文件签名验签
+        byte[] bytes2 = device.rsaSignature(1, fileName);
+        boolean b2 = device.rsaVerify(1, fileName, bytes2);
+        assert b2;
+
+        //RSA 外部密钥文件签名验签
+        byte[] bytes3 = device.rsaSignature(rsaSignPublicKey, fileName);
+        boolean b3 = device.rsaVerify(rsaEncPublicKey, fileName, bytes3);
+        assert b3;
+
+    }
+
+    //SM2 操作
+    @Test
+    void testSM2() throws Exception {
+        //SM2 内部签名验签
+        byte[] bytes = device.sm2Signature(1, data);
+        boolean b = device.sm2Verify(1, data, bytes);
+        assert b;
+
+
+
+
+    }
 
     //SM4
     @Test

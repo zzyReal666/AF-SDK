@@ -104,8 +104,7 @@ public class BytesOperate {
         return base64DecodeData(outPubKey);
     }
 
-    public static byte[] base64EncodeCert(byte[] derCert)
-    {
+    public static byte[] base64EncodeCert(byte[] derCert) {
         String begin = "-----BEGIN CERTIFICATE-----\n";
         String end = "\n-----END CERTIFICATE-----";
         return (begin + new String(base64EncodeData(derCert)) + end).getBytes(StandardCharsets.UTF_8);
@@ -241,12 +240,19 @@ public class BytesOperate {
     }
 
     /**
-     * base64编码数据
+     * base64解码数据
      *
      * @param data base64解码数据
      * @return byte[]
      */
     public static byte[] base64DecodeData(String data) {
+        return Base64.decode(data);
+    }
+
+    /**
+     * base64解码数据
+     */
+    public static byte[] base64DecodeData(byte[] data) {
         return Base64.decode(data);
     }
 

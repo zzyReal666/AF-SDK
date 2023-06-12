@@ -1,7 +1,6 @@
 package com.af.struct.signAndVerify.sm2;
 
 import com.af.crypto.key.sm2.SM2PublicKey;
-import com.af.securityAccess.asn1.DERInteger;
 import com.af.utils.BigIntegerUtil;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -94,13 +93,13 @@ public class SM2PublicKeyStructure implements ASN1Encodable {
     }
 
 
-    public SM2PublicKey toSm2PubKey() {
+    public SM2PublicKey toSm2PublicKey() {
         byte[] x = BigIntegerUtil.asUnsigned32ByteArray(this.getX());
         byte[] y = BigIntegerUtil.asUnsigned32ByteArray(this.getY());
         return new SM2PublicKey(256, x, y);
     }
 
-    public SM2PublicKeyStructure toSm2PubKey(SM2PublicKey publicKey) {
+    public SM2PublicKeyStructure toSm2PublicKey(SM2PublicKey publicKey) {
         this.x = BigIntegerUtil.toPositiveInteger(publicKey.getX());
         this.y = BigIntegerUtil.toPositiveInteger(publicKey.getY());
         return this;

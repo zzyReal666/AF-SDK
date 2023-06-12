@@ -1,6 +1,7 @@
 package com.af.device.impl;
 
 import cn.hutool.core.util.HexUtil;
+import cn.hutool.crypto.digest.SM3;
 import com.af.constant.Algorithm;
 import com.af.constant.CertParseInfoType;
 import com.af.constant.ConstantNumber;
@@ -18,7 +19,10 @@ import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.sm2.SM2Cipher;
 import com.af.struct.impl.sm2.SM2Signature;
-import com.af.struct.signAndVerify.*;
+import com.af.struct.signAndVerify.AFPkcs7DecodeData;
+import com.af.struct.signAndVerify.AFSM2DecodeSignedData;
+import com.af.struct.signAndVerify.AFSvCryptoInstance;
+import com.af.struct.signAndVerify.CertAltNameTrustList;
 import com.af.struct.signAndVerify.RSA.RSAKeyPairStructure;
 import com.af.struct.signAndVerify.RSA.RSAPrivateKeyStructure;
 import com.af.struct.signAndVerify.RSA.RSAPublicKeyStructure;
@@ -31,10 +35,7 @@ import com.af.utils.pkcs.AFPkcs1Operate;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.pkcs.RSAPrivateKey;
 import org.bouncycastle.asn1.pkcs.RSAPublicKey;
 import org.bouncycastle.asn1.x509.Certificate;
@@ -218,27 +219,18 @@ public class AFSVDevice implements IAFSVDevice {
 //        return BytesOperate.base64EncodeData(encoded);
 //    }
 
-    private static byte[] bytesToASN1RSAPubKey(byte[] sequenceBytes) throws AFCryptoException {
-        byte[] encoded;
-        RSAPubKey rsaPubKey = new RSAPubKey(sequenceBytes);
-        RSAPublicKeyStructure rsaPublicKeyStructure = new RSAPublicKeyStructure(rsaPubKey);
-        try {
-            encoded = rsaPublicKeyStructure.toASN1Primitive().getEncoded("DER");
-        } catch (IOException e) {
-            throw new AFCryptoException("ASN1编码异常");
-        }
-        return encoded;
-    }
-
-
     /**
      * 获取SM2签名公钥
      *
      * @param index 索引
-     * @return SM2签名公钥
-     * 获取SM2签名公钥异常
+     * @return SM2签名公钥 ASN1编码 DER
      */
     public byte[] getSM2SignPublicKey(int index) throws AFCryptoException {
+        //参数检查
+        if (index <= 0) {
+            logger.error("index 需要大于0");
+            throw new AFCryptoException("index 需要大于0");
+        }
         byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_SM2_1);
         logger.info("返回需要对比的数据:" + HexUtil.encodeHexStr(bytes));
         return bytesToASN1SM2PubKey(bytes);
@@ -248,9 +240,14 @@ public class AFSVDevice implements IAFSVDevice {
      * 获取SM2加密公钥
      *
      * @param index 索引
-     * @return SM2加密公钥
+     * @return SM2加密公钥 ASN1编码 DER
      */
     public byte[] getSM2EncryptPublicKey(int index) throws AFCryptoException {
+        //参数检查
+        if (index <= 0) {
+            logger.error("index 需要大于0");
+            throw new AFCryptoException("index 需要大于0");
+        }
         byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_SM2_2);
         logger.info("返回需要对比的数据:" + HexUtil.encodeHexStr(bytes));
         return bytesToASN1SM2PubKey(bytes);
@@ -260,9 +257,8 @@ public class AFSVDevice implements IAFSVDevice {
      * 获取RSA签名公钥信息
      *
      * @param index ：密钥索引
-     * @return 返回RSA签名数据结构
+     * @return RSA签名公钥 ASN1编码 DER
      */
-
     public byte[] getRSASignPublicKey(int index) throws AFCryptoException {
         byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_RSA_SIGN);
         logger.info("返回需要对比的数据:" + HexUtil.encodeHexStr(bytes));
@@ -274,13 +270,17 @@ public class AFSVDevice implements IAFSVDevice {
      * 获取RSA加密公钥信息
      *
      * @param index ： 密钥索引
-     * @return 返回RSA加密数据结构
+     * @return RSA加密公钥 ASN1编码 DER
      */
     public byte[] getRSAEncPublicKey(int index) throws AFCryptoException {
+        //参数检查
+        if (index <= 0) {
+            logger.error("index 需要大于0");
+            throw new AFCryptoException("index 需要大于0");
+        }
         byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_RSA_ENC);
         logger.info("返回需要对比的数据:" + HexUtil.encodeHexStr(bytes));
         return bytesToASN1RSAPubKey(bytes);
-
     }
 
 
@@ -305,17 +305,7 @@ public class AFSVDevice implements IAFSVDevice {
 //
 //    }
 
-    private static byte[] bytesToASN1SM2PubKey(byte[] sm2PublicKey) throws AFCryptoException {
-        SM2PublicKey sm2PublicKey256 = new SM2PublicKey(sm2PublicKey).to256();
-        byte[] encodedKey;
-        try {
-            encodedKey = new SM2PublicKeyStructure(sm2PublicKey256).toASN1Primitive().getEncoded("DER");
-        } catch (IOException e) {
-            logger.error("SM2公钥DER编码失败", e);
-            throw new AFCryptoException("SM2公钥DER编码失败", e);
-        }
-        return BytesOperate.base64EncodeData(encodedKey);
-    }
+
     //endregion
 
     //region 生成密钥对 RSA SM2
@@ -328,7 +318,6 @@ public class AFSVDevice implements IAFSVDevice {
 
     public SM2KeyPairStructure generateSM2KeyPair(int keyType) throws AFCryptoException {
         SM2KeyPair sm2KeyPair = new SM2KeyPair();
-
         //签名密钥对
         if (keyType == ConstantNumber.SGD_SIGN_KEY_PAIR) {
             byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_SM2_1, ModulusLength.LENGTH_256);
@@ -382,7 +371,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * 生成密钥对 RSA
      *
-     * @param length 模长 {@link ModulusLength}
+     * @param length 模长 1024|2048  {@link ModulusLength}
      */
 
     public RSAKeyPairStructure generateRSAKeyPair(ModulusLength length) throws AFCryptoException {
@@ -432,7 +421,6 @@ public class AFSVDevice implements IAFSVDevice {
 
     //region  RSA计算
 
-
     /**
      * RSA 签名 内部私钥
      *
@@ -441,16 +429,30 @@ public class AFSVDevice implements IAFSVDevice {
      * @return 签名值 Base64 编码
      */
     public byte[] rsaSignature(int keyIndex, byte[] inData) throws AFCryptoException {
-        logger.info("RSA签名, keyIndex: {}, inDataLen: {}", keyIndex, inData.length);
+        logger.info("SV-RSA签名, keyIndex: {}, inDataLen: {}", keyIndex, null == inData ? 0 : inData.length);
+        //参数检查
+        if (keyIndex <= 0) {
+            logger.error("密钥索引错误,keyIndex={}", keyIndex);
+            throw new AFCryptoException("密钥索引错误,keyIndex=" + keyIndex);
+        }
+        if (inData == null || inData.length == 0) {
+            logger.error("待签名数据为空");
+            throw new AFCryptoException("待签名数据为空");
+        }
         //获取私钥访问权限
         cmd.getPrivateAccess(keyIndex, 4);
         //获取模长
         byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.SIGN_PUBLIC_KEY);
         int bits = new RSAPubKey(rsaPublicKey).getBits();
         //PKCS1 签名填充
+        int maxInDataLen = (bits / 8) - 11;
+        if (inData.length > maxInDataLen) {
+            logger.error("待签名数据长度超过最大长度(可考虑采用文件签名方式), maxInDataLen: {}, inDataLen: {}", maxInDataLen, inData.length);
+            throw new AFCryptoException("待签名数据长度超过最大长度(可考虑采用文件签名方式), maxInDataLen=" + maxInDataLen + ", inDataLen=" + inData.length);
+        }
         byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(bits, inData);
         //签名 Base64 编码
-        return BytesOperate.base64EncodeData(cmd.rsaSignature(keyIndex, signData));
+        return BytesOperate.base64EncodeData(cmd.rsaPrivateKeyOperation(keyIndex, null, Algorithm.SGD_RSA_SIGN, inData));
     }
 
 
@@ -462,14 +464,29 @@ public class AFSVDevice implements IAFSVDevice {
      * @return Base64编码的签名数据
      */
     public byte[] rsaSignature(byte[] privateKey, byte[] inData) throws AFCryptoException {
+        logger.info("SV-RSA签名, privateKeyLen: {}, inDataLen: {}", null == privateKey ? 0 : privateKey.length, null == inData ? 0 : inData.length);
+        // 参数检查
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("外部私钥为空");
+            throw new AFCryptoException("外部私钥为空");
+        }
+        if (inData == null || inData.length == 0) {
+            logger.error("待签名数据为空");
+            throw new AFCryptoException("待签名数据为空");
+        }
         // 解析私钥
         RSAPriKey rsaPriKey = decodeRSAPrivateKey(privateKey);
         // 获取模长
         int modulus = rsaPriKey.getBits();
         // PKCS1 签名填充
+        int maxInDataLen = (modulus / 8) - 11;
+        if (inData.length > maxInDataLen) {
+            logger.error("待签名数据长度超过最大长度(可考虑采用文件签名方式), maxInDataLen: {}, inDataLen: {}", maxInDataLen, inData.length);
+            throw new AFCryptoException("待签名数据长度超过最大长度(可考虑采用文件签名方式), maxInDataLen=" + maxInDataLen + ", inDataLen=" + inData.length);
+        }
         byte[] bytes = AFPkcs1Operate.pkcs1EncryptionPrivate(modulus, inData);
         // 签名 Base64 编码
-        return BytesOperate.base64EncodeData(cmd.rsaSignature(rsaPriKey, bytes));
+        return BytesOperate.base64EncodeData(cmd.rsaPrivateKeyOperation(0, rsaPriKey, Algorithm.SGD_RSA_SIGN, inData));
     }
 
 
@@ -477,288 +494,398 @@ public class AFSVDevice implements IAFSVDevice {
      * RSA 文件签名 内部私钥
      *
      * @param keyIndex 密钥索引
-     * @param fileName 文件名
+     * @param filePath 文件路径
      * @return 签名值 Base64 编码
      */
-    public byte[] rsaSignFile(int keyIndex, byte[] fileName) throws AFCryptoException {
+    public byte[] rsaSignFile(int keyIndex, byte[] filePath) throws AFCryptoException {
+        logger.info("SV-RSA文件签名, keyIndex: {}, fileName: {}", keyIndex, null == filePath ? "" : filePath);
+        //参数检查
+        if (keyIndex <= 0) {
+            logger.error("密钥索引错误,keyIndex={}", keyIndex);
+            throw new AFCryptoException("密钥索引错误,keyIndex=" + keyIndex);
+        }
+        if (filePath == null || filePath.length == 0) {
+            logger.error("文件路径为空");
+            throw new AFCryptoException("文件路径为空");
+        }
         //读取文件 生成文件摘要 SHA256
-        byte[] md5Result = fileDigest(fileName);
+        byte[] md5Result = fileReadAndDigest(filePath);
         //RSA签名
         return rsaSignature(keyIndex, md5Result);
     }
 
-
     /**
+     * RSA 文件签名 外部私钥
      *
+     * @param privateKey 外部私钥 ASN1结构 Base64编码
+     * @param fileName   文件名
+     * @return Base64编码的签名数据
      */
-
     public byte[] rsaSignFile(byte[] privateKey, byte[] fileName) throws AFCryptoException {
-        RSAPriKey rsaPriKey = decodeRSAPrivateKey(privateKey);
-        byte[] md5Result = fileDigest(fileName);
-        byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(rsaPriKey.getBits(), md5Result);
-        byte[] bytes = cmd.rsaSignature(rsaPriKey, signData);
-        return BytesOperate.base64EncodeData(bytes);
-    }
-
-    /**
-     * <p>RSA验证签名</p>
-     * <p>使用内部RSA密钥对数据进行验证签名运算</p>
-     *
-     * @param keyIndex      ：密码设备内部存储的RSA索引号
-     * @param inData        ：原始数据
-     * @param signatureData ：Base64编码的签名数据
-     * @return : true : 验证成功，false ：验证失败
-     */
-
-    public boolean rsaVerify(int keyIndex, byte[] inData, byte[] signatureData) throws AFCryptoException {
-        return cmd.rsaVerify(keyIndex, inData, signatureData);
-    }
-
-
-    /**
-     * <p>RSA验证签名</p>
-     * <p>使用外部RSA密钥对数据进行验证签名运算</p>
-     *
-     * @param publicKey     ：base64编码的RSA公钥数据，其结构应满足PKCS#1中的RSA结构定义
-     *                      <p>RSAPublicKey ::= SEQUENCE {</p>
-     *                      <p>    modulus             INTEGER, --- n</p>
-     *                      <p>    publicExponent      INTEGER, --- e</p>
-     *                      <p>}</p>
-     * @param inData        ：原始数据
-     * @param signatureData ：Base64编码的签名数据
-     * @return : true : 验证成功，false ：验证失败
-     */
-
-    public boolean rsaVerify(byte[] publicKey, byte[] inData, byte[] signatureData) throws AFCryptoException {
-        RSAPubKey rsaPubKey = decodeRSAPublicKey(publicKey);
-        return cmd.rsaVerify(rsaPubKey, inData, signatureData);
-    }
-
-    /**
-     * 构建 RSAPubKey 对象
-     *
-     * @param publicKey 公钥数据-字节数组
-     * @return RSAPubKey 对象
-     */
-    private RSAPubKey decodeRSAPublicKey(byte[] publicKey) {
-        RSAPubKey rsaPubKey = new RSAPubKey();
-        byte[] derPubKeyData = BytesOperate.base64DecodeData(new String(publicKey));
-        byte[] pubKeyData = new byte[rsaPubKey.size()];
-        try (ASN1InputStream ais = new ASN1InputStream(derPubKeyData)) {
-            RSAPublicKey structure = RSAPublicKey.getInstance(ais.readObject());
-            int mLen = structure.getModulus().toString().length();
-            int bits = 2048;
-            if (mLen == 128) {
-                bits = 1024;
-            }
-            System.arraycopy(BytesOperate.int2bytes(bits), 0, pubKeyData, 0, 4);
-            if (bits == 1024) {
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, pubKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN / 2), ConstantNumber.LiteRSARef_MAX_LEN / 2);
-            } else {
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, pubKeyData, 4, ConstantNumber.LiteRSARef_MAX_LEN);
-            }
-            System.arraycopy(this.RSAKey_e, 0, pubKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN, ConstantNumber.LiteRSARef_MAX_LEN);
-            rsaPubKey.decode(pubKeyData);
-        } catch (IOException e) {
-            logger.error("解析公钥失败", e);
+        // 参数检查
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("外部私钥为空");
+            throw new AFCryptoException("外部私钥为空");
         }
-        return rsaPubKey;
+        if (fileName == null || fileName.length == 0) {
+            logger.error("文件名为空");
+            throw new AFCryptoException("文件名为空");
+        }
+        // 解析私钥
+        RSAPriKey rsaPriKey = decodeRSAPrivateKey(privateKey);
+        // 读取文件 生成文件摘要 SHA256
+        byte[] md5Result = fileReadAndDigest(fileName);
+        // RSA签名
+        return rsaSignature(rsaPriKey.encode(), md5Result);
+
     }
 
+
     /**
-     * <p>RSA验证签名</p>
-     * <p>使用证书对数据进行验证签名运算</p>
+     * RSA 验签 内部公钥
      *
-     * @param certificate   ：base64编码的RSA数字证书路径
-     * @param inData        ：原始数据
-     * @param signatureData ：Base64编码的签名数据
-     * @return : true : 验证成功，false ：验证失败
+     * @param keyIndex      密钥索引
+     * @param inData        原始数据
+     * @param signatureData Base64编码的签名数据
+     * @return true : 验证成功，false ：验证失败
      */
+    public boolean rsaVerify(int keyIndex, byte[] inData, byte[] signatureData) throws AFCryptoException {
+        //
+        //参数检查
+        if (keyIndex <= 0) {
+            logger.error("密钥索引错误,keyIndex={}", keyIndex);
+            throw new AFCryptoException("密钥索引错误,keyIndex=" + keyIndex);
+        }
+        if (inData == null || inData.length == 0) {
+            logger.error("原始数据为空");
+            throw new AFCryptoException("原始数据为空");
+        }
+        if (signatureData == null || signatureData.length == 0) {
+            logger.error("签名数据为空");
+            throw new AFCryptoException("签名数据为空");
+        }
+        //Base64解码签名数据
+        signatureData = BytesOperate.base64DecodeData(signatureData);
+        //RSA验签
+        byte[] bytes = cmd.rsaPublicKeyOperation(keyIndex, null, Algorithm.SGD_RSA_SIGN, signatureData);
+        //去填充
+        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.SIGN_PUBLIC_KEY);
+        int bits = new RSAPubKey(rsaPublicKey).getBits();
+        bytes = AFPkcs1Operate.pkcs1DecryptionPrivate(bits, bytes);
+        //比较签名值
+        return Arrays.equals(bytes, inData);
+    }
 
-    public boolean rsaVerifyByCertificate(byte[] certificate, byte[] inData, byte[] signatureData) throws AFCryptoException {
-        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificate);
-        return cmd.rsaVerify(rsaPubKey, inData, signatureData);
+
+    /**
+     * RSA 验签 外部公钥
+     *
+     * @param publicKey     公钥 ASN1结构 Base64编码
+     * @param rawData       原始数据
+     * @param signatureData Base64编码的签名数据
+     * @return true : 验证成功，false ：验证失败
+     */
+    public boolean rsaVerify(byte[] publicKey, byte[] rawData, byte[] signatureData) throws AFCryptoException {
+        logger.info("SV-RSA验签");
+        //参数检查
+        if (publicKey == null || publicKey.length == 0) {
+            logger.error("公钥为空");
+            throw new AFCryptoException("公钥为空");
+        }
+        if (rawData == null || rawData.length == 0) {
+            logger.error("原始数据为空");
+            throw new AFCryptoException("原始数据为空");
+        }
+        if (signatureData == null || signatureData.length == 0) {
+            logger.error("签名数据为空");
+            throw new AFCryptoException("签名数据为空");
+        }
+        //解析公钥
+        RSAPubKey rsaPubKey = decodeRSAPublicKey(publicKey);
+        //Base64解码签名数据
+        signatureData = BytesOperate.base64DecodeData(signatureData);
+        //RSA验签
+        byte[] bytes = cmd.rsaPublicKeyOperation(0, rsaPubKey, Algorithm.SGD_RSA_SIGN, signatureData);
+        //去填充
+        int bits = rsaPubKey.getBits();
+        bytes = AFPkcs1Operate.pkcs1DecryptionPrivate(bits, bytes);
+        //比较签名值
+        return Arrays.equals(bytes, rawData);
+    }
+
+
+    /**
+     * RSA 文件验签  内部公钥
+     *
+     * @param keyIndex      密钥索引
+     * @param filePath      文件路径
+     * @param signatureData Base64编码的签名数据
+     * @return true : 验证成功，false ：验证失败
+     */
+    public boolean rsaVerifyFile(int keyIndex, byte[] filePath, byte[] signatureData) throws AFCryptoException {
+        logger.info("SV-RSA文件验签");
+        //region //======参数检查
+        if (keyIndex <= 0) {
+            logger.error("密钥索引错误,keyIndex={}", keyIndex);
+            throw new AFCryptoException("密钥索引错误,keyIndex=" + keyIndex);
+        }
+        if (filePath == null || filePath.length == 0) {
+            logger.error("文件路径为空");
+            throw new AFCryptoException("文件路径为空");
+        }
+        if (signatureData == null || signatureData.length == 0) {
+            logger.error("签名数据为空");
+            throw new AFCryptoException("签名数据为空");
+        }
+        //endregion
+        //读取文件 生成文件摘要 SHA256
+        byte[] md5Result = fileReadAndDigest(filePath);
+        //RSA验签
+        return rsaVerify(keyIndex, md5Result, signatureData);
     }
 
     /**
-     * 从证书中获取公钥
+     * RSA 文件验签 外部公钥
+     *
+     * @param publicKey     公钥 ASN1结构 Base64编码
+     * @param filePath      文件路径
+     * @param signatureData Base64编码的签名数据
+     * @return true : 验证成功，false ：验证失败
+     */
+    public boolean rsaVerifyFile(byte[] publicKey, byte[] filePath, byte[] signatureData) throws AFCryptoException {
+        logger.info("SV-RSA文件验签");
+        //region //======>参数检查
+        if (publicKey == null || publicKey.length == 0) {
+            logger.error("公钥为空");
+            throw new AFCryptoException("公钥为空");
+        }
+        if (filePath == null || filePath.length == 0) {
+            logger.error("文件路径为空");
+            throw new AFCryptoException("文件路径为空");
+        }
+        if (signatureData == null || signatureData.length == 0) {
+            logger.error("签名数据为空");
+            throw new AFCryptoException("签名数据为空");
+        }
+        //endregion
+        //读取文件 生成文件摘要 SHA256
+        byte[] md5Result = fileReadAndDigest(filePath);
+        //RSA验签
+        return rsaVerify(publicKey, md5Result, signatureData);
+    }
+
+    /**
+     * RSA 证书验签
      *
      * @param certificatePath 证书路径
-     * @return RSAPubKey 对象
+     * @param inData          原始数据
+     * @param signatureData   Base64编码的签名数据
+     * @return true : 验证成功，false ：验证失败
      */
-    private RSAPubKey getRSAPublicKeyFromCertificate(byte[] certificatePath) {
-        RSAPubKey rsaPubKey = null;
-        try {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            X509Certificate cert = (X509Certificate) cf.generateCertificate(new FileInputStream(new String(certificatePath)));
-            PublicKey publicKey = cert.getPublicKey();
-            byte[] derRSAPubKey = new byte[publicKey.getEncoded().length - 24];
-            System.arraycopy(publicKey.getEncoded(), 24, derRSAPubKey, 0, publicKey.getEncoded().length - 24);
-            rsaPubKey = decodeRSAPublicKey(BytesOperate.base64EncodeData(derRSAPubKey));
-        } catch (CertificateException | FileNotFoundException e) {
-            logger.error("解析证书失败", e);
+    public boolean rsaVerifyByCertificate(byte[] certificatePath, byte[] inData, byte[] signatureData) throws AFCryptoException {
+        logger.info("SV-RSA证书验签");
+        //region//======>参数检查
+        if (certificatePath == null || certificatePath.length == 0) {
+            logger.error("证书为空");
+            throw new AFCryptoException("证书为空");
         }
-        return rsaPubKey;
+        if (inData == null || inData.length == 0) {
+            logger.error("原始数据为空");
+            throw new AFCryptoException("原始数据为空");
+        }
+        if (signatureData == null || signatureData.length == 0) {
+            logger.error("签名数据为空");
+            throw new AFCryptoException("签名数据为空");
+        }
+        //endregion
+        //获取证书中的公钥
+        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificatePath);
+        return rsaVerify(rsaPubKey.encode(), inData, signatureData);
     }
 
     /**
-     * <p>对文件进行RSA验证签名</p>
+     * RSA 证书文件验签
      *
-     * @param keyIndex      ：密码设备内部存储的RSA索引号
-     * @param fileName      ：文件名称
-     * @param signatureData ：Base64编码的签名数据
+     * @param certificatePath 证书路径
+     * @param filePath        文件路径
+     * @param signatureData   Base64编码的签名数据
+     * @return true : 验证成功，false ：验证失败
      */
-
-    public boolean rsaVerifyFile(int keyIndex, byte[] fileName, byte[] signatureData) throws AFCryptoException {
-        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.SIGN_PUBLIC_KEY);
-        RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
-
-        byte[] md5Result = fileDigest(fileName);
-        byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(rsaPubKey.getBits(), md5Result);
-
-        return cmd.rsaVerify(keyIndex, signData, signatureData);
+    public boolean rsaVerifyFileByCertificate(byte[] certificatePath, byte[] filePath, byte[] signatureData) throws AFCryptoException {
+        logger.info("SV-RSA证书文件验签");
+        //region//======>参数检查
+        if (certificatePath == null || certificatePath.length == 0) {
+            logger.error("证书为空");
+            throw new AFCryptoException("证书为空");
+        }
+        if (filePath == null || filePath.length == 0) {
+            logger.error("文件路径为空");
+            throw new AFCryptoException("文件路径为空");
+        }
+        if (signatureData == null || signatureData.length == 0) {
+            logger.error("签名数据为空");
+            throw new AFCryptoException("签名数据为空");
+        }
+        //endregion
+        //读取证书中的公钥
+        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificatePath);
+        //外部公钥文件验签
+        return rsaVerifyFile(rsaPubKey.encode(), filePath, signatureData);
     }
 
     /**
-     * <p>对文件进行RSA验证签名</p>
-     * <p>使用外部RSA密钥对文件签名值进行验证</p>
+     * RSA加密 内部公钥
      *
-     * @param publicKey     ：base64编码的RSA公钥数据，其结构应满足PKCS#1中的RSA结构定义
-     *                      <p>RSAPublicKey ::= SEQUENCE {</p>
-     *                      <p>    modulus             INTEGER, --- n</p>
-     *                      <p>    publicExponent      INTEGER, --- e</p>
-     *                      <p>}</p>
-     * @param fileName      ：文件名称
-     * @param signatureData ：Base64编码的签名数据
-     * @return : true : 验证成功，false ：验证失败
+     * @param keyIndex 密钥索引
+     * @param data     待加密数据
+     * @return Base64编码的加密数据
      */
-
-    public boolean rsaVerifyFile(byte[] publicKey, byte[] fileName, byte[] signatureData) throws AFCryptoException {
-        RSAPubKey rsaPubKey = decodeRSAPublicKey(publicKey);
-        byte[] md5Result = fileDigest(fileName);
-        byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(rsaPubKey.getBits(), md5Result);
-        return cmd.rsaVerify(rsaPubKey, signData, signatureData);
-    }
-
-    /**
-     * <p>RSA验证签名</p>
-     * <p>使用证书对文件签名数据进行验证签名运算</p>
-     *
-     * @param certificate   ：base64编码的RSA数字证书
-     * @param fileName      ：文件名称
-     * @param signatureData ：Base64编码的签名数据
-     * @return : true : 验证成功，false ：验证失败
-     */
-
-    public boolean rsaVerifyFileByCertificate(byte[] certificate, byte[] fileName, byte[] signatureData) throws AFCryptoException {
-        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificate);
-
-        byte[] md5Result = fileDigest(fileName);
-        byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(rsaPubKey.getBits(), md5Result);
-
-        return cmd.rsaVerify(rsaPubKey, signData, signatureData);
-    }
-
-    /**
-     * <p>RSA加密</p>
-     * <p>使用内部密钥进行RSA加密</p>
-     *
-     * @param keyIndex ：密码设备内部存储的RSA索引号
-     * @param inData   ：待加密的原始数据
-     * @return ：Base64编码的加密数据
-     */
-
-    public byte[] rsaEncrypt(int keyIndex, byte[] inData) throws AFCryptoException {
+    public byte[] rsaEncrypt(int keyIndex, byte[] data) throws AFCryptoException {
+        logger.info("SV-RSA加密-内部公钥");
+        //region//======>参数检查
+        if (keyIndex <= 0) {
+            logger.error("密钥索引错误,keyIndex={}", keyIndex);
+            throw new AFCryptoException("密钥索引错误,keyIndex=" + keyIndex);
+        }
+        if (data == null || data.length == 0) {
+            logger.error("原始数据为空");
+            throw new AFCryptoException("原始数据为空");
+        }
+        //endregion
+        //模长
         byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.ENC_PUBLIC_KEY);
         RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
-
-        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), inData);
-        byte[] rsaEncrypt = cmd.rsaEncrypt(keyIndex, encData);
-
+        //RSA加密PKCS1填充
+        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), data);
+        //RSA加密
+        byte[] rsaEncrypt = cmd.rsaPublicKeyOperation(keyIndex, null, Algorithm.SGD_RSA_ENC, data);
+        //返回Base64编码的加密数据
         return BytesOperate.base64EncodeData(rsaEncrypt);
 
     }
 
     /**
-     * <p>RSA加密</p>
-     * <p>使用外部密钥进行RSA加密</p>
+     * RSA加密 外部公钥
      *
-     * @param publicKey ：base64编码的RSA公钥数据，其结构应满足PKCS#1中的RSA结构定义
-     *                  <p>RSAPublicKey ::= SEQUENCE {</p>
-     *                  <p>    modulus             INTEGER, --- n</p>
-     *                  <p>    publicExponent      INTEGER, --- e</p>
-     *                  <p>}</p>
-     * @param inData    ：待加密的原始数据
-     * @return ：Base64编码的加密数据
+     * @param publicKey 公钥 ASN1结构 Base64编码
+     * @param data      待加密数据
+     * @return Base64编码的加密数据
      */
-
-    public byte[] rsaEncrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
+    public byte[] rsaEncrypt(byte[] publicKey, byte[] data) throws AFCryptoException {
+        logger.info("SV-RSA加密-外部公钥");
+        //region//======>参数检查
+        if (publicKey == null || publicKey.length == 0) {
+            logger.error("公钥为空");
+            throw new AFCryptoException("公钥为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("原始数据为空");
+            throw new AFCryptoException("原始数据为空");
+        }
+        //endregion
+        //解析公钥
         RSAPubKey rsaPubKey = decodeRSAPublicKey(publicKey);
-        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), inData);
-        byte[] rsaEncrypt = cmd.rsaEncrypt(rsaPubKey, encData);
+        //RSA加密PKCS1填充
+        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), data);
+        //RSA加密
+        byte[] rsaEncrypt = cmd.rsaPublicKeyOperation(0, rsaPubKey, Algorithm.SGD_RSA_ENC, data);
+        //返回Base64编码的加密数据
+        return BytesOperate.base64EncodeData(rsaEncrypt);
+    }
+
+
+    /**
+     * RSA 加密 证书公钥
+     *
+     * @param certificatePath 证书路径
+     * @param data            待加密数据
+     * @return Base64编码的加密数据
+     */
+    public byte[] rsaEncryptByCertificate(byte[] certificatePath, byte[] data) throws AFCryptoException {
+        logger.info("SV-RSA加密-证书公钥");
+        //region//======>参数检查
+        if (certificatePath == null || certificatePath.length == 0) {
+            logger.error("证书路径为空");
+            throw new AFCryptoException("证书路径为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("原始数据为空");
+            throw new AFCryptoException("原始数据为空");
+        }
+        //读取证书中的公钥
+        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificatePath);
+        //RSA加密PKCS1填充
+        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), data);
+        //RSA加密
+        byte[] rsaEncrypt = cmd.rsaPublicKeyOperation(0, rsaPubKey, Algorithm.SGD_RSA_ENC, data);
+        //返回Base64编码的加密数据
         return BytesOperate.base64EncodeData(rsaEncrypt);
     }
 
     /**
-     * <p>RSA加密</p>
-     * <p>使用RSA数字证书对数据进行加密</p>
+     * RSA解密 内部私钥
      *
-     * @param certificate ：base64编码的RSA数字证书
-     * @param inData      ：待加密的原始数据
-     * @return ：Base64编码的加密数据
+     * @param keyIndex 密钥索引
+     * @param encData  Base64编码的加密数据
+     * @return 解密数据 Base64编码
      */
-
-    public byte[] rsaEncryptByCertificate(byte[] certificate, byte[] inData) throws AFCryptoException {
-        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificate);
-        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), inData);
-        byte[] rsaEncrypt = cmd.rsaEncrypt(rsaPubKey, encData);
-        return BytesOperate.base64EncodeData(rsaEncrypt);
-    }
-
-    /**
-     * <p>RSA解密</p>
-     * <p>使用内部密钥进行RSA解密</p>
-     *
-     * @param keyIndex ：密码设备内部存储的RSA索引号
-     * @param encData  ：Base64编码的加密数据
-     * @return ：原始数据
-     */
-
     public byte[] rsaDecrypt(int keyIndex, byte[] encData) throws AFCryptoException {
+        logger.info("SV-RSA解密-内部私钥");
+        //region//======>参数检查
+        if (keyIndex <= 0) {
+            logger.error("密钥索引错误,keyIndex={}", keyIndex);
+            throw new AFCryptoException("密钥索引错误,keyIndex=" + keyIndex);
+        }
+        if (encData == null || encData.length == 0) {
+            logger.error("加密数据为空");
+            throw new AFCryptoException("加密数据为空");
+        }
+        //endregion
+        //Base64解码
+        encData = BytesOperate.base64DecodeData(encData);
+        //RSA解密
+        byte[] rsaDecrypt = cmd.rsaPrivateKeyOperation(keyIndex, null, Algorithm.SGD_RSA_ENC, encData);
+        //获取模长
         byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.ENC_PUBLIC_KEY);
         RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
-
-        byte[] rsaDecrypt = cmd.rsaDecrypt(keyIndex, encData);
+        //RSA解密PKCS1去填充
         byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(rsaPubKey.getBits(), rsaDecrypt);
-
+        //返回解密数据 Base64编码
         return BytesOperate.base64EncodeData(decData);
     }
 
-    /**
-     * <p>RSA解密</p>
-     * <p>使用外部密钥进行RSA解密</p>
-     *
-     * @param privateKey ：base64编码的RSA私钥数据，其结构应满足PKCS#1中的RSA结构定义
-     *                   <p>RSAPrivateKey ::= SEQUENCE {</p>
-     *                   <p>    version             Version,</p>
-     *                   <p>    modulus             INTEGER, --- n</p>
-     *                   <p>    publicExponent      INTEGER, --- e</p>
-     *                   <p>    privateExponent     INTEGER, --- d</p>
-     *                   <p>    prime1              INTEGER, --- p</p>
-     *                   <p>    prime2              INTEGER, --- q</p>
-     *                   <p>    exponent1           INTEGER, --- d mod (p-1)</p>
-     *                   <p>    exponent2           INTEGER, --- d mod (q-1)</p>
-     *                   <p>    coefficient         INTEGER, --- (inverse of q) mod p</p>
-     *                   <p>    otherPrimeInfos     OtherPrimeInfos OPTIONAL</p>
-     *                   <p>}</p>
-     * @param encData    ：Base64编码的加密数据
-     * @return ：原始数据
-     */
 
+    /**
+     * RSA解密 外部私钥
+     *
+     * @param privateKey 私钥 ASN1结构 Base64编码
+     * @param encData    Base64编码的加密数据
+     * @return 解密数据 Base64编码
+     */
     public byte[] rsaDecrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
+        logger.info("SV-RSA解密-外部私钥");
+        //region//======>参数检查
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("私钥为空");
+            throw new AFCryptoException("私钥为空");
+        }
+        if (encData == null || encData.length == 0) {
+            logger.error("加密数据为空");
+            throw new AFCryptoException("加密数据为空");
+        }
+        //endregion
+        //解析私钥
         RSAPriKey rsaPriKey = decodeRSAPrivateKey(privateKey);
-        byte[] rsaDecrypt = cmd.rsaDecrypt(rsaPriKey, encData);
-        byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(rsaPriKey.getBits(), rsaDecrypt);
+        //Base64解码
+        encData = BytesOperate.base64DecodeData(encData);
+        //RSA解密
+        byte[] rsaDecrypt = cmd.rsaPrivateKeyOperation(0, rsaPriKey, Algorithm.SGD_RSA_ENC, encData);
+        //获取模长
+        byte[] rsaPublicKey = cmd.getRSAPublicKey(0, ConstantNumber.ENC_PUBLIC_KEY);
+        RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
+        //RSA解密PKCS1去填充
+        byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(rsaPubKey.getBits(), rsaDecrypt);
+        //返回解密数据 Base64编码
         return BytesOperate.base64EncodeData(decData);
     }
 
@@ -767,42 +894,71 @@ public class AFSVDevice implements IAFSVDevice {
     //region SM2计算
 
     /**
-     * <p>SM2内部密钥签名</p>
-     * <p>使用签名服务器内部密钥进行 SM2签名运算</p>
+     * SM2 签名 内部密钥
      *
-     * @param index ：待签名的签名服务器内部密钥索引
-     * @param data  ：待签名的数据
-     * @return ： base64编码的签名数据
+     * @param index 密钥索引
+     * @param data  待签名数据
+     * @return 签名数据 Base64编码 ASN1 DER结构
      */
-
     public byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {
-        byte[] bytes = cmd.sm2Signature(index, data);
-        SM2Signature sm2Signature = new SM2Signature(bytes).to256();
-        SM2SignStructure structure = new SM2SignStructure(sm2Signature);
-        try {
-            byte[] encoded = structure.toASN1Primitive().getEncoded("DER");  // DER编码
-            return BytesOperate.base64EncodeData(encoded);                     // base64编码
-        } catch (IOException e) {
-            logger.error("SM2内部密钥签名失败", e);
-            throw new AFCryptoException(e);
+        logger.info("SV-SM2签名-内部密钥");
+        //region//======>参数检查
+        if (index <= 0) {
+            logger.error("密钥索引错误,index={}", index);
+            throw new AFCryptoException("密钥索引错误,index=" + index);
         }
+        if (data == null || data.length == 0) {
+            logger.error("待签名的数据为空");
+            throw new AFCryptoException("待签名的数据为空");
+        }
+        //endregion
+        //SM3杂凑
+        byte[] digest = new SM3().digest(data);
+        //SM2签名
+        byte[] bytes = cmd.sm2Sign(index, null, digest);
+        // AF结构
+        SM2Signature sm2Signature = new SM2Signature(bytes).to256();
+        // ASN1结构
+        SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);
+        // DER编码
+        byte[] encoded;
+        try {
+            encoded = sm2SignStructure.toASN1Primitive().getEncoded("DER");
+        } catch (IOException e) {
+            logger.error("SM2签名DER编码失败", e);
+            throw new AFCryptoException("SM2签名DER编码失败");
+        }
+        return BytesOperate.base64EncodeData(encoded);
     }
 
-    /**
-     * <p>SM2外部密钥签名</p>
-     * <p>SM2外部密钥签名</p>
-     *
-     * @param data       ：待签名的数据
-     * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                   <p>SM2PrivateKey ::= INTEGER</p>
-     * @return ： base64编码的签名数据
-     */
 
-    public byte[] sm2Signature(byte[] data, byte[] privateKey) throws AFCryptoException {
+    /**
+     * SM2 签名 外部密钥
+     *
+     * @param privateKey 私钥 ASN1结构 Base64编码
+     * @param data       待签名数据
+     * @return 签名数据 Base64编码 ASN1 DER结构
+     */
+    public byte[] sm2Signature(byte[] privateKey, byte[] data) throws AFCryptoException {
+        logger.info("SV-SM2签名-外部密钥");
+        //region//======>参数检查
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("私钥为空");
+            throw new AFCryptoException("私钥为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("待签名的数据为空");
+            throw new AFCryptoException("待签名的数据为空");
+        }
+        //endregion
         try {
+            //解析私钥
             SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey).to512();
             byte[] encodeKey = sm2PrivateKey.encode();
-            SM2Signature sm2Signature = new SM2Signature(cmd.sm2Signature(data, encodeKey)).to256();
+            //SM3杂凑
+            data = new SM3().digest(data);
+            //SM2签名
+            SM2Signature sm2Signature = new SM2Signature(cmd.sm2Sign(-1, encodeKey, data)).to256();
             SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);                              // 转换为ASN1结构
             return BytesOperate.base64EncodeData(sm2SignStructure.toASN1Primitive().getEncoded("DER"));       // DER编码 base64编码
         } catch (IOException e) {
@@ -813,29 +969,59 @@ public class AFSVDevice implements IAFSVDevice {
 
 
     /**
-     * <p>基于证书的SM2签名</p>
+     * SM2 签名 外部证书
      *
-     * @param data              ：待签名的数据
-     * @param privateKey        ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                          <p>SM2PrivateKey ::= INTEGER</p>
-     * @param base64Certificate : 签名的外部证书---BASE64编码
-     * @return ： base64编码的签名数据
+     * @param data                  待签名数据
+     * @param privateKey            私钥 ASN1结构 Base64编码
+     * @param base64CertificatePath 证书路径 证书本身需要Base64编码
+     * @return 签名数据 Base64编码 ASN1 DER结构
      */
+    public byte[] sm2SignatureByCertificate(byte[] data, byte[] privateKey, byte[] base64CertificatePath) throws AFCryptoException {
+        logger.info("SV-SM2签名-外部证书");
+        //region//======>参数检查
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("私钥为空");
+            throw new AFCryptoException("私钥为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("待签名的数据为空");
+            throw new AFCryptoException("待签名的数据为空");
+        }
+        if (base64CertificatePath == null || base64CertificatePath.length == 0) {
+            logger.error("证书为空");
+            throw new AFCryptoException("证书为空");
+        }
+        //endregion
+        //解析私钥
+        SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey).to512();
+        //从证书中解析出公钥
+        SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(base64CertificatePath);
+        //对数据进行SM3杂凑 带公钥方式
 
-    public byte[] sm2SignatureByCertificate(byte[] data, byte[] privateKey, byte[] base64Certificate) throws AFCryptoException {
-        byte[] decodeKey = BytesOperate.base64DecodePrivateKey(new String(privateKey));
-        InputStream inputData = new ByteArrayInputStream(decodeKey);
-        ASN1InputStream inputStream = new ASN1InputStream(inputData);
-        try {
-            ASN1Primitive obj = inputStream.readObject();
-            SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
-            SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey())).to512();
-            SM2Signature sm2Signature = new SM2Signature(cmd.sm2Signature(data, sm2PrivateKey.encode())).to256();
-            SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);
-            return BytesOperate.base64EncodeData(sm2SignStructure.toASN1Primitive().getEncoded("DER"));
+
+
+    }
+
+    /**
+     * 从证书中解析出SM2公钥
+     * @param base64CertificatePath  证书路径 证书本身需要Base64编码
+     * @return SM2PublicKey SM2公钥 512位
+     */
+    private static SM2PublicKey parseSM2PublicKeyFromCert(byte[] base64CertificatePath) throws AFCryptoException {
+        logger.info("SV-从证书(证书需要Base64编码)中解析出SM2公钥(AF结构)");
+        //解析证书 从证书中获取公钥
+        String certData = BytesOperate.readFileByLine(new String(base64CertificatePath));
+        byte[] derCert = BytesOperate.base64DecodeCert(new String(certData.getBytes()));
+        InputStream input = new ByteArrayInputStream(derCert);
+        try (ASN1InputStream asn1InputStream = new ASN1InputStream(input)) {
+            asn1InputStream.readObject();
+            Certificate cert = Certificate.getInstance(asn1InputStream.readObject());
+            byte[] encoded = cert.getSubjectPublicKeyInfo().getPublicKeyData().getEncoded();
+            SM2PublicKeyStructure sm2PublicKeyStructure = new SM2PublicKeyStructure(encoded);
+            return sm2PublicKeyStructure.toSm2PublicKey().to512();
         } catch (IOException e) {
-            logger.error("基于证书的SM2签名失败", e);
-            throw new AFCryptoException(e);
+            logger.error("证书解析失败", e);
+            throw new AFCryptoException("证书解析失败");
         }
     }
 
@@ -1211,7 +1397,7 @@ public class AFSVDevice implements IAFSVDevice {
         logger.info("使用外部公钥进行SM2加密");
         byte[] decodeKey = BytesOperate.base64DecodePubKey(new String(publicKey));
         SM2PublicKeyStructure structure = new SM2PublicKeyStructure(decodeKey);
-        SM2PublicKey sm2PublicKey = structure.toSm2PubKey();
+        SM2PublicKey sm2PublicKey = structure.toSm2PublicKey();
         byte[] bytes = cmd.sm2Encrypt(sm2PublicKey, inData);
         SM2Cipher sm2Cipher = new SM2Cipher(bytes).to256();
 
@@ -3436,7 +3622,7 @@ public class AFSVDevice implements IAFSVDevice {
             if (ifCarryText) {
                 flag = 1;
             }
-            byte[] bytes = cmd.encodeSignedDataForSM2(flag,sm2PrivateKey, derCert, data);
+            byte[] bytes = cmd.encodeSignedDataForSM2(flag, sm2PrivateKey, derCert, data);
             return BytesOperate.base64EncodeData(bytes);
         } catch (Exception e) {
             logger.error("编码基于SM2算法的签名数据错误");
@@ -3530,9 +3716,116 @@ public class AFSVDevice implements IAFSVDevice {
 
     //region 工具方法
 
+    /**
+     * 读取文件并且做SHA-256摘要
+     *
+     * @param filePath 文件路径
+     * @return 摘要结果
+     */
+    private static byte[] fileReadAndDigest(byte[] filePath) {
+        MessageDigest md;
+        try {
+            String fileData = BytesOperate.readFileByLine(new String(filePath));
+            md = MessageDigest.getInstance("SHA-256");
+            md.update(fileData.getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("读取文件并且做SHA-256摘要异常", e);
+            throw new RuntimeException(e);
+        }
+        return md.digest();
+
+    }
 
     /**
-     * SM2 ASN1结构转换为自定义SM2私钥结构
+     * SM2 字节流转换为 ASN1 编码的私钥
+     *
+     * @param sm2PublicKey SM2 字节流
+     * @return ASN1 编码的私钥DER
+     */
+    private static byte[] bytesToASN1SM2PubKey(byte[] sm2PublicKey) throws AFCryptoException {
+        SM2PublicKey sm2PublicKey256 = new SM2PublicKey(sm2PublicKey).to256();
+        byte[] encodedKey;
+        try {
+            encodedKey = new SM2PublicKeyStructure(sm2PublicKey256).toASN1Primitive().getEncoded("DER");
+        } catch (IOException e) {
+            logger.error("SM2公钥DER编码失败", e);
+            throw new AFCryptoException("SM2公钥DER编码失败", e);
+        }
+        return BytesOperate.base64EncodeData(encodedKey);
+    }
+
+    /**
+     * RSA 字节流转换为 ASN1 编码的公钥
+     *
+     * @param sequenceBytes RSA 字节流
+     * @return ASN1 编码的公钥DER
+     */
+    private static byte[] bytesToASN1RSAPubKey(byte[] sequenceBytes) throws AFCryptoException {
+        byte[] encoded;
+        RSAPubKey rsaPubKey = new RSAPubKey(sequenceBytes);
+        RSAPublicKeyStructure rsaPublicKeyStructure = new RSAPublicKeyStructure(rsaPubKey);
+        try {
+            encoded = rsaPublicKeyStructure.toASN1Primitive().getEncoded("DER");
+        } catch (IOException e) {
+            throw new AFCryptoException("ASN1编码异常");
+        }
+        return encoded;
+    }
+
+    /**
+     * 从证书中获取RSA公钥
+     *
+     * @param certificatePath 证书路径
+     * @return RSAPubKey 对象
+     */
+    private RSAPubKey getRSAPublicKeyFromCertificate(byte[] certificatePath) throws AFCryptoException {
+        logger.info("SV-从证书中获取RSA公钥,证书路径:{}", null == certificatePath ? "" : new String(certificatePath));
+        if (null == certificatePath || certificatePath.length == 0) {
+            logger.info("证书路径为空");
+            throw new AFCryptoException("证书路径为空");
+        }
+        RSAPubKey rsaPubKey = null;
+        try {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            X509Certificate cert = (X509Certificate) cf.generateCertificate(new FileInputStream(new String(certificatePath)));
+            PublicKey publicKey = cert.getPublicKey();
+            byte[] derRSAPubKey = new byte[publicKey.getEncoded().length - 24];
+            System.arraycopy(publicKey.getEncoded(), 24, derRSAPubKey, 0, publicKey.getEncoded().length - 24);
+            rsaPubKey = decodeRSAPublicKey(BytesOperate.base64EncodeData(derRSAPubKey));
+        } catch (CertificateException | FileNotFoundException e) {
+            logger.error("解析证书失败", e);
+        }
+        return rsaPubKey;
+    }
+
+
+    /**
+     * SM2 ASN1结构转换为自定义SM2公钥结构
+     *
+     * @param publicKey 公钥数据 ASN1结构 Base64编码
+     * @return SM2公钥 AF结构
+     */
+    private static SM2PublicKey structureToSM2PubKey(byte[] publicKey) throws AFCryptoException {
+        //base64解码
+        byte[] decodeKey = BytesOperate.base64DecodeData(new String(publicKey));
+        InputStream inputData = new ByteArrayInputStream(decodeKey);
+        SM2PublicKey sm2PublicKey;
+        try (ASN1InputStream ais = new ASN1InputStream(inputData)) {
+            ASN1Primitive asn1Primitive = new ASN1InputStream(inputData).readObject();
+            //ASN1 结构
+            SM2PublicKeyStructure sm2PublicKeyStructure = new SM2PublicKeyStructure((ASN1Sequence) asn1Primitive);
+            //AF结构 补零512位
+            sm2PublicKey = sm2PublicKeyStructure.toSm2PublicKey();
+            sm2PublicKey = sm2PublicKey.to512();
+        } catch (IOException e) {
+            logger.error("解析SM2公钥异常", e);
+            throw new AFCryptoException("解析SM2公钥异常");
+        }
+        return sm2PublicKey;
+    }
+
+    /**
+     * SM2 ASN1结构转换为自定义SM2私钥结构 512位
      *
      * @param privateKey ：SM2私钥 ASN1结构 Base64编码
      * @return ：自定义SM2私钥结构
@@ -3553,13 +3846,69 @@ public class AFSVDevice implements IAFSVDevice {
         }
     }
 
+//    /**
+//     * SM2私钥构建
+//     *
+//     * @param privateKey 私钥数据 ASN1结构 Base64编码
+//     * @return SM2私钥
+//     */
+//    private byte[] decodeSM2PrivateKey(byte[] privateKey) throws AFCryptoException {
+//        byte[] decodeKey = BytesOperate.base64DecodeData(new String(privateKey));
+//        InputStream inputData = new ByteArrayInputStream(decodeKey);
+//        SM2PrivateKey sm2PrivateKey;
+//        try (ASN1InputStream ais = new ASN1InputStream(inputData)) {
+//            ASN1Primitive asn1Primitive = new ASN1InputStream(inputData).readObject();
+//            SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure((ASN1Sequence) asn1Primitive);
+//            sm2PrivateKey = sm2PrivateKeyStructure.toSM2PrivateKey();
+//            sm2PrivateKey = sm2PrivateKey.to512();
+//        } catch (IOException e) {
+//            logger.error("解析SM2私钥异常", e);
+//            throw new AFCryptoException("解析SM2私钥异常");
+//        }
+//        return sm2PrivateKey.encode();
+//    }
+
+    /**
+     * RSA 构建公钥结构
+     *
+     * @param publicKey 公钥数组 ASN1结构 Base64编码
+     * @return RSAPubKey 对象
+     */
+    private RSAPubKey decodeRSAPublicKey(byte[] publicKey) {
+        RSAPubKey rsaPubKey = new RSAPubKey();
+        //Base64解码
+        byte[] derPubKeyData = BytesOperate.base64DecodeData(new String(publicKey));
+        //ASN1解码
+        byte[] pubKeyData = new byte[rsaPubKey.size()];
+        try (ASN1InputStream ais = new ASN1InputStream(derPubKeyData)) {
+            RSAPublicKey structure = RSAPublicKey.getInstance(ais.readObject());
+            int mLen = structure.getModulus().toString().length();
+            int bits = 2048;
+            if (mLen == 128) {
+                bits = 1024;
+            }
+            System.arraycopy(BytesOperate.int2bytes(bits), 0, pubKeyData, 0, 4);
+            if (bits == 1024) {
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, pubKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN / 2), ConstantNumber.LiteRSARef_MAX_LEN / 2);
+            } else {
+                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, pubKeyData, 4, ConstantNumber.LiteRSARef_MAX_LEN);
+            }
+            System.arraycopy(this.RSAKey_e, 0, pubKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN, ConstantNumber.LiteRSARef_MAX_LEN);
+            rsaPubKey.decode(pubKeyData);
+        } catch (IOException e) {
+            logger.error("解析公钥失败", e);
+        }
+        return rsaPubKey;
+    }
+
+
     /**
      * RSA 构建私钥结构
      *
-     * @param privateKey 私钥 ASN1结构 Base64编码
+     * @param privateKey 私钥数组 ASN1结构 Base64编码
      * @return RSAPriKey SDK私钥结构
      */
-    private RSAPriKey decodeRSAPrivateKey(byte[] privateKey) {
+    private RSAPriKey decodeRSAPrivateKey(byte[] privateKey) throws AFCryptoException {
         RSAPriKey rsaPriKey = new RSAPriKey();
         byte[] derPrvKeyData = BytesOperate.base64DecodeData(new String(privateKey));
         byte[] prvKeyData = new byte[rsaPriKey.size()];
@@ -3593,28 +3942,11 @@ public class AFSVDevice implements IAFSVDevice {
             rsaPriKey.decode(prvKeyData);
         } catch (IOException e) {
             logger.error("解析RSA私钥异常", e);
+            throw new AFCryptoException("解析RSA私钥异常");
         }
         return rsaPriKey;
     }
 
-    /**
-     * 对文件做SHA-256摘要
-     *
-     * @param filePath 文件路径
-     */
-    private static byte[] fileDigest(byte[] filePath) {
-        MessageDigest md;
-        try {
-            String fileData = BytesOperate.readFileByLine(new String(filePath));
-            md = MessageDigest.getInstance("SHA-256");
-            md.update(fileData.getBytes(StandardCharsets.UTF_8));
-        } catch (NoSuchAlgorithmException e) {
-            logger.error("文件做SHA-256摘要异常", e);
-            throw new RuntimeException(e);
-        }
-        return md.digest();
-
-    }
 
     /**
      * 加解密分包  4096个字节一段 最后一段如果不足4096个字节 取实际长度

@@ -44,10 +44,10 @@ public class SM2Signature implements IAFStruct {
 
     @Override
     public void decode(byte[] data)  {
-        this.r = new byte[(data.length+1)/2];
-        this.s = new byte[(data.length+1)/2];
-        System.arraycopy(data, 0, this.r, 0, this.r.length);
-        System.arraycopy(data, this.r.length, this.s, 0, this.r.length);
+        this.r = new byte[64];
+        this.s = new byte[64];
+        System.arraycopy(data, 0, this.r, 0, ECCref_MAX_LEN);
+        System.arraycopy(data, ECCref_MAX_LEN, this.s, 0, ECCref_MAX_LEN);
 
     }
 
