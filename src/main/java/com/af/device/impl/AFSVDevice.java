@@ -998,6 +998,8 @@ public class AFSVDevice implements IAFSVDevice {
         SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(base64CertificatePath);
         //对数据进行SM3杂凑 带公钥方式
 
+        return null;
+
 
 
     }
