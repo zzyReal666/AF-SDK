@@ -79,6 +79,52 @@ public class RSAPrivateKeyStructure implements ASN1Encodable {
         this.coefficient = BigIntegerUtil.toPositiveInteger(prvKey.getCof());
     }
 
+    public RSAPriKey toRSAPriKey() {
+        RSAPriKey prvKey = new RSAPriKey();
+        int length = modulus.bitLength();
+        byte[] m = BigIntegerUtil.toByteArray(modulus);
+        byte[] e = BigIntegerUtil.toByteArray(publicExponent);
+        byte[] d = BigIntegerUtil.toByteArray(privateExponent);
+        byte[] p = BigIntegerUtil.toByteArray(prime1);
+        byte[] q = BigIntegerUtil.toByteArray(prime2);
+        byte[] dp = BigIntegerUtil.toByteArray(exponent1);
+        byte[] dq = BigIntegerUtil.toByteArray(exponent2);
+        byte[] cof = BigIntegerUtil.toByteArray(coefficient);
+
+
+        //前面补0 m,e 补满2048位,其他补满1024位
+        byte[] m1 = new byte[256];
+        byte[] e1 = new byte[256];
+        byte[] d1 = new byte[256];
+        byte[] p1 = new byte[128];
+        byte[] q1 = new byte[128];
+        byte[] dp1 = new byte[128];
+        byte[] dq1 = new byte[128];
+        byte[] cof1 = new byte[128];
+
+        System.arraycopy(m, 0, m1, 256 - m.length, m.length);
+        System.arraycopy(e, 0, e1, 256 - e.length, e.length);
+        System.arraycopy(d, 0, d1, 256 - d.length, d.length);
+        System.arraycopy(p, 0, p1, 128 - p.length, p.length);
+        System.arraycopy(q, 0, q1, 128 - q.length, q.length);
+        System.arraycopy(dp, 0, dp1, 128 - dp.length, dp.length);
+        System.arraycopy(dq, 0, dq1, 128 - dq.length, dq.length);
+        System.arraycopy(cof, 0, cof1, 128 - cof.length, cof.length);
+
+
+        prvKey.setBits(length);
+        prvKey.setM(m1);
+        prvKey.setE(e1);
+        prvKey.setD(d1);
+        prvKey.setP(p1);
+        prvKey.setQ(q1);
+        prvKey.setDp(dp1);
+        prvKey.setDq(dq1);
+        prvKey.setCof(cof1);
+
+        return prvKey;
+    }
+
     public RSAPrivateKeyStructure(
             ASN1Sequence seq) {
         Enumeration e = seq.getObjects();

@@ -1,0 +1,23 @@
+
+
+// 生成文档的任务 unix
+//tasks.register('generateDocs', Exec) {
+//    workingDir project.rootDir
+//
+//    // 设置脚本路径和参数
+//    commandLine 'bash', 'generate_docs.sh'
+//
+//    // 可选：指定脚本执行前的依赖任务
+//    dependsOn 'build'
+//}
+
+// 生成文档的任务 windows
+tasks.register('generateDocs', Exec) {
+    workingDir project.rootDir
+
+    // 执行生成文档的批处理文件
+    commandLine 'cmd', '/c', 'generate_docs.bat'
+
+    // 可选：指定脚本执行前的依赖任务
+    dependsOn 'build'
+}

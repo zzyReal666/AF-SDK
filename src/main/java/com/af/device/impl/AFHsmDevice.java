@@ -47,7 +47,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     //region ======================================================成员与单例模式======================================================
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
     private byte[] agKey;  //协商密钥
-    private static AFNettyClient client;  //netty客户端
+    public static AFNettyClient client;  //netty客户端
     private final SM3 sm3 = new SM3Impl();  //国密SM3算法
     private final AFHSMCmd cmd = new AFHSMCmd(client, agKey);
 
@@ -84,16 +84,15 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 获取随机数
-     * todo  增强
      *
      * @param length 随机数长度 字节数
      * @return 随机数
-     * 获取随机数异常
      */
     public byte[] getRandom(int length) throws AFCryptoException {
         //参数检查
-        if (length <= 0) {
-            throw new AFCryptoException("随机数长度必须大于0");
+        if (length <= 0 || length > ConstantNumber.MAX_RANDOM_LENGTH) {
+            logger.error("随机数长度不合法,长度范围为1-4096,当前长度为:{}", length);
+            throw new AFCryptoException("随机数长度不合法");
         }
 
         return cmd.getRandom(length);
@@ -209,7 +208,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     /**
      * 生成密钥对 RSA
      *
-     * @param length 模长 {@link ModulusLength}
+     * @param length 模长 1024 | 2048 {@link ModulusLength}
      */
     public RSAKeyPair generateRSAKeyPair(ModulusLength length) throws AFCryptoException {
         //length只能是1024或2048
@@ -384,7 +383,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("生成协商数据失败,协商数据入参为空");
             throw new AFCryptoException("生成协商数据失败,协商数据入参为空");
         }
-        if (null == data.getInitiatorId() || data.getInitiatorId().length == 0){
+        if (null == data.getInitiatorId() || data.getInitiatorId().length == 0) {
             logger.error("生成协商数据失败,发起方id为空");
             throw new AFCryptoException("生成协商数据失败,发起方id为空");
         }
@@ -401,11 +400,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 生成协商数据及密钥
-     * @param keyIndex
-     * @param length
-     * @param data
-     * @return
-     * @throws AFCryptoException
+     *
+     * @param keyIndex 密钥索引
+     * @param length   模长
+     * @param data     协商数据
+     * @return 协商数据
      */
     public AgreementData generateAgreementDataAndKey(int keyIndex, ModulusLength length, AgreementData data) throws AFCryptoException {
         //region //参数检查
@@ -417,19 +416,19 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("生成协商数据失败,协商数据入参为空");
             throw new AFCryptoException("生成协商数据失败,协商数据入参为空");
         }
-        if (null == data.getInitiatorId() || data.getInitiatorId().length == 0){
+        if (null == data.getInitiatorId() || data.getInitiatorId().length == 0) {
             logger.error("生成协商数据失败,发起方id为空");
             throw new AFCryptoException("生成协商数据失败,发起方id为空");
         }
-        if (null == data.getResponderId() || data.getResponderId().length == 0){
+        if (null == data.getResponderId() || data.getResponderId().length == 0) {
             logger.error("生成协商数据失败,回复方id为空");
             throw new AFCryptoException("生成协商数据失败,回复方id为空");
         }
-        if (null == data.getPublicKey() || data.getPublicKey().length == 0){
+        if (null == data.getPublicKey() || data.getPublicKey().length == 0) {
             logger.error("生成协商数据失败,公钥为空");
             throw new AFCryptoException("生成协商数据失败,公钥为空");
         }
-        if (null == data.getTempPublicKey() || data.getTempPublicKey().length == 0){
+        if (null == data.getTempPublicKey() || data.getTempPublicKey().length == 0) {
             logger.error("生成协商数据失败,临时公钥为空");
             throw new AFCryptoException("生成协商数据失败,临时公钥为空");
         }
@@ -439,7 +438,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         getPrivateKeyAccessRight(keyIndex, 3, "12345678");
         byte[] bytes = cmd.generateAgreementDataAndKey(keyIndex, length, data.getPublicKey(), data.getTempPublicKey(), data.getInitiatorId(), data.getResponderId());
         BytesBuffer buffer = new BytesBuffer(bytes);
-         data = new AgreementData();
+        data = new AgreementData();
         data.setSessionId(buffer.readInt());
         data.setPublicKey(buffer.readOneData());
         data.setTempPublicKey(buffer.readOneData());
@@ -448,9 +447,9 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 生成协商密钥
-     * @param data 协商数据入参 必须publicKey、tempPublicKey、responderId、
+     *
+     * @param data AgreementData对象 协商数据入参 必须publicKey、tempPublicKey、responderId、
      * @return sessionId
-     * @throws AFCryptoException
      */
     public AgreementData generateAgreementKey(AgreementData data) throws AFCryptoException {
         //region //参数检查
@@ -458,15 +457,15 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("生成协商密钥失败,协商数据入参为空");
             throw new AFCryptoException("生成协商密钥失败,协商数据入参为空");
         }
-        if (null == data.getPublicKey() || data.getPublicKey().length == 0){
+        if (null == data.getPublicKey() || data.getPublicKey().length == 0) {
             logger.error("生成协商密钥失败,公钥为空");
             throw new AFCryptoException("生成协商密钥失败,公钥为空");
         }
-        if (null == data.getTempPublicKey() || data.getTempPublicKey().length == 0){
+        if (null == data.getTempPublicKey() || data.getTempPublicKey().length == 0) {
             logger.error("生成协商密钥失败,临时公钥为空");
             throw new AFCryptoException("生成协商密钥失败,临时公钥为空");
         }
-        if (null == data.getResponderId() || data.getResponderId().length == 0){
+        if (null == data.getResponderId() || data.getResponderId().length == 0) {
             logger.error("生成协商密钥失败,回复方id为空");
             throw new AFCryptoException("生成协商密钥失败,回复方id为空");
         }
@@ -474,7 +473,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
         byte[] bytes = cmd.generateAgreementKey(data.getPublicKey(), data.getTempPublicKey(), data.getResponderId());
         BytesBuffer buffer = new BytesBuffer(bytes);
-         data = new AgreementData();
+        data = new AgreementData();
         data.setSessionId(buffer.readInt());
         return data;
     }
@@ -549,7 +548,6 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data  : 原始数据
      * @return ：返回运算结果
      */
-
     public byte[] rsaInternalSign(int index, byte[] data) throws AFCryptoException {
         //获取私钥访问权限
         getPrivateKeyAccessRight(index, 4, "12345678");
@@ -569,7 +567,6 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param rawData    : 原始数据
      * @return ：true: 验证成功，false：验证失败
      */
-
     public boolean rsaInternalVerify(int index, byte[] signedData, byte[] rawData) throws AFCryptoException {
         //摘要
         byte[] hash = digestForRSASign(index, -1, rawData);
@@ -587,7 +584,6 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data   : 原始数据
      * @return ：返回运算结果
      */
-
     public byte[] rsaExternalSign(RSAPriKey prvKey, byte[] data) throws AFCryptoException {
         //获取摘要
         byte[] hash = digestForRSASign(-1, prvKey.getBits(), data);
@@ -605,7 +601,6 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param rawData    : 原始数据
      * @return ：true: 验证成功，false：验证失败
      */
-
     public boolean rsaExternalVerify(RSAPubKey publicKey, byte[] signedData, byte[] rawData) throws AFCryptoException {
         //摘要
         byte[] hash = digestForRSASign(-1, publicKey.getBits(), rawData);
@@ -878,6 +873,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 ECB 密钥句柄加密
+     *
+     * @param keyHandle 密钥句柄
+     * @param plain     原始数据
+     * @return 加密数据
      */
     public byte[] sm4HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
         //参数检查
@@ -980,6 +979,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 CBC 密钥句柄加密
+     *
+     * @param keyHandle 密钥句柄
+     * @param iv        初始向量 16字节
+     * @param plain     明文
+     * @return 密文
      */
     public byte[] sm4HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
@@ -1009,6 +1013,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 内部加密 ECB
+     *
+     * @param keyIndex 密钥索引
+     * @param plain    明文
+     * @return 密文
      */
     public byte[] sm1InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
         //参数检查
@@ -1034,6 +1042,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 外部加密 ECB
+     *
+     * @param key   密钥
+     * @param plain 明文
+     * @return 密文
      */
     public byte[] sm1ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
         //参数检查
@@ -1063,6 +1075,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 密钥句柄加密 ECB
+     *
+     * @param keyHandle 密钥句柄
+     * @param plain     明文
+     * @return 密文
      */
     public byte[] sm1HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
         //参数检查
@@ -1084,6 +1100,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 内部加密 CBC
+     *
+     * @param keyIndex 密钥索引
+     * @param iv       初始向量
+     * @param plain    明文
+     * @return 密文
      */
     public byte[] sm1InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
@@ -1114,6 +1135,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 外部加密 CBC
+     *
+     * @param key   密钥
+     * @param iv    初始向量
+     * @param plain 明文
+     * @return 密文
      */
     public byte[] sm1ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
@@ -1151,6 +1177,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 密钥句柄加密 CBC
+     *
+     * @param keyHandle 密钥句柄
+     * @param iv        初始向量
+     * @param plain     明文
+     * @return 密文
      */
     public byte[] sm1HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
@@ -1184,6 +1215,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 内部密钥 解密 ECB
+     *
+     * @param keyIndex 密钥索引
+     * @param cipher   密文
+     * @return 明文
      */
     public byte[] sm4InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1209,6 +1244,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 外部密钥 解密 ECB
+     *
+     * @param key    密钥
+     * @param cipher 密文
+     * @return 明文
      */
     public byte[] sm4ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1237,6 +1276,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 密钥句柄 解密 ECB
+     *
+     * @param keyHandle 密钥句柄
+     * @param cipher    密文
+     * @return 明文
      */
     public byte[] sm4HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1258,6 +1301,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 内部密钥 解密 CBC
+     *
+     * @param keyIndex 密钥索引
+     * @param iv       初始向量
+     * @param cipher   密文
+     * @return 明文
      */
     public byte[] sm4InternalDecryptCBC(int keyIndex, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1290,6 +1338,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 外部密钥 解密 CBC
+     *
+     * @param key    密钥
+     * @param iv     初始向量
+     * @param cipher 密文
+     * @return 明文
      */
     public byte[] sm4ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1326,6 +1379,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 密钥句柄 解密 CBC
+     *
+     * @param keyHandle 密钥句柄
+     * @param iv        初始向量
+     * @param cipher    密文
+     * @return 明文
      */
     public byte[] sm4HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1355,6 +1413,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 内部解密 ECB
+     *
+     * @param keyIndex 密钥索引
+     * @param cipher   密文
+     * @return 明文
      */
     public byte[] sm1InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1379,6 +1441,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 外部解密 ECB
+     *
+     * @param key    密钥
+     * @param cipher 密文
+     * @return 明文
      */
     public byte[] sm1ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1407,6 +1473,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 密钥句柄 解密 ECB
+     *
+     * @param keyHandle 密钥句柄
+     * @param cipher    密文
+     * @return 明文
      */
     public byte[] sm1HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1427,6 +1497,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 内部解密 CBC
+     *
+     * @param keyIndex 密钥索引
+     * @param iv       初始向量
+     * @param plain    明文
+     * @return 密文
      */
     public byte[] sm1InternalDecryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
@@ -1460,6 +1535,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 外部解密 CBC
+     *
+     * @param key    密钥
+     * @param iv     初始向量
+     * @param cipher 密文
+     * @return 明文
      */
     public byte[] sm1ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1496,6 +1576,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 密钥句柄 解密 CBC
+     *
+     * @param keyHandle 密钥句柄
+     * @param iv        初始向量
+     * @param cipher    密文
+     * @return 明文
      */
     public byte[] sm1HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
@@ -1527,6 +1612,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 内部批量加密 ECB
+     *
+     * @param keyIndex  密钥索引
+     * @param plainList 明文列表
+     * @return 密文列表
      */
     public List<byte[]> sm4InternalBatchEncryptECB(int keyIndex, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
@@ -1569,6 +1658,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4外部批量加密 ECB
+     *
+     * @param keyIndex  密钥索引
+     * @param plainList 明文列表
+     * @return 密文列表
      */
     public List<byte[]> sm4ExternalBatchEncryptECB(byte[] keyIndex, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
@@ -1608,6 +1701,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 密钥句柄批量加密 ECB
+     *
+     * @param keyHandle 密钥句柄
+     * @param plainList 明文列表
+     * @return 密文列表
      */
     public List<byte[]> sm4HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
@@ -1646,6 +1743,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 内部批量加密 CBC
+     *
+     * @param keyIndex  密钥索引
+     * @param iv        初始向量
+     * @param plainList 明文列表
+     * @return 密文列表
      */
     public List<byte[]> sm4InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
@@ -1690,6 +1792,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 外部批量加密 CBC
+     *
+     * @param key       密钥
+     * @param iv        初始向量
+     * @param plainList 明文列表
+     * @return 密文列表
      */
     public List<byte[]> sm4ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
@@ -1734,6 +1841,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 密钥句柄批量加密 CBC
+     *
+     * @param keyHandle 密钥句柄
+     * @param iv        初始向量
+     * @param plainList 明文列表
+     * @return 密文列表
      */
     public List<byte[]> sm4HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
 
@@ -1775,19 +1887,23 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 内部批量加密 ECB
+     *
+     * @param keyIndex  密钥索引
+     * @param plainList 明文列表
+     * @return 密文列表
      */
-    public List<byte[]> sm1InternalBatchEncryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm1InternalBatchEncryptECB(int keyIndex, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量加密，索引不能小于0,当前索引：{}", keyIndex);
             throw new AFCryptoException("SM1 批量加密，索引不能小于0,当前索引：" + keyIndex);
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (plainList == null || plainList.size() == 0) {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
+        int totalLength = plainList.stream()
                 .mapToInt(bytes -> bytes.length)
                 .sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -1795,17 +1911,17 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //padding
-        cipherList = cipherList.stream()
+        plainList = plainList.stream()
                 .map(AFHsmDevice::padding)
                 .collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_ECB, 1, keyIndex, null, null, cipherList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_ECB, 1, keyIndex, null, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
-        if (count != cipherList.size()) {
-            logger.error("SM1 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
-            throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
+        if (count != plainList.size()) {
+            logger.error("SM1 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
         return IntStream.range(0, count)
@@ -1815,6 +1931,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 外部批量加密 ECB
+     *
+     * @param key       密钥
+     * @param plainList 明文列表
+     * @return 密文列表
      */
     public List<byte[]> sm1ExternalBatchEncryptECB(byte[] key, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
@@ -1856,6 +1976,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 密钥句柄批量加密 ECB
+     *
+     * @param keyHandle 密钥句柄
+     * @param plainList 明文列表
+     * @return 密文列表
      */
     public List<byte[]> sm1HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
@@ -1894,6 +2018,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 内部密钥批量加密 CBC
+     *
+     * @param keyIndex  密钥索引
+     * @param iv        初始向量
+     * @param plainList 明文列表
      */
     public List<byte[]> sm1InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
@@ -1938,6 +2066,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 外部密钥批量加密 CBC
+     *
+     * @param key       密钥
+     * @param iv        初始向量
+     * @param plainList 明文列表
+     * @return 密文列表
      */
     public List<byte[]> sm1ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
@@ -1982,6 +2115,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 密钥句柄批量加密 CBC
+     *
+     * @param keyHandle 密钥句柄
+     * @param iv        初始向量
+     * @param plainList 明文列表
+     * @return 密文列表
      */
     public List<byte[]> sm1HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
@@ -2025,6 +2163,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 内部批量解密 ECB
+     *
+     * @param keyIndex   密钥索引
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
     public List<byte[]> sm4InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
@@ -2058,6 +2200,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 外部批量解密 ECB
+     *
+     * @param key        密钥
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
     public List<byte[]> sm4ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
@@ -2092,8 +2238,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 密钥句柄批量解密 ECB
+     *
+     * @param keyHandle  密钥句柄
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
-
     public List<byte[]> sm4HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (cipherList == null || cipherList.size() == 0) {
@@ -2122,6 +2271,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 内部批量解密 CBC
+     *
+     * @param keyIndex   密钥索引
+     * @param iv         初始向量
+     * @param cipherList 密文列表
      */
     public List<byte[]> sm4InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
@@ -2159,6 +2312,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 外部密钥批量解密 CBC
+     *
+     * @param key        密钥
+     * @param iv         初始向量
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
     public List<byte[]> sm4ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
@@ -2196,6 +2354,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 密钥句柄批量解密 CBC
+     *
+     * @param keyHandle  密钥句柄
+     * @param iv         初始向量
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
     public List<byte[]> sm4HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
@@ -2230,6 +2393,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 内部密钥批量解密 ECB
+     *
+     * @param keyIndex   密钥索引
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
     public List<byte[]> sm1InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
@@ -2263,6 +2430,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 外部密钥批量解密 ECB
+     *
+     * @param key        密钥
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
     public List<byte[]> sm1ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
@@ -2296,6 +2467,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 密钥句柄批量解密 ECB
+     *
+     * @param keyHandle  密钥句柄
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
     public List<byte[]> sm1HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
@@ -2326,6 +2501,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 内部密钥批量解密 CBC
+     *
+     * @param keyIndex   密钥索引
+     * @param iv         向量
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
     public List<byte[]> sm1InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
@@ -2363,6 +2543,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 外部密钥批量解密 CBC
+     *
+     * @param key        密钥
+     * @param iv         向量
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
     public List<byte[]> sm1ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
 
@@ -2401,6 +2586,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 密钥句柄批量解密 CBC
+     *
+     * @param keyHandle  密钥句柄
+     * @param iv         向量
+     * @param cipherList 密文列表
+     * @return 明文列表
      */
     public List<byte[]> sm1HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
@@ -2438,6 +2628,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 计算MAC 内部密钥
+     *
+     * @param keyIndex 密钥索引
+     * @param iv       向量
+     * @param data     计算数据
+     * @return MAC
      */
     public byte[] sm4InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
@@ -2459,6 +2654,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 计算MAC 外部密钥
+     *
+     * @param key  密钥
+     * @param iv   向量
+     * @param data 计算数据
+     * @return MAC
      */
     public byte[] sm4ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
@@ -2480,6 +2680,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM4 计算MAC 密钥句柄
+     *
+     * @param keyHandle 密钥句柄
+     * @param iv        向量
+     * @param data      计算数据
+     * @return MAC
      */
     public byte[] sm4HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
@@ -2498,6 +2703,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 计算MAC 内部密钥
+     *
+     * @param keyIndex 密钥索引
+     * @param iv       向量
+     * @param data     计算数据
+     * @return MAC
      */
     public byte[] sm1InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
@@ -2519,6 +2729,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 计算MAC 外部密钥
+     *
+     * @param key  密钥
+     * @param iv   向量
+     * @param data 计算数据
+     * @return MAC
      */
     public byte[] sm1ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
@@ -2540,6 +2755,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM1 计算MAC 密钥句柄
+     *
+     * @param keyHandle 密钥句柄
+     * @param iv        向量
+     * @param data      计算数据
+     * @return MAC
      */
     public byte[] sm1HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
@@ -2558,6 +2778,9 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM3-HMAC
+     *
+     * @param key  密钥
+     * @param data 计算数据
      */
     public byte[] sm3Hmac(byte[] key, byte[] data) throws AFCryptoException {
         //参数检查
@@ -2584,6 +2807,9 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * Hash init 带公钥
+     *
+     * @param publicKey 公钥
+     * @param userId    用户ID
      */
     public void sm3HashInitWithPubKey(SM2PublicKey publicKey, byte[] userId) throws AFCryptoException {
         //参数检查
@@ -2600,6 +2826,8 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * Hash update
+     *
+     * @param data 计算数据
      */
     public void sm3HashUpdate(byte[] data) throws AFCryptoException {
         //参数检查
@@ -2612,6 +2840,8 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * Hash doFinal
+     *
+     * @return Hash
      */
     public byte[] sm3HashFinal() throws AFCryptoException {
         return cmd.hashFinal();
@@ -2620,8 +2850,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM3 Hash
+     *
+     * @param data 计算数据
+     * @return Hash
      */
-    public byte[] sm3Hash(byte[] userId, byte[] data) throws AFCryptoException {
+    public byte[] sm3Hash(byte[] data) throws AFCryptoException {
         //init
         sm3HashInit();
         //update
@@ -2633,6 +2866,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * SM3 Hash 带公钥
+     *
+     * @param publicKey 公钥
+     * @param userId    用户ID
+     * @param data      计算数据
+     * @return Hash
      */
     public byte[] sm3HashWithPubKey(SM2PublicKey publicKey, byte[] userId, byte[] data) throws AFCryptoException {
         //init
@@ -2648,6 +2886,9 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 创建文件
+     *
+     * @param fileName 文件名
+     * @param fileSize 文件大小
      */
     public void createFile(String fileName, int fileSize) throws AFCryptoException {
         //参数检查
@@ -2664,6 +2905,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 读取文件
+     *
+     * @param fileName 文件名
+     * @param offset   偏移量
+     * @param length   读取长度
+     * @return 读取数据
      */
     public byte[] readFile(String fileName, int offset, int length) throws AFCryptoException {
         //参数检查
@@ -2684,6 +2930,10 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 写入文件
+     *
+     * @param fileName 文件名
+     * @param offset   偏移量
+     * @param data     写入数据
      */
     public void writeFile(String fileName, int offset, byte[] data) throws AFCryptoException {
         //参数检查
@@ -2704,6 +2954,8 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 删除文件
+     *
+     * @param fileName 文件名
      */
     public void deleteFile(String fileName) throws AFCryptoException {
         //参数检查
@@ -2719,6 +2971,9 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 获取内部对称密钥句柄
+     *
+     * @param keyIndex 密钥索引
+     * @return 密钥句柄
      */
     public int getSymKeyHandle(int keyIndex) throws AFCryptoException {
         //参数检查
@@ -2731,28 +2986,14 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 获取连接个数
+     *
+     * @return 连接个数
      */
     public int getConnectCount() throws AFCryptoException {
         return getConnectCount(client);
     }
 
     //endregion
-
-    /**
-     * SM3哈希 杂凑算法
-     * 带公钥信息和用户ID
-     *
-     * @param data      待杂凑数据
-     * @param publicKey 公钥 可以传入256/512位公钥 实际计算使用256位公钥
-     * @param userID    用户ID
-     * @return 杂凑值
-     * 杂凑异常
-     */
-    public byte[] sm3HashWithPubKey(byte[] data, SM2PublicKey publicKey, byte[] userID) throws AFCryptoException {
-        SM2PublicKey publicKey256 = publicKey.to256();
-        return sm3.SM3HashWithPublicKey256(data, publicKey256, userID);
-    }
-
 
     //region============================================================工具============================================================
 

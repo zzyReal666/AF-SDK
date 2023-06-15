@@ -1,6 +1,5 @@
 package com.af.device.cmd;
 
-import cn.hutool.crypto.digest.SM3;
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.Algorithm;
@@ -8,15 +7,11 @@ import com.af.constant.CMDCode;
 import com.af.constant.ConstantNumber;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2PrivateKey;
-import com.af.crypto.key.sm2.SM2PublicKey;
-import com.af.device.AFDeviceFactory;
 import com.af.device.DeviceInfo;
-import com.af.device.impl.AFHsmDevice;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
-import com.af.struct.impl.sm2.SM2Cipher;
 import com.af.struct.signAndVerify.AFSM2DecodeSignedData;
 import com.af.struct.signAndVerify.AFSvCryptoInstance;
 import com.af.struct.signAndVerify.CertAltNameTrustList;
@@ -25,14 +20,10 @@ import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import lombok.Setter;
 import lombok.ToString;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.x509.X509CertificateStructure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.*;
 import java.util.List;
@@ -148,354 +139,6 @@ public class AFSVCmd {
     }
 
     //endregion
-
-    //region// SM2 计算
-
-    /**
-     * <p>SM2内部密钥签名</p>
-     * <p>使用签名服务器内部密钥进行 SM2签名运算</p>
-     *
-     * @param index ：待签名的签名服务器内部密钥索引
-     * @param data  ：待签名的数据
-     * @return ： base64编码的签名数据
-     */
-    public byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {  //success
-        logger.info("SV_CMD SM2内部密钥签名, index: {}, dataLen: {}", index, data.length);
-        getPrivateAccess(index, 3);
-        byte[] hash = new SM3().digest(data);
-        int begin = 1;
-        byte[] param = new BytesBuffer()
-                .append(begin)
-                .append(index)
-                .append(hash.length)
-                .append(hash)
-                .toBytes();
-
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_INTERNALSIGN_ECC, param, agKey);
-        ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("SM2内部密钥签名失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-            throw new AFCryptoException("SM2内部密钥签名失败");
-        }
-        return responseMessage.getDataBuffer().readOneData();
-    }
-
-    /**
-     * <p>SM2外部密钥签名</p>
-     * <p>SM2外部密钥签名</p>
-     *
-     * @param data       ：待签名的数据
-     * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                   <p>SM2PrivateKey ::= INTEGER</p>
-     * @return ： base64编码的签名数据
-     */
-    public byte[] sm2Signature(byte[] data, byte[] privateKey) throws AFCryptoException {   //success
-        logger.info("SV-CMD SM2外部密钥签名, data: {}, privateKey: {}", data, privateKey);
-        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = new SM3().digest(data);
-        int zero = 0;
-        byte[] param = new BytesBuffer()
-                .append(zero)
-                .append(ConstantNumber.SGD_SM2_1)
-                .append(zero)
-                .append(privateKey.length)
-                .append(privateKey)
-                .append(hash.length)
-                .append(hash)
-                .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SM2外部密钥签名失败, 错误码: {}, 错误信息: {}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SM2外部密钥签名失败");
-        }
-        return res.getDataBuffer().readOneData();
-    }
-
-    /**
-     * SM2验证签名 内部密钥
-     * <p>SM2内部密钥验证签名</p>
-     * <p>使用签名服务器内部密钥进行 SM2验证签名运算</p>
-     *
-     * @param keyIndex  ：待验证签名的签名服务器内部密钥索引
-     * @param data      : 待验证签名的原始数据
-     * @param signature : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                  <p>SM2Signature ::= {</p>
-     *                  <p>R INTEGER, --签名值的第一部分</p>
-     *                  <p>S INTEGER --签名值的第二部分</p>
-     *                  <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
-     */
-    public boolean sm2Verify(int keyIndex, byte[] data, byte[] signature) throws AFCryptoException {  //success
-        logger.info("SV-SM2内部密钥验证签名");
-        getPrivateAccess(keyIndex, 3);
-        int begin = 1;
-        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = new SM3().digest(data);
-        byte[] param = new BytesBuffer()
-                .append(begin)
-                .append(keyIndex)
-                .append(hash.length)
-                .append(hash)
-                .append(signature.length)
-                .append(signature)
-                .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_INTERNALVERIFY_ECC, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SM2内部密钥验证签名失败，错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * SM2验证签名 外部密钥
-     *
-     * @param data         待验证签名的原始数据
-     * @param signature    待验证签名的签名数据
-     * @param sm2PublicKey 外部公钥
-     * @return true ：验证签名成功，false ：验证签名失败
-     * @throws AFCryptoException AFCryptoException
-     */
-    public boolean SM2VerifyByCertPubKey(byte[] data, byte[] signature, SM2PublicKey sm2PublicKey) throws AFCryptoException {  //success
-        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.sm3HashWithPubKey(data, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
-        int zero = 0;
-        byte[] param = new BytesBuffer()
-                .append(zero)
-                .append(ConstantNumber.SGD_SM2_1)
-                .append(zero)
-                .append(sm2PublicKey.size())
-                .append(sm2PublicKey.encode())
-                .append(hash.length)
-                .append(hash)
-                .append(signature.length)
-                .append(signature)
-                .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALVERIFY_ECC, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SM2外部公钥验证签名失败，错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            return false;
-        }
-        return true;
-
-    }
-
-    /**
-     * <p>基于证书的SM2文件签名</p>
-     *
-     * @param data         待签名的文件
-     * @param privateKey   签名的私钥
-     * @param sm2PublicKey 签名的公钥
-     * @return 签名数据
-     */
-    public byte[] sm2SignFileByCertificate(byte[] data, byte[] privateKey, byte[] sm2PublicKey) throws AFCryptoException {
-        logger.info("SV-CMD 基于证书的SM2文件签名, data: {}, privateKey: {}, sm2PublicKey: {}", data, privateKey, sm2PublicKey);
-        int zero = 0;
-        //hash
-        AFHsmDevice afHsmDevice = AFDeviceFactory.getAFHsmDevice(this.client.getHost(), this.client.getPort(), this.client.getPassword());
-        byte[] hash = afHsmDevice.sm3HashWithPubKey(data, new SM2PublicKey(sm2PublicKey), ConstantNumber.DEFAULT_USER_ID.getBytes(StandardCharsets.UTF_8));
-
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALSIGN_ECC, new BytesBuffer()
-                .append(zero)
-                .append(ConstantNumber.SGD_SM2_1)
-                .append(zero)
-                .append(privateKey.length)
-                .append(privateKey)
-                .append(hash.length)
-                .append(hash)
-                .toBytes(), agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("基于证书的SM2文件签名失败, 错误码: {}, 错误信息: {}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("基于证书的SM2文件签名失败");
-        }
-        return res.getDataBuffer().readOneData();
-    }
-
-    /**
-     * <p>基于证书的SM2验证签名</p>
-     * <p>使用外部证书进行 SM2验证签名运算，根据签名服务器内部CA证书，验证证书有效性</p>
-     *
-     * @param base64Certificate ：待验证签名的外部证书---BASE64编码
-     * @param data              : 待验证签名的原始数据
-     * @param signature         : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                          <p>SM2Signature ::= {</p>
-     *                          <p>R INTEGER, --签名值的第一部分</p>
-     *                          <p>S INTEGER --签名值的第二部分</p>
-     *                          <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
-     */
-    public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] data, byte[] signature) throws AFCryptoException {
-        logger.info("基于证书的SM2验证签名");
-        //读取证书数据
-        byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
-        InputStream input = new ByteArrayInputStream(derCert);
-        ASN1Sequence seq = null;
-        try (ASN1InputStream aln = new ASN1InputStream(input)) {
-            seq = (ASN1Sequence) aln.readObject();
-            X509CertificateStructure cert = new X509CertificateStructure(seq);
-            byte[] encodePubKey = cert.getSubjectPublicKeyInfo().getPublicKeyData().getEncoded();
-
-            SM2PublicKey sm2PublicKey = new SM2PublicKey();
-            byte[] sm2PubKey = new byte[4 + 32 + 32];
-            System.arraycopy(BytesOperate.int2bytes(256), 0, sm2PubKey, 0, 4);
-            System.arraycopy(encodePubKey, 4, sm2PubKey, 4, 64);
-            sm2PublicKey.decode(sm2PubKey);
-            return this.SM2VerifyByCertPubKey(data, signature, sm2PublicKey);
-        } catch (Exception e) {
-            logger.error("基于证书的SM2验证签名失败，错误信息:{}", e.getMessage());
-            throw new AFCryptoException("基于证书的SM2验证签名失败");
-        }
-    }
-
-    /**
-     * SM2文件签名 内部密钥
-     * <p>SM2文件签名</p>
-     * <p>使用签名服务器内部密钥对文件进行 SM2签名运算</p>
-     *
-     * @param index ：待签名的签名服务器内部密钥索引
-     * @param data  ：待签名的文件
-     * @return ： base64编码的签名数据
-     */
-    public byte[] sm2SignFile(int index, byte[] data) throws AFCryptoException {  //success
-        return sm2Signature(index, data);
-    }
-
-    /**
-     * SM2文件签名 外部密钥
-     * <p>SM2文件签名</p>
-     * <p>使用外部密钥对文件进行 SM2签名运算</p>
-     *
-     * @param data       ：待签名的文件
-     * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                   <p>SM2PrivateKey ::= INTEGER</p>
-     * @return ： base64编码的签名数据
-     */
-    public byte[] sm2SignFile(byte[] data, byte[] privateKey) throws AFCryptoException { //success
-        return sm2Signature(data, privateKey);
-    }
-
-
-    /**
-     * SM2内部密钥加密
-     *
-     * @param keyIndex ：密码设备内部密钥索引
-     * @param inData   ：待加密的数据原文
-     * @return ：Base64编码的密文数据
-     */
-    public byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException {  //success
-        logger.info("sm2Encrypt,keyIndex:{},inDataLen:{}", keyIndex, inData.length);
-        byte[] param = new BytesBuffer()
-                .append(keyIndex)
-                .append(ConstantNumber.SGD_SM2_3)
-                .append(0)
-                .append(0)
-                .append(inData.length)
-                .append(inData)
-                .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALENCRYPT_ECC, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SV-sm2内部加密错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SV-sm2内部加密错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
-        }
-        return res.getDataBuffer().readOneData();
-    }
-
-    /**
-     * SM2 外部密钥加密
-     *
-     * @param publicKey ：base64编码的SM2公钥数据, 其结构应满足 GM/T 0009-2012中关于SM2公钥结构的数据定义
-     *                  <p>SM2PublicKey ::= BIT STRING</p> 其结构为 04||X||Y
-     * @param inData    ：待加密的数据原文
-     * @return ：Base64编码的密文数据
-     */
-    public byte[] sm2Encrypt(SM2PublicKey publicKey, byte[] inData) throws AFCryptoException {  //success
-        logger.info("SV-sm2外部加密,publicKey:{},inDataLen:{}", publicKey, inData.length);
-        byte[] param = new BytesBuffer()
-                .append(0)
-                .append(ConstantNumber.SGD_SM2_3)
-                .append(0)
-                .append(publicKey.size())
-                .append(publicKey.encode())
-                .append(inData.length)
-                .append(inData)
-                .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALENCRYPT_ECC, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SV-sm2外部加密错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SV-sm2外部加密错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
-        }
-        return res.getDataBuffer().readOneData();
-    }
-
-    /**
-     * SM2 内部密钥解密
-     *
-     * @param keyIndex  密钥索引
-     * @param SM2Cipher 密文
-     */
-    public byte[] sm2Decrypt(int keyIndex, SM2Cipher SM2Cipher) throws AFCryptoException {  //success
-        logger.info("SV-sm2内部解密,keyIndex:{},SM2CipherLen:{}", keyIndex, SM2Cipher.size());
-        getPrivateAccess(keyIndex, 3);
-        byte[] param = new BytesBuffer()
-                .append(keyIndex)
-                .append(ConstantNumber.SGD_SM2_3)
-                .append(0)
-                .append(0)
-                .append(SM2Cipher.size())
-                .append(SM2Cipher.encode())
-                .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALDECRYPT_ECC, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SV-sm2内部解密错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SV-sm2内部解密错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
-        }
-        return res.getDataBuffer().readOneData();
-    }
-
-    /**
-     * SM2 外部密钥解密
-     *
-     * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                   <p>SM2PrivateKey ::= INTEGER</p>
-     * @param encData    ：Base64编码的加密数据, 其结构应满足 GM/T 0009-2012中关于SM2公钥结构的数据定义
-     *                   <p>SM2Cipher ::= SEQUENCE {</p>
-     *                   <p>     XCoordinate     INTEGER, --x分量</p>
-     *                   <p>     YCoordinate     INTEGER, --y分量</p>
-     *                   <p>     HASH            OCTET STRING SIZE(32), --杂凑值</p>
-     *                   <p>     CipherText      OCTET STRING, --密文</p>
-     *                   <p>}</p>
-     * @return ：原文数据
-     */
-    public byte[] sm2Decrypt(SM2PrivateKey privateKey, SM2Cipher encData) throws AFCryptoException { //success
-        logger.info("SV-sm2外部解密,privateKey:{},encDataLen:{}", privateKey, encData.size());
-        byte[] param = new BytesBuffer()
-                .append(0)
-                .append(ConstantNumber.SGD_SM2_3)
-                .append(0)
-                .append(privateKey.size())
-                .append(privateKey.encode())
-                .append(encData.size())
-                .append(encData.encode())
-                .toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_EXTERNALDECRYPT_ECC, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("SV-sm2外部解密错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("SV-sm2外部解密错误,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
-        }
-        return res.getDataBuffer().readOneData();
-    }
-
-    //endregion
-
-    //=============================2023 05 31 根据协议新增  todo 后续可精简为cmd层和协议文档 一一对应,从Device层做业务区分================================
 
     //region// 设备信息 随机数 获取私钥访问权限
 
@@ -702,7 +345,7 @@ public class AFSVCmd {
      * @return 4+n
      */
     public byte[] sm2Sign(int keyIndex, byte[] priKey, byte[] data) throws AFCryptoException {
-        logger.info("HSM-CMD-SM2 签名, keyIndex: {}, priKey: {}, data: {}", keyIndex, null == priKey, data);
+        logger.info("SV-CMD-SM2 签名, keyIndex: {}, priKey: {}, data: {}", keyIndex, null == priKey, data);
         BytesBuffer buffer = new BytesBuffer();
         if (-1 != keyIndex && null == priKey) { //内部密钥
             buffer.append(1)
@@ -720,13 +363,13 @@ public class AFSVCmd {
                     .append(data.length)   //取SM3摘要
                     .append(data);
         } else {
-            throw new AFCryptoException("HSM-CMD-SM2 签名,参数错误");
+            throw new AFCryptoException("SV-CMD-SM2 签名,参数错误");
         }
         RequestMessage req = new RequestMessage(CMDCode.SM2_SIGN, buffer.toBytes(), agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-SM2 签名,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-SM2 签名,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-SM2 签名,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-SM2 签名,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().readOneData();
     }
@@ -741,12 +384,12 @@ public class AFSVCmd {
      * @return true | false
      */
     public boolean sm2Verify(int keyIndex, byte[] pubKey, byte[] data, byte[] sign) throws AFCryptoException {
-        logger.info("HSM-CMD-SM2 验证签名, keyIndex: {}, pubKey: {}, data: {}, sign: {}", keyIndex, pubKey, data, sign);
+        logger.info("SV-CMD-SM2 验证签名, keyIndex: {}, pubKey: {}, data: {}, sign: {}", keyIndex, pubKey, data, sign);
         BytesBuffer buffer = new BytesBuffer();
         if (-1 != keyIndex && null == pubKey) { //内部密钥
             buffer.append(1)
                     .append(keyIndex)
-                    .append(data.length)   //取SM3摘要
+                    .append(data.length)
                     .append(data)
                     .append(sign.length)
                     .append(sign);
@@ -758,18 +401,18 @@ public class AFSVCmd {
                     .append(pubKey.length)
                     .append(pubKey)
 
-                    .append(data.length)   //取SM3摘要
+                    .append(data.length)
                     .append(data)
                     .append(sign.length)
                     .append(sign);
         } else {
-            throw new AFCryptoException("HSM-CMD-SM2 验证签名,参数错误");
+            throw new AFCryptoException("SV-CMD-SM2 验证签名,参数错误");
         }
         RequestMessage req = new RequestMessage(CMDCode.SM2_VERIFY, buffer.toBytes(), agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-SM2 验证签名,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-SM2 验证签名,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-SM2 验证签名,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-SM2 验证签名,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return true;
     }
@@ -783,7 +426,7 @@ public class AFSVCmd {
      * @return 4+n
      */
     public byte[] sm2Encrypt(int keyIndex, byte[] pubKey, byte[] plain) throws AFCryptoException {
-        logger.info("HSM-CMD-SM2 加密, keyIndex: {}, pubKey: {}, data: {}", keyIndex, pubKey, plain);
+        logger.info("SV-CMD-SM2 加密, keyIndex: {}, pubKey: {}, data: {}", keyIndex, pubKey, plain);
         BytesBuffer buffer = new BytesBuffer();
         if (-1 != keyIndex && null == pubKey) { //内部密钥
             buffer.append(keyIndex)
@@ -803,13 +446,13 @@ public class AFSVCmd {
                     .append(plain.length)   //取SM3摘要
                     .append(plain);
         } else {
-            throw new AFCryptoException("HSM-CMD-SM2 加密,参数错误");
+            throw new AFCryptoException("SV-CMD-SM2 加密,参数错误");
         }
         RequestMessage req = new RequestMessage(CMDCode.SM2_ENCRYPT, buffer.toBytes(), agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-SM2 加密,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-SM2 加密,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-SM2 加密,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-SM2 加密,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().readOneData();
     }
@@ -823,7 +466,7 @@ public class AFSVCmd {
      * @return 4+n
      */
     public byte[] sm2Decrypt(int keyIndex, byte[] priKey, byte[] cipher) throws AFCryptoException {
-        logger.info("HSM-CMD-SM2 解密, keyIndex: {}, priKey: {}, data: {}", keyIndex, priKey, cipher);
+        logger.info("SV-CMD-SM2 解密, keyIndex: {}, priKey: {}, data: {}", keyIndex, priKey, cipher);
         BytesBuffer buffer = new BytesBuffer();
         if (-1 != keyIndex && null == priKey) { //内部密钥
             buffer.append(keyIndex)
@@ -843,13 +486,13 @@ public class AFSVCmd {
                     .append(cipher.length)   //取SM3摘要
                     .append(cipher);
         } else {
-            throw new AFCryptoException("HSM-CMD-SM2 解密,参数错误");
+            throw new AFCryptoException("SV-CMD-SM2 解密,参数错误");
         }
         RequestMessage req = new RequestMessage(CMDCode.SM2_DECRYPT, buffer.toBytes(), agKey);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-SM2 解密,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-SM2 解密,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-SM2 解密,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-SM2 解密,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().readOneData();
     }
@@ -874,7 +517,7 @@ public class AFSVCmd {
      * </p>
      */
     public byte[] symEncrypt(Algorithm algorithm, int type, int keyIndex, byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
-        logger.info("HSM-CMD-对称加密, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, plainLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, plain.length);
+        logger.info("SV-CMD-对称加密, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, plainLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, plain.length);
         byte[] param = new BytesBuffer()
                 .append(algorithm.getValue())
                 .append(type)
@@ -888,8 +531,8 @@ public class AFSVCmd {
                 .toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_ENCRYPT, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-对称加密失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, plain.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-对称加密失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + plain.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-对称加密失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, plain.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-对称加密失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + plain.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().readOneData();
     }
@@ -908,7 +551,7 @@ public class AFSVCmd {
      * <p>2、明文数据</p>
      */
     public byte[] symDecrypt(Algorithm algorithm, int type, int keyIndex, byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
-        logger.info("HSM-CMD-对称解密, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, cipher.length);
+        logger.info("SV-CMD-对称解密, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, cipher.length);
         byte[] param = new BytesBuffer()
                 .append(algorithm.getValue())
                 .append(type)
@@ -925,8 +568,8 @@ public class AFSVCmd {
         if (res.getHeader().
 
                 getErrorCode() != 0) {
-            logger.error("HSM-CMD-对称解密失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, cipher.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-对称解密失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + cipher.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-对称解密失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, cipher.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-对称解密失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + cipher.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().
 
@@ -949,7 +592,7 @@ public class AFSVCmd {
      * 3、加密数据信息 </p>
      */
     public byte[] symEncryptBatch(Algorithm algorithm, int type, int keyIndex, byte[] key, byte[] iv, List<byte[]> dataList) throws AFCryptoException {
-        logger.info("HSM-对称加密批量, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size());
+        logger.info("SV-对称加密批量, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size());
         BytesBuffer buffer = new BytesBuffer()
                 .append(algorithm.getValue())
                 .append(type)
@@ -963,8 +606,8 @@ public class AFSVCmd {
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_ENCRYPT_BATCH, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-对称加密批量失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size(), res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-对称加密批量失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + dataList.size() + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-对称加密批量失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size(), res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-对称加密批量失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + dataList.size() + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getData();
     }
@@ -984,7 +627,7 @@ public class AFSVCmd {
      * 3、原始数据信息</p>
      */
     public byte[] symDecryptBatch(Algorithm algorithm, int type, int keyIndex, byte[] key, byte[] iv, List<byte[]> dataList) throws AFCryptoException {
-        logger.info("HSM-对称解密批量, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size());
+        logger.info("SV-对称解密批量, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size());
         BytesBuffer buffer = new BytesBuffer()
                 .append(algorithm.getValue())
                 .append(type)
@@ -998,8 +641,8 @@ public class AFSVCmd {
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_DECRYPT_BATCH, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-对称解密批量失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size(), res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-对称解密批量失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + dataList.size() + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-对称解密批量失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, dataList.size(), res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-对称解密批量失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + dataList.size() + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getData();
     }
@@ -1019,7 +662,11 @@ public class AFSVCmd {
      * @return 4字节长度+MAC值
      */
     public byte[] mac(Algorithm algorithm, int type, int keyIndex, byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
-        logger.info("HSM-CMD-MAC计算, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, data.length);
+        logger.info("SV-CMD-MAC计算, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, data.length);
+        if (data.length > 2 * 1024 * 1024) {
+            logger.error("SV-CMD-MAC计算，计算数据长度不能超过2M,当前长度：{}", data.length);
+            throw new AFCryptoException("SV-CMD-MAC计算，计算数据长度不能超过2M,当前长度：" + data.length);
+        }
         BytesBuffer buffer = new BytesBuffer()
                 .append(algorithm.getValue())  //必须为 CBC 类型算法
                 .append(type)
@@ -1033,8 +680,8 @@ public class AFSVCmd {
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_CALCULATEMAC, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-MAC计算失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-MAC计算失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-MAC计算失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-MAC计算失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().readOneData();
     }
@@ -1047,7 +694,12 @@ public class AFSVCmd {
      * @return 4字节长度+MAC值
      */
     public byte[] sm3Hmac(byte[] key, byte[] data) throws AFCryptoException {
-        logger.info("HSM-CMD-SM3 HMAc计算, keyLen:{},  dataLen:{}", key.length, data.length);
+        logger.info("SV-CMD-SM3 HMAc计算, keyLen:{},  dataLen:{}", key.length, data.length);
+        //data 不能超过2M
+        if (data.length > 2 * 1024 * 1024) {
+            logger.error("SV-CMD-SM3 HMAc计算，计算数据长度不能超过2M,当前长度：{}", data.length);
+            throw new AFCryptoException("SV-CMD-SM3 HMAc计算，计算数据长度不能超过2M,当前长度：" + data.length);
+        }
         BytesBuffer buffer = new BytesBuffer()
                 .append(key.length)
                 .append(key)
@@ -1056,8 +708,8 @@ public class AFSVCmd {
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_CALCULATEHASH, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-SM3 HMAc计算失败, keyLen:{},  dataLen:{}, 错误码:{},错误信息:{}", key.length, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-SM3 HMAc计算失败, keyLen:" + key.length + ",  dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-SM3 HMAc计算失败, keyLen:{},  dataLen:{}, 错误码:{},错误信息:{}", key.length, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-SM3 HMAc计算失败, keyLen:" + key.length + ",  dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().readOneData();
     }
@@ -1070,7 +722,7 @@ public class AFSVCmd {
      * @param userId    用户ID
      */
     public void hashInit(Algorithm algorithm, byte[] publicKey, byte[] userId) throws AFCryptoException {
-        logger.info("HSM-CMD-HASH INIT, algorithm:{}, publicKeyLen:{},  userIdLen:{}", algorithm, null == publicKey ? 0 : publicKey.length, null == userId ? 0 : userId.length);
+        logger.info("SV-CMD-HASH INIT, algorithm:{}, publicKeyLen:{},  userIdLen:{}", algorithm, null == publicKey ? 0 : publicKey.length, null == userId ? 0 : userId.length);
         BytesBuffer buffer = new BytesBuffer()
                 .append(algorithm.getValue())
                 .append(null == publicKey ? 0 : publicKey.length)  // 仅在算法为 SGD_SM3 时有效
@@ -1080,8 +732,8 @@ public class AFSVCmd {
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHINIT, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-HASH INIT失败, algorithm:{}, publicKeyLen:{},  userIdLen:{}, 错误码:{},错误信息:{}", algorithm, null == publicKey ? 0 : publicKey.length, null == userId ? 0 : userId.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-HASH INIT失败, algorithm:" + algorithm + ", publicKeyLen:" + (null == publicKey ? 0 : publicKey.length) + ",  userIdLen:" + (null == userId ? 0 : userId.length) + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-HASH INIT失败, algorithm:{}, publicKeyLen:{},  userIdLen:{}, 错误码:{},错误信息:{}", algorithm, null == publicKey ? 0 : publicKey.length, null == userId ? 0 : userId.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-HASH INIT失败, algorithm:" + algorithm + ", publicKeyLen:" + (null == publicKey ? 0 : publicKey.length) + ",  userIdLen:" + (null == userId ? 0 : userId.length) + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
     }
 
@@ -1091,17 +743,17 @@ public class AFSVCmd {
      * @param data 数据
      */
     public void hashUpdate(byte[] data) throws AFCryptoException {
-        logger.info("HSM-CMD-HASH UPDATE, dataLen:{}", data.length);
+        logger.info("SV-CMD-HASH UPDATE, dataLen:{}", data.length);
         BytesBuffer buffer = new BytesBuffer()
                 .append(data.length)
                 .append(data);
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHUPDATE, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-HASH UPDATE失败, dataLen:{}, 错误码:{},错误信息:{}", data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-HASH UPDATE失败, dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-HASH UPDATE失败, dataLen:{}, 错误码:{},错误信息:{}", data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-HASH UPDATE失败, dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
-        logger.info("HSM-CMD-HASH UPDATE成功");
+        logger.info("SV-CMD-HASH UPDATE成功");
     }
 
     /**
@@ -1110,11 +762,11 @@ public class AFSVCmd {
      * @return HASH值 4+N
      */
     public byte[] hashFinal() throws AFCryptoException {
-        logger.info("HSM-CMD-HASH FINAL");
+        logger.info("SV-CMD-HASH FINAL");
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHFINAL, null, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-HASH FINAL失败, 错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-HASH FINAL失败, 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-HASH FINAL失败, 错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-HASH FINAL失败, 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().readOneData();
     }
@@ -1130,14 +782,14 @@ public class AFSVCmd {
      * @return 密钥句柄
      */
     public int getSymKeyHandle(int keyIndex) throws AFCryptoException {
-        logger.info("HSM-CMD-获取内部对称密钥句柄, keyIndex:{}", keyIndex);
+        logger.info("SV-CMD-获取内部对称密钥句柄, keyIndex:{}", keyIndex);
         byte[] param = new BytesBuffer()
                 .append(keyIndex)
                 .toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_GETSYMKEYHANDLE, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-获取内部对称密钥句柄失败, keyIndex:{}, 错误码:{},错误信息:{}", keyIndex, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-获取内部对称密钥句柄失败, keyIndex:" + keyIndex + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("SV-CMD-获取内部对称密钥句柄失败, keyIndex:{}, 错误码:{},错误信息:{}", keyIndex, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-获取内部对称密钥句柄失败, keyIndex:" + keyIndex + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getDataBuffer().readInt();
     }
@@ -1217,6 +869,9 @@ public class AFSVCmd {
                 .toBytes();
         RequestMessage req = new RequestMessage(CMDCode.CMD_VERIFY_CERT, param, agKey);
         ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.info("SV-OCSP验证证书有效性错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+        }
         return res.getHeader().getErrorCode();
     }
 

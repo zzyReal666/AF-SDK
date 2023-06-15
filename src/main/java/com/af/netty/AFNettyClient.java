@@ -44,7 +44,7 @@ public class AFNettyClient {
 
     //连接超时时间
     @Setter
-    private int TIMEOUT = 70000; // 超时时间（毫秒）
+    private int TIMEOUT = 50000; // 超时时间（毫秒）
     //响应超时时间
     @Setter
     private int RESPONSE_TIMEOUT = 10000; // 超时时间（毫秒）
@@ -191,7 +191,8 @@ public class AFNettyClient {
             byte[] read;
             synchronized (this) {
                 //发送数据
-                channel.writeAndFlush(byteBuf);
+                channel.writeAndFlush(byteBuf).sync();
+                logger.info("发送数据成功");
                 //接收数据
                 read = read();
             }

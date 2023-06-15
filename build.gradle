@@ -1,10 +1,10 @@
 plugins {
     id 'java'
+//    id 'io.freefair.lombok' version '6.1.0'
 }
 
 group = 'com.af'
 version = '1.0-SNAPSHOT'
-
 
 
 repositories {
@@ -33,6 +33,8 @@ dependencies {
     implementation 'ch.qos.logback:logback-classic:1.2.9'    // 日志
     compileOnly 'org.projectlombok:lombok:1.18.20'           // lombok
     annotationProcessor 'org.projectlombok:lombok:1.18.20'   // lombok
+    // https://mvnrepository.com/artifact/io.freefair.lombok/io.freefair.lombok.gradle.plugin
+    implementation 'io.freefair.lombok:io.freefair.lombok.gradle.plugin:8.0.1'
     implementation 'io.netty:netty-all:4.1.91.Final'         // netty
     implementation group: 'cn.hutool', name: 'hutool-core', version: '5.8.18' // hutool
     implementation group: 'cn.hutool', name: 'hutool-crypto', version: '5.8.18' // hutool
@@ -43,5 +45,25 @@ dependencies {
 }
 
 test {
+    enabled = true
     useJUnitPlatform()
+}
+
+//apply from: 'generateDocs.gradle'
+tasks.register('generateDocs', Exec) {
+    workingDir project.rootDir
+
+    // 执行生成文档的批处理文件
+    commandLine 'cmd', '/c', 'generate_docs.bat'
+
+    // 可选：指定脚本执行前的依赖任务
+//    dependsOn 'build'
+}
+
+// 扩展现有的 build 任务
+tasks.named('build') {
+    // 添加自定义的构建逻辑
+    dependsOn 'generateDocs'
+
+
 }

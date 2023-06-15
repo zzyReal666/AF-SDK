@@ -29,13 +29,13 @@ class AFHsmDeviceTest {
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8013, "abcd1234");
+        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8011, "abcd1234");
     }
 
     @AfterAll
     static void tearDown() throws Exception {
         logger.info("发送关闭连接请求");
-        device.close(AFSVDevice.client);
+        device.close(AFHsmDevice.client);
         logger.info("已经关闭连接");
     }
 
@@ -535,7 +535,7 @@ class AFHsmDeviceTest {
         byte[] bytes = device.sm3HashFinal();
         System.out.println("sm3 hash 分步结果:" + new String(bytes));
 
-        byte[] bytes2 = device.sm3Hash(userId, data);
+        byte[] bytes2 = device.sm3Hash(data);
         System.out.println("sm3 hash 一步结果:" + new String(bytes2));
 
 

@@ -57,10 +57,7 @@ public class AFTSDevice implements IAFTSDevice {
 
 
     /**
-     * 获取设备信息
-     *
-     * @return 设备信息
-     * @throws AFCryptoException 获取设备信息异常
+     * 获取设备信息 时间戳服务器不开放
      */
     @Override
     public DeviceInfo getDeviceInfo() throws AFCryptoException {
@@ -68,11 +65,7 @@ public class AFTSDevice implements IAFTSDevice {
     }
 
     /**
-     * 获取随机数
-     *
-     * @param length 随机数长度
-     * @return 随机数
-     * @throws AFCryptoException 获取随机数异常
+     * 获取随机数 时间戳服务器不开放该接口
      */
     @Override
     public byte[] getRandom(int length) throws AFCryptoException {
@@ -120,7 +113,6 @@ public class AFTSDevice implements IAFTSDevice {
      * @param signAlg  签名算法标识（SGD_SM2|SGD_SM2_1|SGD_SM2_2|SGD_SM2_3）
      * @param signCert TSA证书
      */
-
     public boolean tsVerify(byte[] tsValue, int signAlg, byte[] signCert) throws AFCryptoException {
         //region //======>参数检查
         if (tsValue == null || tsValue.length == 0) {
@@ -151,7 +143,8 @@ public class AFTSDevice implements IAFTSDevice {
 
     /**
      * 获取时间戳详细信息
-     * @param tsValue 时间戳响应信息
+     *
+     * @param tsValue  时间戳响应信息
      * @param infoFlag 信息标识
      * @return 时间戳详细信息
      */

@@ -34,7 +34,7 @@ public class SM2Impl implements SM2 {
 
     public SM2Impl(AFNettyClient client,byte[] agKey) {
         this.client = client;
-        this.sm3 = new SM3Impl(client);
+        this.sm3 = new SM3Impl();
         this.agKey = agKey;
     }
 

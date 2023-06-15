@@ -118,7 +118,7 @@ public enum ConstantNumber {
 
     public static final int AF_LEN_1024 = 1024;
     public static final int AF_LEN_2048 = 2048;
-    public static final int AF_LEN_4096 =  2 * 1024 * 1024;   // 单位字节 总共2M
+    public static final int AF_LEN_4096 = 2 * 1024 * 1024;   // 单位字节 总共2M
     public static final int AF_LEN_MAX = 4096 + 4096;
 
     public static final int LiteRSARef_MAX_BITS = 2048;
@@ -131,7 +131,7 @@ public enum ConstantNumber {
     public static final int SIGN_PUBLIC_KEY = 0;   //签名公钥
     public static final int ENC_PUBLIC_KEY = 1;   //加密公钥
 
-    public static final String DEFAULT_USER_ID = "1234567812345678";
+    public static final String DEFAULT_USER_ID = "1234567812345678";  //带公钥的杂凑 用户id
     public static final int SGD_SERVER_CERT_SIGN = 2;           ///< 服务器签名证书
     public static final int SGD_SERVER_CERT_ENC = 1;          ///< 服务器加密证书
 
@@ -147,4 +147,5 @@ public enum ConstantNumber {
     public static final int SGD_EXCHANGE_KEY_PAIR = 2;
     //SGD密钥对
     public static final int SGD_KEY_PAIR = 3;
+    public static final int MAX_RANDOM_LENGTH = 4096;
 }

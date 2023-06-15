@@ -23,21 +23,20 @@ public class SM2Cipher implements IAFStruct {
     private byte[] y;   //y
     private byte[] M;   //明文SM3摘要值
     private int L;      //密文长度
-    private byte[] C;   //密文
+    private byte[] C  ;   //密文
 
 
     public SM2Cipher(byte[] data) throws AFCryptoException {
-        this.length = 512;
         this.decode(data);
     }
 
     public SM2Cipher(int length, byte[] x, byte[] y, byte[] M, byte[] C) {
-        this.length = x.length * 8;
         this.x = x;
         this.y = y;
         this.M = M;
-        this.L = 136;
-        this.C = C;
+        this.L = C.length;
+        this.C = new byte[136];
+        System.arraycopy(C, 0, this.C, 0, C.length);
     }
 
     @Override
@@ -62,12 +61,10 @@ public class SM2Cipher implements IAFStruct {
 
     @Override
     public void decode(byte[] data) throws AFCryptoException {
-        //todo 实际返回64字节(512位) 但是长度字段现在时0100(256位) 有待确认
         this.x = new byte[64];
         this.y = new byte[64];
         this.C = new byte[136];
         this.M = new byte[32];
-
         System.arraycopy(data, 0, this.x, 0, 64);
         System.arraycopy(data, 64, this.y, 0, 64);
         System.arraycopy(data, 128, this.M, 0, 32);

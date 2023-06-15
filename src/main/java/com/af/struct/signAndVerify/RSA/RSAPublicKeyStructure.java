@@ -39,6 +39,25 @@ public class RSAPublicKeyStructure implements ASN1Encodable {
         this.publicExponent = BigIntegerUtil.toPositiveInteger(pubKey.getE());
     }
 
+    public RSAPubKey toRSAPubKey() {
+        byte[] m = BigIntegerUtil.toByteArray(this.modulus);
+        byte[] e = BigIntegerUtil.toByteArray(this.publicExponent);
+        RSAPubKey pubKey = new RSAPubKey();
+        pubKey.setBits(this.modulus.bitLength());
+
+        //m和e 前面补0 补齐2048位
+        byte[] mTemp = new byte[256];
+        byte[] eTemp = new byte[256];
+        System.arraycopy(m, 0, mTemp, 256 - m.length, m.length);
+        System.arraycopy(e, 0, eTemp, 256 - e.length, e.length);
+        m = mTemp;
+        e = eTemp;
+
+        pubKey.setM(m);
+        pubKey.setE(e);
+        return pubKey;
+    }
+
     public static RSAPublicKeyStructure getInstance(ASN1TaggedObject obj, boolean explicit) {
         return getInstance(ASN1Sequence.getInstance(obj, explicit));
     }

@@ -20,6 +20,28 @@ public class BigIntegerUtil {
         }
     }
 
+    /**
+     * 将BigInteger转换为字节数组 {@link #toPositiveInteger(byte[]) 的反函数}
+     * @param value
+     * @return
+     */
+    public static byte[] toByteArray(BigInteger value) {
+        if (value == null) {
+            return null;
+        } else {
+            byte[] bytes = value.toByteArray();
+
+            // 如果字节数组的长度大于1，并且第一个字节是0，则去除第一个字节
+            if (bytes.length > 1 && bytes[0] == 0) {
+                byte[] result = new byte[bytes.length - 1];
+                System.arraycopy(bytes, 1, result, 0, result.length);
+                return result;
+            }
+
+            return bytes;
+        }
+    }
+
     public static byte[] asUnsigned32ByteArray(BigInteger n) {
         return asUnsignedNByteArray(n, 32);
     }
@@ -54,4 +76,6 @@ public class BigIntegerUtil {
             }
         }
     }
+
+
 }

@@ -45,12 +45,8 @@ public class SM2PublicKeyStructure implements ASN1Encodable {
 
     public SM2PublicKeyStructure(ASN1Sequence seq) {
         Enumeration e = seq.getObjects();
-        byte[] octets = ((ASN1OctetString) e.nextElement()).getOctets();
-        byte[] tmp = new byte[32];
-        System.arraycopy(octets, 0, tmp, 0, 32);
-        this.x = BigIntegerUtil.toPositiveInteger(tmp);
-        System.arraycopy(octets, 32, tmp, 0, 32);
-        this.y = BigIntegerUtil.toPositiveInteger(tmp);
+        this.x  = ((ASN1Integer) e.nextElement()).getValue();
+        this.y = ((ASN1Integer) e.nextElement()).getValue();
     }
 
     public SM2PublicKeyStructure(ASN1BitString publicKeyData) {
@@ -108,9 +104,10 @@ public class SM2PublicKeyStructure implements ASN1Encodable {
 
     @Override
     public ASN1Primitive toASN1Primitive() {
-        byte[] tmp = new byte[64];
-        System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(this.x), 0, tmp, 0, 32);
-        System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(this.y), 0, tmp, 32, 32);
-        return new DEROctetString(tmp);
+        ASN1EncodableVector v = new ASN1EncodableVector();
+        v.add(new ASN1Integer(this.x));
+        v.add(new ASN1Integer(this.y));
+
+        return new DERSequence(v);
     }
 }

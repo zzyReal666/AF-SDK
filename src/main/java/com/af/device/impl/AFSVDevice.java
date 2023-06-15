@@ -37,16 +37,18 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.pkcs.RSAPrivateKey;
-import org.bouncycastle.asn1.pkcs.RSAPublicKey;
-import org.bouncycastle.asn1.x509.Certificate;
 import org.bouncycastle.asn1.x509.TBSCertificateStructure;
 import org.bouncycastle.asn1.x509.X509CertificateStructure;
 import org.bouncycastle.asn1.x509.X509Extensions;
+import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.bouncycastle.crypto.params.ECDomainParameters;
+import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
+import org.bouncycastle.math.ec.ECPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -68,6 +70,7 @@ import java.util.stream.IntStream;
 @Getter
 @Setter
 @ToString
+
 public class AFSVDevice implements IAFSVDevice {
 
     //region 成员 与构造
@@ -85,6 +88,11 @@ public class AFSVDevice implements IAFSVDevice {
      * 命令对象
      */
     private final AFSVCmd cmd = new AFSVCmd(client, agKey);
+
+    /**
+     * SM3 用于计算摘要
+     */
+    private static final SM3 sm3 = new SM3();
 
 
     private byte[] RSAKey_e = {
@@ -262,7 +270,6 @@ public class AFSVDevice implements IAFSVDevice {
      */
     public byte[] getRSASignPublicKey(int index) throws AFCryptoException {
         byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_RSA_SIGN);
-        logger.info("返回需要对比的数据:" + HexUtil.encodeHexStr(bytes));
         return bytesToASN1RSAPubKey(bytes);
 
     }
@@ -284,27 +291,6 @@ public class AFSVDevice implements IAFSVDevice {
         return bytesToASN1RSAPubKey(bytes);
     }
 
-
-//    /**
-//     * <p>导出SM2公钥</p>
-//     * <p>导出密码机内部对应索引和用途的SM2公钥信息</p>
-//     *
-//     * @param keyIndex ：密码设备内部存储的SM2索引号
-//     * @param keyUsage ：密钥用途，0：签名公钥；1：加密公钥
-//     * @return : 返回Base64编码的公钥数据
-//     */
-//
-//    public byte[] getSm2PublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
-//        byte[] keyBytes;
-//
-//        if (keyUsage == ConstantNumber.ENC_PUBLIC_KEY) {
-//            keyBytes = cmd.getSM2EncPublicKey(keyIndex);
-//        } else {
-//            keyBytes = cmd.getSM2SignPublicKey(keyIndex);
-//        }
-//        return bytesToASN1SM2PubKey(keyBytes);
-//
-//    }
 
 
     //endregion
@@ -339,16 +325,14 @@ public class AFSVDevice implements IAFSVDevice {
         else if (keyType == ConstantNumber.SGD_KEY_PAIR) {
             byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_SM2, ModulusLength.LENGTH_256);
             sm2KeyPair.decode(bytes);
-        }
-        //异常
-        else {
+        } else {
             logger.error("密钥类型错误,keyType(0:签名密钥对 1:加密密钥对 2:密钥交换密钥对 3:默认密钥对)={}", keyType);
             throw new AFCryptoException("密钥类型错误,keyType(0:签名密钥对 1:加密密钥对 2:密钥交换密钥对 3:默认密钥对)=" + keyType);
         }
         //公钥结构体
-        SM2PublicKeyStructure sm2PublicKeyStructure = new SM2PublicKeyStructure(sm2KeyPair.getPubKey());
+        SM2PublicKeyStructure sm2PublicKeyStructure = new SM2PublicKeyStructure(sm2KeyPair.getPubKey().to256());
         //私钥结构体
-        SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(sm2KeyPair.getPriKey());
+        SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(sm2KeyPair.getPriKey().to256());
 
         try {
             //公钥结构体编码
@@ -384,6 +368,8 @@ public class AFSVDevice implements IAFSVDevice {
         byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_RSA, length);
         RSAKeyPair rsaKeyPair = new RSAKeyPair(bytes);
         rsaKeyPair.decode(bytes);
+        logger.error("RSA密钥对生成成功,原始数据" + rsaKeyPair);
+
 
         //公钥结构体
         RSAPublicKeyStructure rsaPublicKeyStructure = new RSAPublicKeyStructure(rsaKeyPair.getPubKey());
@@ -430,8 +416,8 @@ public class AFSVDevice implements IAFSVDevice {
      * @return 签名值 Base64 编码
      */
     public byte[] rsaSignature(int keyIndex, byte[] inData) throws AFCryptoException {
+        //region//======>参数检查 日志打印
         logger.info("SV-RSA签名, keyIndex: {}, inDataLen: {}", keyIndex, null == inData ? 0 : inData.length);
-        //参数检查
         if (keyIndex <= 0) {
             logger.error("密钥索引错误,keyIndex={}", keyIndex);
             throw new AFCryptoException("密钥索引错误,keyIndex=" + keyIndex);
@@ -440,11 +426,11 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("待签名数据为空");
             throw new AFCryptoException("待签名数据为空");
         }
+        //endregion
         //获取私钥访问权限
         cmd.getPrivateAccess(keyIndex, 4);
         //获取模长
-        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.SIGN_PUBLIC_KEY);
-        int bits = new RSAPubKey(rsaPublicKey).getBits();
+        int bits = getBitsByKeyIndex(keyIndex);
         //PKCS1 签名填充
         int maxInDataLen = (bits / 8) - 11;
         if (inData.length > maxInDataLen) {
@@ -453,7 +439,18 @@ public class AFSVDevice implements IAFSVDevice {
         }
         byte[] signData = AFPkcs1Operate.pkcs1EncryptionPrivate(bits, inData);
         //签名 Base64 编码
-        return BytesOperate.base64EncodeData(cmd.rsaPrivateKeyOperation(keyIndex, null, Algorithm.SGD_RSA_SIGN, inData));
+        byte[] bytes = cmd.rsaPrivateKeyOperation(keyIndex, null, Algorithm.SGD_RSA_SIGN, signData);
+        return BytesOperate.base64EncodeData(bytes);
+    }
+
+    /**
+     * 根据RSA密钥索引获取密钥模长
+     *
+     * @param keyIndex 密钥索引
+     * @return 密钥模长
+     */
+    private int getBitsByKeyIndex(int keyIndex) throws AFCryptoException {
+        return new RSAPubKey(cmd.exportPublicKey(keyIndex, Algorithm.SGD_RSA_SIGN)).getBits();
     }
 
 
@@ -477,6 +474,7 @@ public class AFSVDevice implements IAFSVDevice {
         }
         // 解析私钥
         RSAPriKey rsaPriKey = decodeRSAPrivateKey(privateKey);
+        logger.error("RSA私钥解析成功,原始数据" + rsaPriKey);
         // 获取模长
         int modulus = rsaPriKey.getBits();
         // PKCS1 签名填充
@@ -487,7 +485,7 @@ public class AFSVDevice implements IAFSVDevice {
         }
         byte[] bytes = AFPkcs1Operate.pkcs1EncryptionPrivate(modulus, inData);
         // 签名 Base64 编码
-        return BytesOperate.base64EncodeData(cmd.rsaPrivateKeyOperation(0, rsaPriKey, Algorithm.SGD_RSA_SIGN, inData));
+        return BytesOperate.base64EncodeData(cmd.rsaPrivateKeyOperation(0, rsaPriKey, Algorithm.SGD_RSA_SIGN, bytes));
     }
 
 
@@ -532,12 +530,11 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("文件名为空");
             throw new AFCryptoException("文件名为空");
         }
-        // 解析私钥
-        RSAPriKey rsaPriKey = decodeRSAPrivateKey(privateKey);
+
         // 读取文件 生成文件摘要 SHA256
         byte[] md5Result = fileReadAndDigest(fileName);
         // RSA签名
-        return rsaSignature(rsaPriKey.encode(), md5Result);
+        return rsaSignature(privateKey, md5Result);
 
     }
 
@@ -570,8 +567,7 @@ public class AFSVDevice implements IAFSVDevice {
         //RSA验签
         byte[] bytes = cmd.rsaPublicKeyOperation(keyIndex, null, Algorithm.SGD_RSA_SIGN, signatureData);
         //去填充
-        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.SIGN_PUBLIC_KEY);
-        int bits = new RSAPubKey(rsaPublicKey).getBits();
+        int bits = getBitsByKeyIndex(keyIndex);
         bytes = AFPkcs1Operate.pkcs1DecryptionPrivate(bits, bytes);
         //比较签名值
         return Arrays.equals(bytes, inData);
@@ -603,6 +599,7 @@ public class AFSVDevice implements IAFSVDevice {
         }
         //解析公钥
         RSAPubKey rsaPubKey = decodeRSAPublicKey(publicKey);
+        logger.error("公钥解析成功,原始数据:{}", rsaPubKey);
         //Base64解码签名数据
         signatureData = BytesOperate.base64DecodeData(signatureData);
         //RSA验签
@@ -754,7 +751,7 @@ public class AFSVDevice implements IAFSVDevice {
         }
         //endregion
         //模长
-        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.ENC_PUBLIC_KEY);
+        byte[] rsaPublicKey = getRSAEncPublicKey(keyIndex);
         RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
         //RSA加密PKCS1填充
         byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), data);
@@ -847,10 +844,9 @@ public class AFSVDevice implements IAFSVDevice {
         //RSA解密
         byte[] rsaDecrypt = cmd.rsaPrivateKeyOperation(keyIndex, null, Algorithm.SGD_RSA_ENC, encData);
         //获取模长
-        byte[] rsaPublicKey = cmd.getRSAPublicKey(keyIndex, ConstantNumber.ENC_PUBLIC_KEY);
-        RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
+        int bits = getBitsByKeyIndex(keyIndex);
         //RSA解密PKCS1去填充
-        byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(rsaPubKey.getBits(), rsaDecrypt);
+        byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(bits, rsaDecrypt);
         //返回解密数据 Base64编码
         return BytesOperate.base64EncodeData(decData);
     }
@@ -881,11 +877,8 @@ public class AFSVDevice implements IAFSVDevice {
         encData = BytesOperate.base64DecodeData(encData);
         //RSA解密
         byte[] rsaDecrypt = cmd.rsaPrivateKeyOperation(0, rsaPriKey, Algorithm.SGD_RSA_ENC, encData);
-        //获取模长
-        byte[] rsaPublicKey = cmd.getRSAPublicKey(0, ConstantNumber.ENC_PUBLIC_KEY);
-        RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
         //RSA解密PKCS1去填充
-        byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(rsaPubKey.getBits(), rsaDecrypt);
+        byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(rsaPriKey.getBits(), rsaDecrypt);
         //返回解密数据 Base64编码
         return BytesOperate.base64EncodeData(decData);
     }
@@ -902,8 +895,8 @@ public class AFSVDevice implements IAFSVDevice {
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
     public byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {
-        logger.info("SV-SM2签名-内部密钥");
         //region//======>参数检查
+        logger.info("SV-SM2签名-内部密钥");
         if (index <= 0) {
             logger.error("密钥索引错误,index={}", index);
             throw new AFCryptoException("密钥索引错误,index=" + index);
@@ -913,8 +906,10 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("待签名的数据为空");
         }
         //endregion
+        //获取私钥访问权限
+        cmd.getPrivateAccess(index, 3);
         //SM3杂凑
-        byte[] digest = new SM3().digest(data);
+        byte[] digest = sm3.digest(data);
         //SM2签名
         byte[] bytes = cmd.sm2Sign(index, null, digest);
         // AF结构
@@ -932,17 +927,17 @@ public class AFSVDevice implements IAFSVDevice {
         return BytesOperate.base64EncodeData(encoded);
     }
 
-
     /**
      * SM2 签名 外部密钥
+     * 不带z值
      *
      * @param privateKey 私钥 ASN1结构 Base64编码
      * @param data       待签名数据
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
     public byte[] sm2Signature(byte[] privateKey, byte[] data) throws AFCryptoException {
-        logger.info("SV-SM2签名-外部密钥");
         //region//======>参数检查
+        logger.info("SV-SM2签名-外部密钥");
         if (privateKey == null || privateKey.length == 0) {
             logger.error("私钥为空");
             throw new AFCryptoException("私钥为空");
@@ -957,9 +952,12 @@ public class AFSVDevice implements IAFSVDevice {
             SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey).to512();
             byte[] encodeKey = sm2PrivateKey.encode();
             //SM3杂凑
-            data = new SM3().digest(data);
+            data = sm3.digest(data);
+
             //SM2签名
-            SM2Signature sm2Signature = new SM2Signature(cmd.sm2Sign(-1, encodeKey, data)).to256();
+            byte[] bytes = cmd.sm2Sign(-1, encodeKey, data);
+            logger.error("签名结果:{}", HexUtil.encodeHexStr(bytes));
+            SM2Signature sm2Signature = new SM2Signature(bytes).to256();
             SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);                              // 转换为ASN1结构
             return BytesOperate.base64EncodeData(sm2SignStructure.toASN1Primitive().getEncoded("DER"));       // DER编码 base64编码
         } catch (IOException e) {
@@ -968,16 +966,58 @@ public class AFSVDevice implements IAFSVDevice {
         }
     }
 
+    /**
+     * SM2 签名 外部私钥 (根据私钥计算出公钥) 公钥Hash,私钥签名
+     * 带z值
+     *
+     * @param privateKey 私钥 ASN1结构 Base64编码
+     * @param data       待签名数据
+     */
+    public byte[] sm2SignatureByPrivateKey(byte[] privateKey, byte[] data) throws AFCryptoException {
+        logger.info("SM2-签名-外部私钥");
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("SM2-签名-外部私钥,私钥为空");
+            throw new AFCryptoException("SM2-签名-外部私钥,私钥为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM2-签名-外部私钥,待签名的数据为空");
+            throw new AFCryptoException("SM2-签名-外部私钥,待签名的数据为空");
+        }
+        //解析私钥 为AF结构
+        SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey).to512();
+        //计算公钥
+        byte[] sm2PubKeyFromPriKey = getSM2PubKeyFromPriKey(privateKey);
+        //解析公钥 为AF结构
+        SM2PublicKey sm2PublicKey = structureToSM2PubKey(sm2PubKeyFromPriKey).to512();
+        //SM3杂凑
+        SM3Impl sm3 = new SM3Impl();
+        data = sm3.SM3HashWithPublicKey256(data, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
+        //SM2签名
+        byte[] bytes = cmd.sm2Sign(-1, sm2PrivateKey.encode(), data);
+        // AF结构
+        SM2Signature sm2Signature = new SM2Signature(bytes).to256();
+        // ASN1结构
+        SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);
+        // DER编码
+        byte[] encoded;
+        try {
+            encoded = sm2SignStructure.toASN1Primitive().getEncoded("DER");
+        } catch (IOException e) {
+            logger.error("SM2签名DER编码失败", e);
+            throw new AFCryptoException(e);
+        }
+        return BytesOperate.base64EncodeData(encoded);
+    }
 
     /**
-     * SM2 签名 外部证书
+     * SM2 签名 外部私钥 带证书
      *
      * @param data                  待签名数据
      * @param privateKey            私钥 ASN1结构 Base64编码
      * @param base64CertificatePath 证书路径 证书本身需要Base64编码
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    public byte[] sm2SignatureByCertificate(byte[] data, byte[] privateKey, byte[] base64CertificatePath) throws AFCryptoException {
+    public byte[] sm2SignatureByCertificate(byte[] privateKey, byte[] data, byte[] base64CertificatePath) throws AFCryptoException {
         logger.info("SV-SM2签名-外部证书");
         //region//======>参数检查
         if (privateKey == null || privateKey.length == 0) {
@@ -997,7 +1037,7 @@ public class AFSVDevice implements IAFSVDevice {
         SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey).to512();
         //从证书中解析出公钥
         SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(base64CertificatePath);
-        //对数据进行SM3杂凑 带公钥方式
+        //对数据进行SM3杂凑 带公钥方式 todo 带公钥方式能否优化为hutool?
         SM3Impl sm3 = new SM3Impl();
         data = sm3.SM3HashWithPublicKey256(data, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
         //SM2签名
@@ -1007,543 +1047,611 @@ public class AFSVDevice implements IAFSVDevice {
         // ASN1结构
         SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);
         // DER编码
-        byte[] encoded = new byte[0];
+        byte[] encoded;
         try {
             encoded = sm2SignStructure.toASN1Primitive().getEncoded("DER");
         } catch (IOException e) {
             logger.error("SM2签名DER编码失败", e);
             throw new AFCryptoException(e);
         }
-
         return BytesOperate.base64EncodeData(encoded);
 
     }
 
+
     /**
-     * 从证书中解析出SM2公钥
+     * SM2 文件签名 内部密钥
      *
-     * @param base64CertificatePath 证书路径 证书本身需要Base64编码
-     * @return SM2PublicKey SM2公钥 512位
+     * @param index    内部密钥索引
+     * @param filePath 待签名文件路径
+     * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    private static SM2PublicKey parseSM2PublicKeyFromCert(byte[] base64CertificatePath) throws AFCryptoException {
-        logger.info("SV-从证书(证书需要Base64编码)中解析出SM2公钥(AF结构)");
-        //解析证书 从证书中获取公钥
-        String certData = BytesOperate.readFileByLine(new String(base64CertificatePath));
-        byte[] derCert = BytesOperate.base64DecodeCert(new String(certData.getBytes()));
-        InputStream input = new ByteArrayInputStream(derCert);
-        try (ASN1InputStream asn1InputStream = new ASN1InputStream(input)) {
-            asn1InputStream.readObject();
-            Certificate cert = Certificate.getInstance(asn1InputStream.readObject());
-            byte[] encoded = cert.getSubjectPublicKeyInfo().getPublicKeyData().getEncoded();
-            SM2PublicKeyStructure sm2PublicKeyStructure = new SM2PublicKeyStructure(encoded);
-            return sm2PublicKeyStructure.toSm2PublicKey().to512();
-        } catch (IOException e) {
-            logger.error("证书解析失败", e);
-            throw new AFCryptoException("证书解析失败");
+    public byte[] sm2SignFile(int index, byte[] filePath) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        if (index < 0) {
+            logger.error("SV_Device 内部密钥文件签名,待签名的签名服务器内部密钥索引小于0");
+            throw new AFCryptoException("SV_Device 内部密钥文件签名,待签名的签名服务器内部密钥索引小于0");
         }
+        if (filePath == null || filePath.length == 0) {
+            logger.error("SV_Device 内部密钥文件签名,待签名的文件名称为空");
+            throw new AFCryptoException("SV_Device 内部密钥文件签名,待签名的文件名称为空");
+        }
+        logger.info("SV_Device 内部密钥文件签名,index:{},filePath:{}", index, new String(filePath));
+        //endregion
+        //获取私钥访问权限
+        cmd.getPrivateAccess(index, 4);
+        // 读取文件内容
+        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        //SM2签名 做SM3杂凑
+        return sm2Signature(index, fileData.getBytes());
     }
 
     /**
-     * <p>SM2文件签名</p>
-     * <p>使用签名服务器内部密钥对文件进行 SM2签名运算</p>
+     * SM2 文件签名 外部密钥
      *
-     * @param index    ：待签名的签名服务器内部密钥索引
-     * @param fileName ：待签名的文件名称
-     * @return ： base64编码的签名数据
+     * @param privateKey 外部密钥 Base64编码 ASN1结构
+     * @param filePath   待签名文件路径
+     * @return 签名数据 Base64编码 ASN1 DER结构
      */
-
-    public byte[] sm2SignFile(int index, byte[] fileName) throws AFCryptoException {
-        logger.info("SV_Device 内部密钥文件签名,index:{},fileName:{}", index, new String(fileName));
-        String fileData = BytesOperate.readFileByLine(new String(fileName));
-        byte[] bytes = cmd.sm2SignFile(index, fileData.getBytes());
-        SM2Signature sm2Signature = new SM2Signature(bytes).to256();
-        SM2SignStructure structure = new SM2SignStructure(sm2Signature);
-        try {
-            byte[] encoded = structure.toASN1Primitive().getEncoded("DER");  // DER编码
-            return BytesOperate.base64EncodeData(encoded);                     // base64编码
-        } catch (IOException e) {
-            logger.error("SM2内部密钥签名失败,结构转换为ASN.1结构错误", e);
-            throw new AFCryptoException(e);
+    public byte[] sm2SignFile(byte[] privateKey, byte[] filePath) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("SV_Device 外部密钥文件签名,私钥为空");
+            throw new AFCryptoException("SV_Device 外部密钥文件签名,私钥为空");
         }
-
+        if (filePath == null || filePath.length == 0) {
+            logger.error("SV_Device 外部密钥文件签名,待签名的文件名称为空");
+            throw new AFCryptoException("SV_Device 外部密钥文件签名,待签名的文件名称为空");
+        }
+        logger.info("SV_Device 外部密钥文件签名,filePath:{}", new String(filePath));
+        //endregion
+        // 读取文件内容
+        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        //SM2签名
+        return sm2Signature(privateKey, fileData.getBytes());
     }
 
     /**
-     * <p>SM2文件签名</p>
-     * <p>使用外部密钥对文件进行 SM2签名运算</p>
+     * SM2 文件签名 外部私钥 不带证书
+     * 不带Z值
      *
-     * @param fileName   ：待签名的文件名称
-     * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                   <p>SM2PrivateKey ::= INTEGER</p>
-     * @return ： base64编码的签名数据
+     * @param privateKey 外部私钥 Base64编码 ASN1结构
+     * @param filePath   待签名文件路径
+     * @return 签名数据 Base64编码 ASN1 DER结构
      */
-
-    public byte[] sm2SignFile(byte[] fileName, byte[] privateKey) throws AFCryptoException {
-        byte[] decodeKey = BytesOperate.base64DecodePrivateKey(new String(privateKey));
-        InputStream inputData = new ByteArrayInputStream(decodeKey);
-        ASN1InputStream inputStream = new ASN1InputStream(inputData);
-        try {
-            ASN1Primitive obj = inputStream.readObject();
-            SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
-            SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey())).to512();
-            String fileData = BytesOperate.readFileByLine(new String(fileName));
-            byte[] bytes = cmd.sm2SignFile(sm2PrivateKey.encode(), fileData.getBytes());
-            SM2Signature sm2Signature = new SM2Signature(bytes).to256();
-            SM2SignStructure structure = new SM2SignStructure(sm2Signature);
-            return BytesOperate.base64EncodeData(structure.toASN1Primitive().getEncoded("DER"));
-        } catch (IOException e) {
-            logger.error("SM2外部密钥签名失败", e);
-            throw new AFCryptoException(e);
+    public byte[] sm2SignFileByPrivateKey(byte[] privateKey, byte[] filePath) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        if (filePath == null || filePath.length == 0) {
+            logger.error("SV_Device 外部私钥文件签名,待签名的文件名称为空");
+            throw new AFCryptoException("SV_Device 外部私钥文件签名,待签名的文件名称为空");
         }
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("SV_Device 外部私钥文件签名,私钥为空");
+            throw new AFCryptoException("SV_Device 外部私钥文件签名,私钥为空");
+        }
+        logger.info("SV_Device 外部私钥文件签名,filePath:{}", new String(filePath));
+        //endregion
+        // 读取文件内容
+        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        //SM2签名
+        return sm2SignatureByPrivateKey(privateKey, fileData.getBytes());
     }
 
     /**
-     * <p>SM2文件签名</p>
-     * <p>基于证书的SM2文件签名</p>
+     * SM2 文件签名 外部私钥 带证书
      *
-     * @param fileName          ：待签名的文件名称
-     * @param privateKey        ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                          <p>SM2PrivateKey ::= INTEGER</p>
-     * @param base64Certificate : 签名的外部证书---BASE64编码
-     * @return ： base64编码的签名数据
+     * @param filePath          待签名文件路径
+     * @param privateKey        外部密钥 Base64编码 ASN1结构
+     * @param base64Certificate 证书 Base64编码 用于获取公钥,并做SM3杂凑
+     * @return 签名数据 Base64编码 ASN1 DER结构
      */
-
-    public byte[] sm2SignFileByCertificate(byte[] fileName, byte[] privateKey, byte[] base64Certificate) throws AFCryptoException {
-        byte[] decodeKey = BytesOperate.base64DecodePrivateKey(new String(privateKey));
-        InputStream inputData = new ByteArrayInputStream(decodeKey);
-        ASN1InputStream inputStream = new ASN1InputStream(inputData);
-        try {
-            // 读取私钥数据
-            ASN1Primitive obj = inputStream.readObject();
-            SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
-            SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey())).to512();
-            // 读取文件数据
-            String fileData = BytesOperate.readFileByLine(new String(fileName));
-
-            //读取证书数据
-            String certData = BytesOperate.readFileByLine(new String(base64Certificate));
-            byte[] derCert = BytesOperate.base64DecodeCert(new String(certData.getBytes(StandardCharsets.UTF_8)));
-            InputStream input = new ByteArrayInputStream(derCert);
-            ASN1InputStream certStream = new ASN1InputStream(input);
-            ASN1Primitive certObj = certStream.readObject();
-            Certificate cert = Certificate.getInstance(certObj);
-            byte[] encodePubKey = cert.getSubjectPublicKeyInfo().getPublicKeyData().getEncoded();
-            byte[] sm2PubKey = new byte[4 + 32 + 32];
-            System.arraycopy(BytesOperate.int2bytes(256), 0, sm2PubKey, 0, 4);
-            System.arraycopy(encodePubKey, 4, sm2PubKey, 4, 64);
-            SM2PublicKey sm2PublicKey = new SM2PublicKey(sm2PubKey);
-
-            // 签名
-            byte[] bytes = cmd.sm2SignFileByCertificate(fileData.getBytes(StandardCharsets.UTF_8), sm2PrivateKey.encode(), sm2PublicKey.encode());
-            SM2Signature sm2Signature = new SM2Signature(bytes).to256();
-            SM2SignStructure structure = new SM2SignStructure(sm2Signature);
-            return BytesOperate.base64EncodeData(structure.toASN1Primitive().getEncoded("DER"));
-        } catch (IOException e) {
-            logger.error("基于证书的SM2文件签名失败", e);
-            throw new AFCryptoException(e);
+    public byte[] sm2SignFileByCertificate(byte[] privateKey, byte[] filePath, byte[] base64Certificate) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        if (filePath == null || filePath.length == 0) {
+            logger.error("SV_Device 外部证书文件签名,待签名的文件名称为空");
+            throw new AFCryptoException("SV_Device 外部证书文件签名,待签名的文件名称为空");
         }
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("SV_Device 外部证书文件签名,私钥为空");
+            throw new AFCryptoException("SV_Device 外部证书文件签名,私钥为空");
+        }
+        if (base64Certificate == null || base64Certificate.length == 0) {
+            logger.error("SV_Device 外部证书文件签名,证书为空");
+            throw new AFCryptoException("SV_Device 外部证书文件签名,证书为空");
+        }
+        logger.info("SV_Device 外部证书文件签名,filePath:{}", new String(filePath));
+        //endregion
+        // 读取文件内容
+        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        //SM2签名
+        return sm2SignatureByCertificate(privateKey, fileData.getBytes(), base64Certificate);
     }
 
     /**
-     * <p>SM2内部密钥验证签名</p>
-     * <p>使用签名服务器内部密钥进行 SM2验证签名运算</p>
+     * SM2 内部密钥验签
      *
-     * @param keyIndex  ：待验证签名的签名服务器内部密钥索引
-     * @param data      : 待验证签名的原始数据
-     * @param signature : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                  <p>SM2Signature ::= {</p>
-     *                  <p>R INTEGER, --签名值的第一部分</p>
-     *                  <p>S INTEGER --签名值的第二部分</p>
-     *                  <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
+     * @param keyIndex  内部密钥索引
+     * @param data      待验签数据
+     * @param signature 签名数据 Base64编码 ASN1 DER结构
+     * @return true 验签成功 false 验签失败
      */
-
     public boolean sm2Verify(int keyIndex, byte[] data, byte[] signature) throws AFCryptoException {
-        byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
-        byte[] signatureData = new byte[64];
-        try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
-            SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
-            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
-            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
-            SM2Signature sm2Signature = new SM2Signature();
-            sm2Signature.decode(signatureData);
-            return cmd.sm2Verify(keyIndex, data, sm2Signature.to512().encode());
-        } catch (IOException e) {
-            // 处理异常
-            logger.error("SM2内部密钥验证签名失败,序列化失败", e);
-            throw new AFCryptoException(e);
+        //region//======>参数检查 日志打印
+        if (keyIndex < 0) {
+            logger.error("SV_Device 内部密钥验签,待验签的签名服务器内部密钥索引小于0");
+            throw new AFCryptoException("SV_Device 内部密钥验签,待验签的签名服务器内部密钥索引小于0");
         }
+        if (data == null || data.length == 0) {
+            logger.error("SV_Device 内部密钥验签,待验签数据为空");
+            throw new AFCryptoException("SV_Device 内部密钥验签,待验签数据为空");
+        }
+        if (signature == null || signature.length == 0) {
+            logger.error("SV_Device 内部密钥验签,签名数据为空");
+            throw new AFCryptoException("SV_Device 内部密钥验签,签名数据为空");
+        }
+        logger.info("SV_Device 内部密钥验签,index:{}", keyIndex);
+        //endregion
+        //签名值由Base64编码的ASN1 DER结构转化为AF结构
+        signature = convertToSM2Signature(signature).to512().encode();
+        //原始数据SM3杂凑
+        data = sm3.digest(data);
+        //验签
+        return cmd.sm2Verify(keyIndex, null, data, signature);
+
+
     }
 
     /**
-     * <p>SM2外部密钥验证签名</p>
-     * <p>使用外部密钥进行 SM2验证签名运算</p>
-     */
-    public boolean sm2VerifyByPublicKey(byte[] publicKey, byte[] data, byte[] signature) throws AFCryptoException {
-        byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
-        byte[] signatureData = new byte[64];
-        try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
-            SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
-            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
-            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
-            SM2Signature sm2Signature = new SM2Signature();
-            sm2Signature.decode(signatureData);
-            return cmd.SM2VerifyByCertPubKey(data, sm2Signature.to512().encode(), new SM2PublicKey(publicKey));
-        } catch (IOException e) {
-            // 处理异常
-            logger.error("SM2外部密钥验证签名失败,序列化失败", e);
-            throw new AFCryptoException(e);
-        }
-    }
-
-    /**
-     * <p>基于证书的SM2验证签名</p>
-     * <p>使用外部证书进行 SM2验证签名运算，根据签名服务器内部CA证书，验证证书有效性</p>
+     * SM2 外部密钥验签
+     * 不带z值
      *
-     * @param base64Certificate ：待验证签名的外部证书---BASE64编码
-     * @param data              : 待验证签名的原始数据
-     * @param signature         : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                          <p>SM2Signature ::= {</p>
-     *                          <p>R INTEGER, --签名值的第一部分</p>
-     *                          <p>S INTEGER --签名值的第二部分</p>
-     *                          <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
+     * @param publicKey 外部公钥 Base64编码 ASN1结构
+     * @param data      待验签数据
+     * @param signature 签名数据 Base64编码 ASN1 DER结构
+     * @return true 验签成功 false 验签失败
      */
-
-    public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] data, byte[] signature) throws AFCryptoException {
-        logger.info("基于证书的SM2验证签名(外部密钥验签),用外部证书进行 SM2验证签名运算，根据签名服务器内部CA证书，验证证书有效性");
-        if (this.validateCertificate(base64Certificate) != 0) {
-            throw new AFCryptoException("验证签名失败 ----> 当前证书验证未通过，不可使用，请更换证书后重试！！！");
-        } else {
-            //读取签名数据
-            byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
-            byte[] signatureData = new byte[64];
-            try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
-                SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
-                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
-                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
-
-                SM2Signature sm2Signature = new SM2Signature(signatureData).to512();
-                return cmd.sm2VerifyByCertificate(base64Certificate, data, sm2Signature.encode());
-            } catch (IOException e) {
-                // 处理异常
-                logger.error("基于证书的SM2验证签名失败,序列化失败", e);
-                throw new AFCryptoException(e);
-            }
-
+    public boolean sm2Verify(byte[] publicKey, byte[] data, byte[] signature) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        logger.info("SV_Device 外部密钥验签");
+        if (publicKey == null || publicKey.length == 0) {
+            logger.error("SV_Device 外部密钥验签,公钥为空");
+            throw new AFCryptoException("SV_Device 外部密钥验签,公钥为空");
         }
+        if (data == null || data.length == 0) {
+            logger.error("SV_Device 外部密钥验签,待验签数据为空");
+            throw new AFCryptoException("SV_Device 外部密钥验签,待验签数据为空");
+        }
+        if (signature == null || signature.length == 0) {
+            logger.error("SV_Device 外部密钥验签,签名数据为空");
+            throw new AFCryptoException("SV_Device 外部密钥验签,签名数据为空");
+        }
+        //endregion
+        //签名值由Base64编码的ASN1 DER结构转化为AF结构
+        signature = convertToSM2Signature(signature).to512().encode();
+        //原始数据SM3杂凑
+        data = sm3.digest(data);
+        //解析公钥
+        SM2PublicKey sm2PublicKey = structureToSM2PubKey(publicKey);
+        //验签
+        return cmd.sm2Verify(-1, sm2PublicKey.encode(), data, signature);
     }
 
     /**
-     * <p>基于证书的SM2验证签名</p>
-     * <p>使用外部证书进行 SM2验证签名运算, 通过CRL文件验证证书有效性</p>
+     * SM2 验签 一张证书
      *
-     * @param base64Certificate ： 待验证签名的外部证书---BASE64编码
-     * @param crlData           :  待验证证书的CRL文件数据 --BASE64编码格式
-     * @param data              :  待验证签名的原始数据
-     * @param signature         :  待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                          <p>SM2Signature ::= {</p>
-     *                          <p>R INTEGER, --签名值的第一部分</p>
-     *                          <p>S INTEGER --签名值的第二部分</p>
-     *                          <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
+     * @param certPath  证书路径
+     * @param data      待验签数据
+     * @param signature 签名数据 Base64编码 ASN1 DER结构
+     * @return true 验签成功 false 验签失败
      */
-
-    public boolean sm2VerifyByCertificate(byte[] base64Certificate, byte[] crlData, byte[] data, byte[] signature) throws AFCryptoException, CertificateException {
-        logger.info("基于证书的SM2验证签名(外部密钥验签),用外部证书进行 SM2验证签名运算, 通过CRL文件验证证书有效性");
-        if (this.isCertificateRevoked(base64Certificate, crlData)) {
-            throw new AFCryptoException("验证签名失败 ----> 该证书已经吊销，不可使用，请更换证书后重试！！！！");
-        } else {
-            //读取签名数据
-            byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
-            byte[] signatureData = new byte[64];
-            try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
-                SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
-                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
-                System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
-
-                SM2Signature sm2Signature = new SM2Signature(signatureData).to512();
-                return cmd.sm2VerifyByCertificate(base64Certificate, data, sm2Signature.encode());
-            } catch (IOException e) {
-                // 处理异常
-                logger.error("基于证书的SM2验证签名失败,序列化失败", e);
-                throw new AFCryptoException(e);
-            }
-
+    public boolean sm2VerifyByCertificate(byte[] certPath, byte[] data, byte[] signature) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        logger.info("SV_Device 基于证书的SM2验证签名");
+        if (certPath == null || certPath.length == 0) {
+            logger.error("SV_Device 基于证书的SM2验证签名,待验证签名的外部证书为空");
+            throw new AFCryptoException("SV_Device 基于证书的SM2验证签名,待验证签名的外部证书为空");
         }
+        if (data == null || data.length == 0) {
+            logger.error("SV_Device 基于证书的SM2验证签名,待验证签名数据为空");
+            throw new AFCryptoException("SV_Device 基于证书的SM2验证签名,待验证签名数据为空");
+        }
+        if (signature == null || signature.length == 0) {
+            logger.error("SV_Device 基于证书的SM2验证签名,待验证签名数据为空");
+            throw new AFCryptoException("SV_Device 基于证书的SM2验证签名,待验证签名数据为空");
+        }
+        //endregion
+        //验证证书有效性
+        if (0 != validateCertificateByPath(certPath)) {
+            logger.error("SV_Device 基于证书的SM2验证签名,证书验证失败");
+            throw new AFCryptoException("SV_Device 基于证书的SM2验证签名,证书验证不通过");
+        }
+        //读取证书中的公钥
+        SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(certPath);
+        //签名值由Base64编码的ASN1 DER结构转化为AF结构
+        signature = convertToSM2Signature(signature).to512().encode();
+        //原始数据SM3杂凑 带公钥
+        data = new SM3Impl().SM3HashWithPublicKey256(data, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
+        //验签
+        return cmd.sm2Verify(-1, sm2PublicKey.encode(), data, signature);
     }
 
     /**
-     * <p>SM2内部密钥验证文件签名</p>
-     * <p>使用签名服务器内部密钥对文件进行 SM2验证签名运算</p>
+     * SM2 验签 两张证书
      *
-     * @param keyIndex  ：待验证签名的签名服务器内部密钥索引
-     * @param fileName  : 文件名称
-     * @param signature : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                  <p>SM2Signature ::= {</p>
-     *                  <p>R INTEGER, --签名值的第一部分</p>
-     *                  <p>S INTEGER --签名值的第二部分</p>
-     *                  <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
+     * @param signCert 签名证书 Base64编码
+     * @param hashCert 杂凑证书 Base64编码
+     * @param data     原始数据
+     * @param signData 签名数据 Base64编码 ASN1 DER结构
      */
-
-    public boolean sm2VerifyFile(int keyIndex, byte[] fileName, byte[] signature) throws AFCryptoException {
-        logger.info("SV-SM2内部密钥验证文件签名,密钥索引:{},文件名称:{},签名数据:{}", keyIndex, fileName, signature.length);
-
-        String fileData = BytesOperate.readFileByLine(new String(fileName));
-        byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
-        byte[] signatureData = new byte[64];
-        try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
-            SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
-
-            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
-            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
-            SM2Signature sm2Signature = new SM2Signature(signatureData).to512();
-
-            return cmd.sm2Verify(keyIndex, fileData.getBytes(StandardCharsets.UTF_8), sm2Signature.encode());
-        } catch (IOException e) {
-            logger.error("SM2内部密钥验证文件签名失败,序列化失败", e);
-            throw new AFCryptoException(e);
+    public boolean sm2VerifyByCertificate(byte[] signCert, byte[] hashCert, byte[] data, byte[] signData) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        if (signCert == null || signCert.length == 0) {
+            logger.error("SV_Device 基于证书的SM2验证签名,待验证签名的外部证书为空");
+            throw new AFCryptoException("SV_Device 基于证书的SM2验证签名,待验证签名的外部证书为空");
         }
-    }
-
-    /**
-     * <p>基于证书的SM2验证文件签名</p>
-     * <p>使用外部证书对文件进行SM2验证签名运算，根据签名服务器内部CA证书，验证证书有效性</p>
-     *
-     * @param base64Certificate ：待验证签名的外部证书---BASE64编码
-     * @param fileName          : 文件名称
-     * @param signature         : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                          <p>SM2Signature ::= {</p>
-     *                          <p>R INTEGER, --签名值的第一部分</p>
-     *                          <p>S INTEGER --签名值的第二部分</p>
-     *                          <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
-     */
-
-    public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] fileName, byte[] signature) throws AFCryptoException {
-        logger.info("基于证书的SM2验证文件签名(外部密钥验签),使用外部证书对文件进行SM2验证签名运算，根据签名服务器内部CA证书，验证证书有效性");
-        if (this.validateCertificate(base64Certificate) != 0) {
-            throw new AFCryptoException("验证签名失败 ----> 当前证书验证未通过，不可使用，请更换证书后重试！！！！");
-        } else {
-            return verifyByCert(base64Certificate, fileName, signature);
+        if (hashCert == null || hashCert.length == 0) {
+            logger.error("SV_Device 基于证书的SM2验证签名,待验证签名的外部证书为空");
+            throw new AFCryptoException("SV_Device 基于证书的SM2验证签名,待验证签名的外部证书为空");
         }
-
-    }
-
-    /**
-     * <p>基于证书的SM2验证签名</p>
-     * <p>使用外部证书对文件进行SM2验证签名运算, 通过CRL文件验证证书有效性</p>
-     *
-     * @param base64Certificate ： 待验证签名的外部证书---BASE64编码
-     * @param crlData           : 待验证证书的CRL文件数据 --BASE64编码格式
-     * @param fileName          : 文件名称
-     * @param signature         : 待验证签名的签名数据---BASE64编码格式, 其结构应满足 GM/T 0009-2012中关于SM2签名数据结构的定义
-     *                          <p>SM2Signature ::= {</p>
-     *                          <p>R INTEGER, --签名值的第一部分</p>
-     *                          <p>S INTEGER --签名值的第二部分</p>
-     *                          <p>}</p>
-     * @return : true ：验证签名成功，false ：验证签名失败
-     */
-
-    public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] crlData, byte[] fileName, byte[] signature) throws AFCryptoException, CertificateException {
-        logger.info("基于证书的SM2验证文件签名(外部密钥验签),使用外部证书对文件进行SM2验证签名运算, 通过CRL文件验证证书有效性");
-        if (this.isCertificateRevoked(base64Certificate, crlData)) {
-            throw new AFCryptoException("验证签名失败 ----> 当前证书验证未通过，不可使用，请更换证书后重试！！！！");
-        } else {
-            return verifyByCert(base64Certificate, fileName, signature);
+        if (data == null || data.length == 0) {
+            logger.error("SV_Device 基于证书的SM2验证签名,待验证签名数据为空");
+            throw new AFCryptoException("SV_Device 基于证书的SM2验证签名,待验证签名数据为空");
         }
-    }
-
-    /**
-     * SM2 外部证书验证签名
-     *
-     * @param base64Certificate 证书
-     * @param fileName          文件名
-     * @param signature         签名
-     */
-    private boolean verifyByCert(byte[] base64Certificate, byte[] fileName, byte[] signature) throws AFCryptoException {
-        String fileData = BytesOperate.readFileByLine(new String(fileName));
-        byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
-        byte[] signatureData = new byte[64];
-        try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
-            SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
-            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()), 0, signatureData, 0, 32);
-            System.arraycopy(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()), 0, signatureData, 32, 32);
-
-            SM2Signature sm2Signature = new SM2Signature(signatureData).to512();
-            return cmd.sm2VerifyByCertificate(base64Certificate, fileData.getBytes(StandardCharsets.UTF_8), sm2Signature.encode());
-        } catch (IOException e) {
-            logger.error("基于证书的SM2验证文件签名失败,序列化失败", e);
-            throw new AFCryptoException(e);
+        if (signData == null || signData.length == 0) {
+            logger.error("SV_Device 基于证书的SM2验证签名,待验证签名数据为空");
+            throw new AFCryptoException("SV_Device 基于证书的SM2验证签名,待验证签名数据为空");
         }
+        logger.info("SV_Device 基于证书的SM2验证签名");
+        //endregion
+        //验证证书有效性
+        if (0 != validateCertificateByPath(signCert)) {
+            logger.error("SV_Device 基于证书的SM2验证签名,签名证书验证失败");
+            throw new AFCryptoException("SV_Device 基于证书的SM2验证签名,签名证书验证失败");
+        }
+        if (0 != validateCertificateByPath(hashCert)) {
+            logger.error("SV_Device 基于证书的SM2验证签名,杂凑证书验证失败");
+            throw new AFCryptoException("SV_Device 基于证书的SM2验证签名,杂凑证书验证失败");
+        }
+        //读取签名证书的公钥
+        SM2PublicKey sigKey = parseSM2PublicKeyFromCert(signCert);
+        //读取hash证书中的公钥
+        SM2PublicKey hashKey = parseSM2PublicKeyFromCert(hashCert);
+        //签名值由Base64编码的ASN1 DER结构转化为AF结构
+        signData = convertToSM2Signature(signData).to512().encode();
+        //原始数据SM3杂凑 带公钥
+        data = new SM3Impl().SM3HashWithPublicKey256(data, hashKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
+        //验签
+        return cmd.sm2Verify(-1, sigKey.encode(), data, signData);
     }
 
 
     /**
-     * <p>sm2加密</p>
-     * <p>使用内部密钥进行SM2加密</p>
+     * SM2 验证文件签名 内部公钥
      *
-     * @param keyIndex ：密码设备内部密钥索引
-     * @param inData   ：待加密的数据原文
-     * @return ：Base64编码的密文数据
+     * @param keyIndex  内部密钥索引
+     * @param filePath  待验证签名文件路径
+     * @param signature 签名数据
+     * @return true:验证成功 false:验证失败
      */
+    public boolean sm2VerifyFile(int keyIndex, byte[] filePath, byte[] signature) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        if (keyIndex < 0) {
+            logger.error("SM2内部密钥验证文件签名失败,签名服务器内部密钥索引不能小于0");
+            throw new AFCryptoException("SM2内部密钥验证文件签名失败,签名服务器内部密钥索引不能小于0");
+        }
+        if (filePath == null || filePath.length == 0) {
+            logger.error("SM2内部密钥验证文件签名失败,待验证签名数据为空");
+            throw new AFCryptoException("SM2内部密钥验证文件签名失败,待验证签名数据为空");
+        }
+        if (signature == null || signature.length == 0) {
+            logger.error("SM2内部密钥验证文件签名失败,待验证签名数据为空");
+            throw new AFCryptoException("SM2内部密钥验证文件签名失败,待验证签名数据为空");
+        }
+        logger.info("SM2内部密钥验证文件签名,签名服务器内部密钥索引:{}, 待验证签名文件路径:{}", keyIndex, new String(filePath));
+        //endregion
+        //读取文件
+        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        //SM3摘要
+        byte[] digest = sm3.digest(fileData.getBytes());
+        //签名数据转换为SM2Signature
+        SM2Signature sm2Sign = convertToSM2Signature(signature);
+        //SM2验证签名
+        return cmd.sm2Verify(keyIndex, null, digest, sm2Sign.encode());
+    }
 
+    /**
+     * SM2 验证文件签名 外部公钥
+     *
+     * @param sm2PublicKey 外部公钥 Base64编码 ASN1 DER 格式
+     * @param filePath     待验证签名文件路径
+     * @param signature    签名数据 Base64编码 ASN1 DER 格式
+     * @return true:验证成功 false:验证失败
+     */
+    public boolean sm2VerifyFile(byte[] sm2PublicKey, byte[] filePath, byte[] signature) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        if (sm2PublicKey == null || sm2PublicKey.length == 0) {
+            logger.error("SM2外部密钥验证文件签名失败,待验证签名数据为空");
+            throw new AFCryptoException("SM2外部密钥验证文件签名失败,待验证签名数据为空");
+        }
+        if (filePath == null || filePath.length == 0) {
+            logger.error("SM2外部密钥验证文件签名失败,待验证签名数据为空");
+            throw new AFCryptoException("SM2外部密钥验证文件签名失败,待验证签名数据为空");
+        }
+        if (signature == null || signature.length == 0) {
+            logger.error("SM2外部密钥验证文件签名失败,待验证签名数据为空");
+            throw new AFCryptoException("SM2外部密钥验证文件签名失败,待验证签名数据为空");
+        }
+        logger.info("SM2外部密钥验证文件签名,待验证签名文件路径:{}", new String(filePath));
+        //endregion
+        //读取文件
+        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        //SM2验证签名
+        return sm2Verify(sm2PublicKey, fileData.getBytes(), signature);
+    }
+
+    /**
+     * SM2 验证文件签名 一张证书
+     *
+     * @param base64Certificate 证书 Base64编码
+     * @param filePath          待验证签名文件路径
+     * @param signature         签名数据 Base64编码 ASN1 DER 格式
+     * @return true:验证成功 false:验证失败
+     */
+    public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] filePath, byte[] signature) throws AFCryptoException {
+        //region//======>参数检查
+        if (base64Certificate == null || base64Certificate.length == 0) {
+            logger.error("基于证书的SM2验证文件签名失败,待验证签名的外部证书为空");
+            throw new AFCryptoException("基于证书的SM2验证文件签名失败,待验证签名的外部证书为空");
+        }
+        if (filePath == null || filePath.length == 0) {
+            logger.error("基于证书的SM2验证文件签名失败,待验证签名文件路径为空");
+            throw new AFCryptoException("基于证书的SM2验证文件签名失败,待验证签名文件路径为空");
+        }
+        if (signature == null || signature.length == 0) {
+            logger.error("基于证书的SM2验证文件签名失败,待验证签名数据为空");
+            throw new AFCryptoException("基于证书的SM2验证文件签名失败,待验证签名数据为空");
+        }
+        logger.info("基于证书的SM2验证文件签名,待验证签名的外部证书:{}, 待验证签名文件路径:{}", new String(base64Certificate), new String(filePath));
+        //endregion
+        //验证证书有效性
+        if (0 != validateCertificateByPath(base64Certificate)) {
+            logger.error("基于证书的SM2验证文件签名失败,待验证签名的外部证书无效");
+            throw new AFCryptoException("基于证书的SM2验证文件签名失败,待验证签名的外部证书无效");
+        }
+
+        //读取文件
+        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        //ASN1签名转换为SM2Signature
+        SM2Signature sm2Sign = convertToSM2Signature(signature);
+        //从证书中解析出公钥
+        SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(base64Certificate);
+        //SM3摘要 带公钥
+        byte[] digest = new SM3Impl().SM3HashWithPublicKey256(fileData.getBytes(), sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
+        //SM2验证签名
+        return cmd.sm2Verify(-1, sm2PublicKey.encode(), digest, sm2Sign.encode());
+
+    }
+
+    /**
+     * SM2 验证文件签名 两张证书
+     */
+    public boolean sm2VerifyFileByCertificate(byte[] signCert, byte[] hashCert, byte[] filePath, byte[] signature) throws AFCryptoException {
+        //region//======>参数检查
+        if (signCert == null || signCert.length == 0) {
+            logger.error("基于证书的SM2验证文件签名失败,签名证书为空");
+            throw new AFCryptoException("基于证书的SM2验证文件签名失败,签名证书为空");
+        }
+        if (hashCert == null || hashCert.length == 0) {
+            logger.error("基于证书的SM2验证文件签名失败,hash证书为空");
+            throw new AFCryptoException("基于证书的SM2验证文件签名失败,hash证书为空");
+        }
+        if (filePath == null || filePath.length == 0) {
+            logger.error("基于证书的SM2验证文件签名失败,待验证签名文件路径为空");
+            throw new AFCryptoException("基于证书的SM2验证文件签名失败,待验证签名文件路径为空");
+        }
+        if (signature == null || signature.length == 0) {
+            logger.error("基于证书的SM2验证文件签名失败,待验证签名数据为空");
+            throw new AFCryptoException("基于证书的SM2验证文件签名失败,待验证签名数据为空");
+        }
+        logger.info("基于证书的SM2验证文件签名,待验证签名的外部证书:{}, 待验证签名文件路径:{}", new String(signCert), new String(filePath));
+        //endregion
+        //验证证书有效性
+        if (0 != validateCertificateByPath(signCert)) {
+            logger.error("基于证书的SM2验证文件签名失败,签名证书无效");
+            throw new AFCryptoException("基于证书的SM2验证文件签名失败,签名证书无效");
+        }
+        if (0 != validateCertificateByPath(hashCert)) {
+            logger.error("基于证书的SM2验证文件签名失败,hash证书无效");
+            throw new AFCryptoException("基于证书的SM2验证文件签名失败,hash证书无效");
+        }
+        //读取文件
+        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        //ASN1签名转换为SM2Signature
+        SM2Signature sm2Sign = convertToSM2Signature(signature).to512();
+        //从证书中解析公钥
+        SM2PublicKey signKey = parseSM2PublicKeyFromCert(signCert);
+        SM2PublicKey hashKey = parseSM2PublicKeyFromCert(hashCert);
+        //SM3摘要 带公钥
+        byte[] digest = new SM3Impl().SM3HashWithPublicKey256(fileData.getBytes(), hashKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
+        //SM2验证签名
+        return cmd.sm2Verify(-1, signKey.encode(), digest, sm2Sign.encode());
+
+
+    }
+
+
+    /**
+     * SM2 加密 内部公钥
+     *
+     * @param keyIndex 密钥索引
+     * @param inData   待加密数据
+     * @return 加密后的数据 base64编码的 ASN1 DER编码
+     */
     public byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException {
-        SM2Cipher sm2Cipher = new SM2Cipher(cmd.sm2Encrypt(keyIndex, inData)).to256();
-        SM2CipherStructure sm2CipherStructure = new SM2CipherStructure(sm2Cipher);
-        try {
-            byte[] encoded = sm2CipherStructure.toASN1Primitive().getEncoded("DER");
-            return BytesOperate.base64EncodeData(encoded);
-        } catch (IOException e) {
-            logger.error("密文DER编码失败", e);
-            throw new AFCryptoException("密文DER编码失败", e);
+        //region//======>参数检查 日志打印
+        if (keyIndex < 0) {
+            logger.error("SM2内部密钥加密失败,密钥索引非法");
+            throw new AFCryptoException("SM2内部密钥加密失败,密钥索引非法");
         }
-    }
+        if (inData == null || inData.length == 0) {
+            logger.error("SM2内部密钥加密失败,待加密数据为空");
+            throw new AFCryptoException("SM2内部密钥加密失败,待加密数据为空");
+        }
+        logger.info("SM2内部密钥加密,密钥索引:{}, 待加密数据:{}", keyIndex, new String(inData));
+        //endregion
 
-    /**
-     * <p>sm2加密</p>
-     * <p>使用外部钥进行SM2加密</p>
-     *
-     * @param publicKey ：base64编码的SM2公钥数据, 其结构应满足 GM/T 0009-2012中关于SM2公钥结构的数据定义
-     *                  <p>SM2PublicKey ::= BIT STRING</p> 其结构为 04||X||Y
-     * @param inData    ：待加密的数据原文
-     * @return ：Base64编码的密文数据
-     */
-
-    public byte[] sm2Encrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
-        logger.info("使用外部公钥进行SM2加密");
-        byte[] decodeKey = BytesOperate.base64DecodePubKey(new String(publicKey));
-        SM2PublicKeyStructure structure = new SM2PublicKeyStructure(decodeKey);
-        SM2PublicKey sm2PublicKey = structure.toSm2PublicKey();
-        byte[] bytes = cmd.sm2Encrypt(sm2PublicKey, inData);
+        //SM2加密
+        byte[] bytes = cmd.sm2Encrypt(keyIndex, null, inData);
+        logger.error("SM2内部密钥加密,SM2加密原始结果:{}", bytes);
         SM2Cipher sm2Cipher = new SM2Cipher(bytes).to256();
-
+        logger.error("SM2内部密钥加密,SM2加密处理后结果:{}", sm2Cipher.encode());
+        //SM2加密结果转换为ASN1编码
         SM2CipherStructure sm2CipherStructure = new SM2CipherStructure(sm2Cipher);
+        //ASN1编码转换为DER编码
+        byte[] encoded;
         try {
-            byte[] encoded = sm2CipherStructure.toASN1Primitive().getEncoded("DER");
-            return BytesOperate.base64EncodeData(encoded);
+            encoded = sm2CipherStructure.toASN1Primitive().getEncoded("DER");
         } catch (IOException e) {
-            logger.error("密文DER编码失败", e);
-            throw new AFCryptoException("密文DER编码失败", e);
+            logger.error("SM2内部密钥加密失败,DER编码转换异常:{}", e.getMessage());
+            throw new AFCryptoException("SM2内部密钥加密失败,DER编码转换异常:" + e.getMessage());
         }
-
-
+        return BytesOperate.base64EncodeData(encoded);
     }
 
-    /**
-     * <p>sm2加密</p>
-     * <p>使用SM2证书对数据进行加密</p>
-     *
-     * @param certificate ：base64编码的SM2证书数据
-     * @param inData      ：待加密的数据原文
-     * @return ：Base64编码的密文数据
-     */
 
+    /**
+     * SM2 加密 外部公钥
+     *
+     * @param publicKey 外部公钥 Base64编码的 ASN1 DER结构
+     * @param inData    待加密数据
+     * @return 加密后的数据 base64编码的 ASN1 DER编码
+     */
+    public byte[] sm2Encrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        if (publicKey == null || publicKey.length == 0) {
+            logger.error("SM2外部公钥加密失败,公钥数据为空");
+            throw new AFCryptoException("SM2外部公钥加密失败,公钥数据为空");
+        }
+        if (inData == null || inData.length == 0) {
+            logger.error("SM2外部公钥加密失败,待加密数据为空");
+            throw new AFCryptoException("SM2外部公钥加密失败,待加密数据为空");
+        }
+        logger.info("SM2外部公钥加密,公钥数据:{}, 待加密数据:{}", new String(publicKey), new String(inData));
+        //endregion
+        //公钥转换为SM2PublicKey对象
+        SM2PublicKey sm2PublicKey = structureToSM2PubKey(publicKey).to512();
+        //SM2加密
+        byte[] bytes = cmd.sm2Encrypt(-1, sm2PublicKey.encode(), inData);
+        SM2Cipher sm2Cipher = new SM2Cipher(bytes).to256();
+        //SM2加密结果转换为ASN1编码
+        SM2CipherStructure sm2CipherStructure = new SM2CipherStructure(sm2Cipher);
+        //ASN1编码转换为DER编码
+        byte[] encoded;
+        try {
+            encoded = sm2CipherStructure.toASN1Primitive().getEncoded("DER");
+        } catch (IOException e) {
+            logger.error("SM2外部公钥加密失败,DER编码转换异常:{}", e.getMessage());
+            throw new AFCryptoException("SM2外部公钥加密失败,DER编码转换异常:" + e.getMessage());
+        }
+        return BytesOperate.base64EncodeData(encoded);
+    }
+
+
+    /**
+     * SM2 加密 证书
+     *
+     * @param certificate 证书数据 base64编码
+     * @param inData      待加密数据
+     * @return 加密后的数据 base64编码的 ASN1 DER编码
+     */
     public byte[] sm2EncryptByCertificate(byte[] certificate, byte[] inData) throws AFCryptoException {
+        //region//======>参数检查 日志打印
         logger.info("使用证书进行SM2加密");
-        if (this.validateCertificate(certificate) != 0) {
-            throw new AFCryptoException("验证签名失败 ----> 当前证书验证未通过，不可使用，请更换证书后重试！！！");
-
+        if (certificate == null || certificate.length == 0) {
+            logger.error("SM2证书加密失败,证书数据为空");
+            throw new AFCryptoException("SM2证书加密失败,证书数据为空");
         }
+        if (inData == null || inData.length == 0) {
+            logger.error("SM2证书加密失败,待加密数据为空");
+            throw new AFCryptoException("SM2证书加密失败,待加密数据为空");
+        }
+//        if (validateCertificateByPath(certificate) != 0) {
+//            throw new AFCryptoException("验证签名失败 ----> 当前证书验证未通过，不可使用，请更换证书后重试！！！");
+//
+//        }
+        //endregion
+        //从证书中解析出公钥
+        SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(certificate).to512();
+        // 加密数据
+        byte[] bytes = cmd.sm2Encrypt(-1, sm2PublicKey.encode(), inData);
+        // 封装密文
+        SM2Cipher sm2Cipher = new SM2Cipher(bytes).to256();
+        SM2CipherStructure sm2CipherStructure = new SM2CipherStructure(sm2Cipher);
+        byte[] cipher;
         try {
-            // 读取证书数据
-            byte[] derCert = BytesOperate.base64DecodePubKey(new String(certificate));
-            InputStream input = new ByteArrayInputStream(derCert);
-            ASN1InputStream aln = new ASN1InputStream(input);
-            Certificate cert = Certificate.getInstance(aln.readObject());
-            byte[] encoded = cert.getSubjectPublicKeyInfo().getPublicKeyData().getEncoded();
-
-            // 读取公钥数据
-            SM2PublicKey publicKey = new SM2PublicKey(256);
-            byte[] sm2Pubkey = new byte[publicKey.size()];
-            System.arraycopy(BytesOperate.int2bytes(256), 0, sm2Pubkey, 0, 4);
-            System.arraycopy(encoded, 4, sm2Pubkey, 4, 64);
-            publicKey.decode(sm2Pubkey);
-
-            // 加密数据
-            byte[] bytes = cmd.sm2Encrypt(publicKey, inData);
-
-            // 封装密文
-            SM2Cipher sm2Cipher = new SM2Cipher(bytes).to256();
-            SM2CipherStructure sm2CipherStructure = new SM2CipherStructure(sm2Cipher);
-            byte[] cipher = sm2CipherStructure.toASN1Primitive().getEncoded("DER");
-            return BytesOperate.base64EncodeData(cipher);
+            cipher = sm2CipherStructure.toASN1Primitive().getEncoded("DER");
         } catch (IOException e) {
-            logger.error("证书解析失败", e);
-            throw new AFCryptoException(e);
+            logger.error("SM2证书加密失败,DER编码转换异常:{}", e.getMessage());
+            throw new AFCryptoException("SM2证书加密失败,DER编码转换异常:" + e.getMessage());
         }
+        return BytesOperate.base64EncodeData(cipher);
     }
 
     /**
-     * <p>sm2解密</p>
-     * <p>使用内部密钥进行SM2解密</p>
+     * SM2 解密 内部私钥
      *
-     * @param keyIndex ：密码设备内部密钥索引
-     * @param encData  ：Base64编码的加密数据, 其结构应满足 GM/T 0009-2012中关于SM2公钥结构的数据定义
-     *                 <p>SM2Cipher ::= SEQUENCE {</p>
-     *                 <p>     XCoordinate     INTEGER, --x分量</p>
-     *                 <p>     YCoordinate     INTEGER, --y分量</p>
-     *                 <p>     HASH            OCTET STRING SIZE(32), --杂凑值</p>
-     *                 <p>     CipherText      OCTET STRING, --密文</p>
-     *                 <p>}</p>
-     * @return ：原文数据
+     * @param keyIndex 内部密钥索引
+     * @param encData  待解密数据 base64编码的 ASN1 DER编码
+     * @return 解密后的数据 base64编码
      */
-
     public byte[] sm2Decrypt(int keyIndex, byte[] encData) throws AFCryptoException {
-        logger.info("使用内部密钥进行SM2解密");
-        byte[] decodeData = BytesOperate.base64DecodePubKey(new String(encData));
-        try (ASN1InputStream ais = new ASN1InputStream(decodeData)) {
-            SM2CipherStructure structure = SM2CipherStructure.getInstance(ais.readObject());
-            SM2Cipher sm2Cipher = structure.toSM2Cipher();
-            byte[] bytes = cmd.sm2Decrypt(keyIndex, sm2Cipher);
-
-            return BytesOperate.base64EncodeData(bytes);
-        } catch (IOException e) {
-            logger.error("密文DER解码失败", e);
-            throw new AFCryptoException("密文DER解码失败", e);
+        //region//======>参数检查 日志打印
+        if (encData == null || encData.length == 0) {
+            logger.error("SM2内部密钥解密失败,待解密数据为空");
+            throw new AFCryptoException("SM2内部密钥解密失败,待解密数据为空");
         }
+        if (keyIndex < 0) {
+            logger.error("SM2内部密钥解密失败,内部密钥索引非法");
+            throw new AFCryptoException("SM2内部密钥解密失败,内部密钥索引非法");
+        }
+        logger.info("使用内部密钥进行SM2解密");
+        //endregion
+        //获取私钥访问权限
+        cmd.getPrivateAccess(keyIndex, 3);
+        //密文转换为SM2Cipher
+        SM2Cipher sm2Cipher = getSm2Cipher(encData).to512();
+        logger.error("SM2内部密钥解密,密文数据:{}", sm2Cipher.encode());
+        //SM2解密
+        byte[] bytes = cmd.sm2Decrypt(keyIndex, null, sm2Cipher.encode());
+        return BytesOperate.base64EncodeData(bytes);
     }
 
     /**
-     * <p>sm2解密</p>
-     * <p>使用外部钥进行SM2解密</p>
+     * SM2 解密 外部私钥
      *
-     * @param privateKey ：base64编码的SM2私钥数据, 其结构应满足 GM/T 0009-2012中关于SM2私钥结构的数据定义
-     *                   <p>SM2PrivateKey ::= INTEGER</p>
-     * @param encData    ：Base64编码的加密数据, 其结构应满足 GM/T 0009-2012中关于SM2公钥结构的数据定义
-     *                   <p>SM2Cipher ::= SEQUENCE {</p>
-     *                   <p>     XCoordinate     INTEGER, --x分量</p>
-     *                   <p>     YCoordinate     INTEGER, --y分量</p>
-     *                   <p>     HASH            OCTET STRING SIZE(32), --杂凑值</p>
-     *                   <p>     CipherText      OCTET STRING, --密文</p>
-     *                   <p>}</p>
-     * @return ：原文数据
+     * @param privateKey 外部私钥 base64编码的 ASN1 DER编码
+     * @param encData    待解密数据 base64编码的 ASN1 DER编码
+     * @return 解密后的数据 base64编码
      */
-
     public byte[] sm2Decrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
-        logger.info("使用外部密钥进行SM2解密");
-        byte[] decodeData = BytesOperate.base64DecodePubKey(new String(encData));
-        try (ASN1InputStream ais = new ASN1InputStream(decodeData)) {
-
-            //读取密文
-            SM2CipherStructure structure = SM2CipherStructure.getInstance(ais.readObject());
-            SM2Cipher sm2Cipher = structure.toSM2Cipher();
-
-            //读取私钥
-            byte[] decodePrivateKey = BytesOperate.base64DecodePubKey(new String(privateKey));
-            ASN1InputStream aln = new ASN1InputStream(new ByteArrayInputStream(decodePrivateKey));
-            ASN1Sequence seq = (ASN1Sequence) aln.readObject();
-            SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(seq);
-            SM2PrivateKey sm2PrivateKey = sm2PrivateKeyStructure.toSM2PrivateKey();
-
-            //解密
-            byte[] bytes = cmd.sm2Decrypt(sm2PrivateKey, sm2Cipher);
-            return BytesOperate.base64EncodeData(bytes);
-        } catch (IOException e) {
-            logger.error("密文DER解码失败", e);
-            throw new AFCryptoException("密文DER解码失败", e);
+        //region//======>参数检查 日志打印
+        if (encData == null || encData.length == 0) {
+            logger.error("SM2外部密钥解密失败,待解密数据为空");
+            throw new AFCryptoException("SM2外部密钥解密失败,待解密数据为空");
         }
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("SM2外部密钥解密失败,外部私钥为空");
+            throw new AFCryptoException("SM2外部密钥解密失败,外部私钥为空");
+        }
+        logger.info("使用外部密钥进行SM2解密");
+        //endregion
+        //密文转换为SM2Cipher
+        SM2Cipher sm2Cipher = getSm2Cipher(encData).to512();
+        //解析私钥
+        SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey).to512();
+        //SM2解密
+        byte[] bytes = cmd.sm2Decrypt(-1, sm2PrivateKey.encode(), sm2Cipher.encode());
+        return BytesOperate.base64EncodeData(bytes);
     }
 
 
@@ -3191,6 +3299,8 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM4 计算MAC，计算数据不能为空");
             throw new AFCryptoException("SM4 计算MAC，计算数据不能为空");
         }
+        //data 不能大于2M
+
         data = padding(data);
         return cmd.mac(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, data);
     }
@@ -3448,16 +3558,28 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * 验证证书有效性
      *
-     * <p>验证证书有效性，通过OCSP模式获取当前证书的有效性。 注：选择此方式验证证书有效性，需连接互联网，或者可以访问到待测证书的OCSP服务器</p>
+     * @param certPath 证书路径
+     * @return 0：验证成功，其他：验证失败
+     */
+    public int validateCertificateByPath(byte[] certPath) throws AFCryptoException {
+        logger.info("验证证书有效性");
+        String certData = BytesOperate.readFileByLine(new String(certPath));
+        byte[] derCert = BytesOperate.base64DecodeCert(new String(certData.getBytes()));
+        return cmd.validateCertificate(derCert);
+    }
+
+    /**
+     * 验证证书有效性
      *
-     * @param base64Certificate : 待验证的证书--BASE64编码格式
-     * @return ：返回证书验证结果，0为验证通过
+     * @param base64Certificate 证书
+     * @return 0：验证成功，其他：验证失败
      */
 
     public int validateCertificate(byte[] base64Certificate) throws AFCryptoException {
         byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
         return cmd.validateCertificate(derCert);
     }
+
 
     /**
      * <p>验证证书是否被吊销</p>
@@ -3775,8 +3897,8 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * RSA 字节流转换为 ASN1 编码的公钥
      *
-     * @param sequenceBytes RSA 字节流
-     * @return ASN1 编码的公钥DER
+     * @param sequenceBytes RSA 服务端返回的字节流
+     * @return Base64编码的  ASN1 DER 结构公钥
      */
     private static byte[] bytesToASN1RSAPubKey(byte[] sequenceBytes) throws AFCryptoException {
         byte[] encoded;
@@ -3787,7 +3909,30 @@ public class AFSVDevice implements IAFSVDevice {
         } catch (IOException e) {
             throw new AFCryptoException("ASN1编码异常");
         }
-        return encoded;
+        return BytesOperate.base64EncodeData(encoded);
+    }
+
+
+    /**
+     * 将 ASN1 signature 转化为 SM2Signature
+     *
+     * @param signature ASN1 signature
+     * @return SM2Signature  512位
+     */
+    private SM2Signature convertToSM2Signature(byte[] signature) throws AFCryptoException {
+        byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
+        SM2Signature sm2Signature = new SM2Signature();
+        sm2Signature.setLength(256);
+        try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
+            SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
+            sm2Signature.setR(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()));
+            sm2Signature.setS(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()));
+            return sm2Signature.to512();
+        } catch (IOException e) {
+            // 处理异常
+            logger.error("SM2内部密钥验证签名失败,序列化失败", e);
+            throw new AFCryptoException(e);
+        }
     }
 
     /**
@@ -3816,6 +3961,35 @@ public class AFSVDevice implements IAFSVDevice {
         return rsaPubKey;
     }
 
+    /**
+     * 从证书中解析出SM2公钥
+     *
+     * @param base64CertificatePath 证书路径 证书本身需要Base64编码
+     * @return SM2PublicKey SM2公钥 512位
+     */
+    private static SM2PublicKey parseSM2PublicKeyFromCert(byte[] base64CertificatePath) throws AFCryptoException {
+        logger.info("SV-从证书(证书需要Base64编码)中解析出SM2公钥(AF结构)");
+        //解析证书 从证书中获取公钥
+        String certData = BytesOperate.readFileByLine(new String(base64CertificatePath));
+        byte[] derCert = BytesOperate.base64DecodeCert(new String(certData.getBytes()));
+        InputStream input = new ByteArrayInputStream(derCert);
+        try (ASN1InputStream asn1InputStream = new ASN1InputStream(input)) {
+            ASN1Primitive asn1Primitive = asn1InputStream.readObject();
+            X509CertificateStructure cert = new X509CertificateStructure((ASN1Sequence) asn1Primitive);
+            ASN1BitString publicKeyData = cert.getSubjectPublicKeyInfo().getPublicKeyData();
+            byte[] encodePubkey = publicKeyData.getEncoded();
+            SM2PublicKey sm2PublicKey = new SM2PublicKey(256, new byte[32], new byte[32]);
+            byte[] sm2Pubkey = new byte[sm2PublicKey.size()];
+            System.arraycopy(BytesOperate.int2bytes(256), 0, sm2Pubkey, 0, 4);
+            System.arraycopy(encodePubkey, 4, sm2Pubkey, 4, 64);
+            sm2PublicKey.decode(sm2Pubkey);
+            logger.error("解析出的公钥为:{}", HexUtil.encodeHexStr(sm2PublicKey.to512().encode()));
+            return sm2PublicKey.to512();
+        } catch (IOException e) {
+            logger.error("证书解析失败", e);
+            throw new AFCryptoException("证书解析失败");
+        }
+    }
 
     /**
      * SM2 ASN1结构转换为自定义SM2公钥结构
@@ -3823,23 +3997,20 @@ public class AFSVDevice implements IAFSVDevice {
      * @param publicKey 公钥数据 ASN1结构 Base64编码
      * @return SM2公钥 AF结构
      */
-    private static SM2PublicKey structureToSM2PubKey(byte[] publicKey) throws AFCryptoException {
-        //base64解码
-        byte[] decodeKey = BytesOperate.base64DecodeData(new String(publicKey));
-        InputStream inputData = new ByteArrayInputStream(decodeKey);
-        SM2PublicKey sm2PublicKey;
-        try (ASN1InputStream ais = new ASN1InputStream(inputData)) {
-            ASN1Primitive asn1Primitive = new ASN1InputStream(inputData).readObject();
-            //ASN1 结构
-            SM2PublicKeyStructure sm2PublicKeyStructure = new SM2PublicKeyStructure((ASN1Sequence) asn1Primitive);
-            //AF结构 补零512位
-            sm2PublicKey = sm2PublicKeyStructure.toSm2PublicKey();
-            sm2PublicKey = sm2PublicKey.to512();
+    public static SM2PublicKey structureToSM2PubKey(byte[] publicKey) throws AFCryptoException {
+        try {
+            byte[] decodeKey = BytesOperate.base64DecodeData(new String(publicKey));
+            InputStream inputData = new ByteArrayInputStream(decodeKey);
+            ASN1InputStream inputStream = new ASN1InputStream(inputData);
+            // 读取私钥数据
+            ASN1Primitive obj = inputStream.readObject();
+            SM2PublicKeyStructure sm2PublicKeyStructure = new SM2PublicKeyStructure((ASN1Sequence) obj);
+            return sm2PublicKeyStructure.toSm2PublicKey().to512();
+            //自定义私钥结构
         } catch (IOException e) {
-            logger.error("解析SM2公钥异常", e);
-            throw new AFCryptoException("解析SM2公钥异常");
+            logger.error("SM2 ASN1结构转换为自定义SM2私钥结构错误");
+            throw new AFCryptoException("SM2 ASN1结构转换为自定义SM2私钥结构错误");
         }
-        return sm2PublicKey;
     }
 
     /**
@@ -3850,41 +4021,20 @@ public class AFSVDevice implements IAFSVDevice {
      */
     private static SM2PrivateKey structureToSM2PriKey(byte[] privateKey) throws AFCryptoException {
         try {
-            byte[] decodeKey = BytesOperate.base64DecodePrivateKey(new String(privateKey));
+            byte[] decodeKey = BytesOperate.base64DecodeData(new String(privateKey));
             InputStream inputData = new ByteArrayInputStream(decodeKey);
             ASN1InputStream inputStream = new ASN1InputStream(inputData);
             // 读取私钥数据
             ASN1Primitive obj = inputStream.readObject();
             SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
             //自定义私钥结构
-            return new SM2PrivateKey(256, BigIntegerUtil.asUnsigned32ByteArray(pvkStructure.getKey())).to512();
+            return pvkStructure.toSM2PrivateKey().to512();
         } catch (IOException e) {
             logger.error("SM2 ASN1结构转换为自定义SM2私钥结构错误");
             throw new AFCryptoException("SM2 ASN1结构转换为自定义SM2私钥结构错误");
         }
     }
 
-//    /**
-//     * SM2私钥构建
-//     *
-//     * @param privateKey 私钥数据 ASN1结构 Base64编码
-//     * @return SM2私钥
-//     */
-//    private byte[] decodeSM2PrivateKey(byte[] privateKey) throws AFCryptoException {
-//        byte[] decodeKey = BytesOperate.base64DecodeData(new String(privateKey));
-//        InputStream inputData = new ByteArrayInputStream(decodeKey);
-//        SM2PrivateKey sm2PrivateKey;
-//        try (ASN1InputStream ais = new ASN1InputStream(inputData)) {
-//            ASN1Primitive asn1Primitive = new ASN1InputStream(inputData).readObject();
-//            SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure((ASN1Sequence) asn1Primitive);
-//            sm2PrivateKey = sm2PrivateKeyStructure.toSM2PrivateKey();
-//            sm2PrivateKey = sm2PrivateKey.to512();
-//        } catch (IOException e) {
-//            logger.error("解析SM2私钥异常", e);
-//            throw new AFCryptoException("解析SM2私钥异常");
-//        }
-//        return sm2PrivateKey.encode();
-//    }
 
     /**
      * RSA 构建公钥结构
@@ -3897,22 +4047,10 @@ public class AFSVDevice implements IAFSVDevice {
         //Base64解码
         byte[] derPubKeyData = BytesOperate.base64DecodeData(new String(publicKey));
         //ASN1解码
-        byte[] pubKeyData = new byte[rsaPubKey.size()];
         try (ASN1InputStream ais = new ASN1InputStream(derPubKeyData)) {
-            RSAPublicKey structure = RSAPublicKey.getInstance(ais.readObject());
-            int mLen = structure.getModulus().toString().length();
-            int bits = 2048;
-            if (mLen == 128) {
-                bits = 1024;
-            }
-            System.arraycopy(BytesOperate.int2bytes(bits), 0, pubKeyData, 0, 4);
-            if (bits == 1024) {
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, pubKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN / 2), ConstantNumber.LiteRSARef_MAX_LEN / 2);
-            } else {
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, pubKeyData, 4, ConstantNumber.LiteRSARef_MAX_LEN);
-            }
-            System.arraycopy(this.RSAKey_e, 0, pubKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN, ConstantNumber.LiteRSARef_MAX_LEN);
-            rsaPubKey.decode(pubKeyData);
+            ASN1Primitive asn1Primitive = ais.readObject();
+            RSAPublicKeyStructure rsaPublicKeyStructure = new RSAPublicKeyStructure((ASN1Sequence) asn1Primitive);
+            rsaPubKey = rsaPublicKeyStructure.toRSAPubKey();
         } catch (IOException e) {
             logger.error("解析公钥失败", e);
         }
@@ -3927,37 +4065,12 @@ public class AFSVDevice implements IAFSVDevice {
      * @return RSAPriKey SDK私钥结构
      */
     private RSAPriKey decodeRSAPrivateKey(byte[] privateKey) throws AFCryptoException {
-        RSAPriKey rsaPriKey = new RSAPriKey();
+        RSAPriKey rsaPriKey;
         byte[] derPrvKeyData = BytesOperate.base64DecodeData(new String(privateKey));
-        byte[] prvKeyData = new byte[rsaPriKey.size()];
         try (ASN1InputStream ais = new ASN1InputStream(derPrvKeyData)) {
-            RSAPrivateKey structure = RSAPrivateKey.getInstance(ais.readObject());
-            int mLen = structure.getModulus().toString().length();
-            int bits = 2048;
-            if (mLen == 128) {
-                bits = 1024;
-            }
-            System.arraycopy(BytesOperate.int2bytes(bits), 0, prvKeyData, 0, 4);
-            if (bits == 1024) {
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN / 2), ConstantNumber.LiteRSARef_MAX_LEN / 2);
-                System.arraycopy(this.RSAKey_e, 0, prvKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN, ConstantNumber.LiteRSARef_MAX_LEN);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrivateExponent(), structure.getPrivateExponent().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 2) + (ConstantNumber.LiteRSARef_MAX_LEN / 2), ConstantNumber.LiteRSARef_MAX_LEN / 2);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrime1(), structure.getPrime1().toString().length()), 0, prvKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN * 3 + ConstantNumber.LiteRSARef_MAX_PLEN / 2, ConstantNumber.LiteRSARef_MAX_PLEN / 2);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrime2(), structure.getPrime2().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN) + ConstantNumber.LiteRSARef_MAX_PLEN / 2, ConstantNumber.LiteRSARef_MAX_PLEN / 2);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getExponent1(), structure.getExponent1().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 2) + ConstantNumber.LiteRSARef_MAX_PLEN / 2, ConstantNumber.LiteRSARef_MAX_PLEN / 2);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getExponent2(), structure.getExponent2().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 3) + ConstantNumber.LiteRSARef_MAX_PLEN / 2, ConstantNumber.LiteRSARef_MAX_PLEN / 2);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getCoefficient(), structure.getCoefficient().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 4) + ConstantNumber.LiteRSARef_MAX_PLEN / 2, ConstantNumber.LiteRSARef_MAX_PLEN / 2);
-            } else {
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getModulus(), structure.getModulus().toString().length()), 0, prvKeyData, 4, ConstantNumber.LiteRSARef_MAX_LEN);
-                System.arraycopy(this.RSAKey_e, 0, prvKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN, ConstantNumber.LiteRSARef_MAX_LEN);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrivateExponent(), structure.getPrivateExponent().toString().length()), 0, prvKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN * 2, ConstantNumber.LiteRSARef_MAX_LEN);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrime1(), structure.getPrime1().toString().length()), 0, prvKeyData, 4 + ConstantNumber.LiteRSARef_MAX_LEN * 3, ConstantNumber.LiteRSARef_MAX_PLEN);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getPrime2(), structure.getPrime2().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN), ConstantNumber.LiteRSARef_MAX_PLEN);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getExponent1(), structure.getExponent1().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 2), ConstantNumber.LiteRSARef_MAX_PLEN);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getExponent2(), structure.getExponent2().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 3), ConstantNumber.LiteRSARef_MAX_PLEN);
-                System.arraycopy(BigIntegerUtil.asUnsignedNByteArray(structure.getCoefficient(), structure.getCoefficient().toString().length()), 0, prvKeyData, 4 + (ConstantNumber.LiteRSARef_MAX_LEN * 3) + (ConstantNumber.LiteRSARef_MAX_PLEN * 4), ConstantNumber.LiteRSARef_MAX_PLEN);
-            }
-            rsaPriKey.decode(prvKeyData);
+            ASN1Primitive asn1Primitive = ais.readObject();
+            RSAPrivateKeyStructure rsaPrivateKeyStructure = new RSAPrivateKeyStructure((ASN1Sequence) asn1Primitive);
+            rsaPriKey = rsaPrivateKeyStructure.toRSAPriKey();
         } catch (IOException e) {
             logger.error("解析RSA私钥异常", e);
             throw new AFCryptoException("解析RSA私钥异常");
@@ -4074,19 +4187,6 @@ public class AFSVDevice implements IAFSVDevice {
         return outData;
     }
 
-//    private static byte[] padding(byte[] data) {
-////        if ((data.length % 16) == 0) {
-////            return data;
-////        }
-//        int paddingNumber = 16 - (data.length % 16);
-//        byte[] paddingData = new byte[paddingNumber];
-//        Arrays.fill(paddingData, (byte) paddingNumber);
-//        byte[] outData = new byte[data.length + paddingNumber];
-//        System.arraycopy(data, 0, outData, 0, data.length);
-//        System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
-//        return outData;
-//    }
-
 
     /**
      * 去填充
@@ -4125,20 +4225,70 @@ public class AFSVDevice implements IAFSVDevice {
                 })
                 .collect(Collectors.toList());
     }
-//    private static byte[] cutting(byte[] data) {
-//        int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
-//        if (paddingNumber >= 16) paddingNumber = 0;
-//        for (int i = 0; i < paddingNumber; ++i) {
-//            if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
-//                return null;
-//            }
-//        }
-//        byte[] outData = new byte[data.length - paddingNumber];
-//        System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
-//        return outData;
-//    }
+
+    /**
+     * 根据SM2私钥计算SM2公钥
+     *
+     * @param priKey SM2私钥 Base64编码的 ASN1 DER格式
+     * @return SM2公钥 Base64编码的 ASN1 DER格式
+     */
+    public byte[] getSM2PubKeyFromPriKey(byte[] priKey) throws AFCryptoException {
+        logger.info("根据SM2私钥计算SM2公钥");
+//        // 导入BC提供的SM2算法实现
+//        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        // 解码私钥
+        byte[] decodedPrivateKey = BytesOperate.base64DecodeData(new String(priKey));
+
+        try (InputStream inputStream = new ByteArrayInputStream(decodedPrivateKey);
+             ASN1InputStream asn1InputStream = new ASN1InputStream(inputStream)) {
+
+            // 读取私钥数据
+            ASN1Primitive obj = asn1InputStream.readObject();
+            SM2PrivateKeyStructure pvkStructure = new SM2PrivateKeyStructure((ASN1Sequence) obj);
+
+            // 获取SM2曲线参数
+            X9ECParameters sm2Params = org.bouncycastle.asn1.x9.ECNamedCurveTable.getByName("sm2p256v1");
+            ECDomainParameters domainParameters = new ECDomainParameters(sm2Params.getCurve(), sm2Params.getG(), sm2Params.getN(), sm2Params.getH());
+
+            // 创建私钥参数对象
+            ECPrivateKeyParameters privateKeyParameters = new ECPrivateKeyParameters(pvkStructure.getKey(), domainParameters);
+
+            // 计算公钥
+            ECPoint publicKeyPoint = domainParameters.getG().multiply(privateKeyParameters.getD()).normalize();
+
+            // 获取公钥的x和y坐标
+            BigInteger publicKeyX = publicKeyPoint.getAffineXCoord().toBigInteger();
+            BigInteger publicKeyY = publicKeyPoint.getAffineYCoord().toBigInteger();
+
+            // 构建SM2公钥结构对象
+            SM2PublicKeyStructure sm2PublicKeyStructure = new SM2PublicKeyStructure(publicKeyX, publicKeyY);
+            byte[] encoded = sm2PublicKeyStructure.toASN1Primitive().getEncoded("DER");
+            return BytesOperate.base64EncodeData(encoded);
+        } catch (IOException e) {
+            logger.error("根据SM2私钥获取公钥失败", e);
+            throw new AFCryptoException(e);
+        }
+        //endregion
+    }
+
+    /**
+     * ASN1 cipher 转换为 SM2Cipher
+     *
+     * @param encData ASN1 DER编码的密文
+     * @return SM2Cipher AF结构 512位
+     */
+    private static SM2Cipher getSm2Cipher(byte[] encData) throws AFCryptoException {
+        SM2Cipher sm2Cipher;
+        byte[] decodeData = BytesOperate.base64DecodePubKey(new String(encData));
+        try (ASN1InputStream ais = new ASN1InputStream(decodeData)) {
+            SM2CipherStructure structure = SM2CipherStructure.getInstance(ais.readObject());
+            sm2Cipher = structure.toSM2Cipher();
+        } catch (IOException e) {
+            logger.error("密文DER解码失败", e);
+            throw new AFCryptoException("密文DER解码失败", e);
+        }
+        return sm2Cipher;
+    }
 
     //endregion
-
-
 }

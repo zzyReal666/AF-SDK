@@ -90,7 +90,7 @@ public class SM2PublicKey implements Key {
             byte[] y512 = new byte[64];
             System.arraycopy(this.x, 0, x512, 32, 32);
             System.arraycopy(this.y, 0, y512, 32, 32);
-            return new SM2PublicKey(256, x512, y512);
+            return new SM2PublicKey(512, x512, y512);
         } else {
             throw new RuntimeException("SM2PubKey length error");
         }
