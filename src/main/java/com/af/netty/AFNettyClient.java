@@ -64,6 +64,9 @@ public class AFNettyClient {
     private final int port;
     private final String password;
 
+    //通道池
+    final NettyChannelPool nettyChannelPool = new NettyChannelPool();
+
 
     /**
      * 私有构造器

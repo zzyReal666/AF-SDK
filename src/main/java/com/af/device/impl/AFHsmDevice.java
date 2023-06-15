@@ -76,7 +76,6 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return 设备信息
      * 获取设备信息异常
      */
-
     public DeviceInfo getDeviceInfo() throws AFCryptoException {
         return cmd.getDeviceInfo();
 
@@ -372,6 +371,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      *
      * @param keyIndex 密钥索引
      * @param length   模长
+     * @param data     协商数据
      */
     public AgreementData generateAgreementData(int keyIndex, ModulusLength length, AgreementData data) throws AFCryptoException {
         //参数检查
