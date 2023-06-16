@@ -35,7 +35,7 @@ class AFSVDeviceTest {
     static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8008, "abcd1234");
     //    static byte[] data = "1234567890abcde".getBytes();
     //大数据
-    static byte[] data = FileUtil.readBytes("D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData.rar");
+    static byte[] data = FileUtil.readBytes("D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData");
 
     //证书文件路径
     static String userCertFileSM2 = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\user.cer";
@@ -175,7 +175,7 @@ class AFSVDeviceTest {
         byte[] rsaSignPublicKey = rsaKeyPairStructure.getPubKey();
 
         //文件路径
-        byte[] fileName = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData.rar".getBytes();
+        byte[] fileName = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData".getBytes();
 
 //        //RSA 内部签名验签 success
 //        byte[] bytes = device.rsaSignature(1, data);
@@ -384,11 +384,13 @@ class AFSVDeviceTest {
         byte[] encodeData = device.sm4InternalEncryptECB(1, data);
         byte[] decodeData = device.sm4InternalDecryptECB(1, encodeData);
         assert Arrays.equals(data, decodeData);
+        System.out.println("===============================SM4 ECB 内部 success=============================");
 
         //SM4 ECB 外部
         byte[] encodeData1 = device.sm4ExternalEncryptECB(key, data);
         byte[] decodeData1 = device.sm4ExternalDecryptECB(key, encodeData1);
         assert Arrays.equals(data, decodeData1);
+        System.out.println("===============================SM4 ECB 外部 success=============================");
 
 //        //SM4 ECB 密钥句柄
 //        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);

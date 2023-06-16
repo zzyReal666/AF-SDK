@@ -192,7 +192,6 @@ public class AFNettyClient {
             synchronized (this) {
                 //发送数据
                 channel.writeAndFlush(byteBuf).sync();
-                logger.info("发送数据成功");
                 //接收数据
                 read = read();
             }

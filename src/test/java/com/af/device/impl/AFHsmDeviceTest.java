@@ -1,5 +1,6 @@
 package com.af.device.impl;
 
+import cn.hutool.core.io.FileUtil;
 import com.af.constant.Algorithm;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,13 +23,14 @@ class AFHsmDeviceTest {
 
     static Logger logger = Logger.getLogger("AFHsmDeviceTest");
     static AFHsmDevice device;
-    static byte[] data = "123456788765432".getBytes(StandardCharsets.UTF_8);
+//    static byte[] data = "123456788765432".getBytes(StandardCharsets.UTF_8);
+    static byte[] data = FileUtil.readBytes("D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData10M");
 
 //    static byte[] data = FileUtil.readBytes("D:\\test.zip");
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8011, "abcd1234");
+        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8008, "abcd1234");
     }
 
     @AfterAll

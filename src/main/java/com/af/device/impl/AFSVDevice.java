@@ -292,7 +292,6 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
 
-
     //endregion
 
     //region 生成密钥对 RSA SM2
@@ -1667,12 +1666,13 @@ public class AFSVDevice implements IAFSVDevice {
      * @return 加密数据
      */
     public byte[] sm4InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
+
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 加密，索引不能小于0,当前索引：{}", keyIndex);
             throw new AFCryptoException("SM4 加密，索引不能小于0,当前索引：" + keyIndex);
         }
-        if (plain == null || plain.length == 0) {
+        if (null == plain || plain.length == 0) {
             logger.error("SM4 加密，加密数据不能为空");
             throw new AFCryptoException("SM4 加密，加密数据不能为空");
         }
@@ -4112,7 +4112,8 @@ public class AFSVDevice implements IAFSVDevice {
      * @param bytes 数组集合
      * @return 合并后的数组
      */
-    private byte[] mergePackage(List<byte[]> bytes) {
+    private byte[] mergePackage(List<byte[]> bytes) throws AFCryptoException {
+        logger.error("合并数组, 数组长度:{}", bytes.size());
         int length = 0;
         for (byte[] aByte : bytes) {
             length += aByte.length;
