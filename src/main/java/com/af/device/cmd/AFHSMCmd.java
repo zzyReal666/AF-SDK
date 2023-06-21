@@ -7,7 +7,7 @@ import com.af.constant.CMDCode;
 import com.af.constant.ModulusLength;
 import com.af.device.DeviceInfo;
 import com.af.exception.AFCryptoException;
-import com.af.netty.AFNettyClient;
+import com.af.netty.NettyClient;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.utils.BytesBuffer;
@@ -23,7 +23,7 @@ import java.util.List;
  */
 public class AFHSMCmd extends AFCmd {
 
-    public AFHSMCmd(AFNettyClient client, byte[] agKey) {
+    public AFHSMCmd(NettyClient client, byte[] agKey) {
         super(client, agKey);
     }
 

@@ -5,7 +5,6 @@ import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.key.symmetricKey.SessionKey;
-import com.af.device.AFDeviceFactory;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.agreementData.AgreementData;
@@ -29,14 +28,17 @@ class AFHsmDeviceTest {
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8008, "abcd1234");
+//        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8008, "abcd1234");
+        device = new AFHsmDevice.Builder("192.168.10.40", 8008, "abcd1234")
+                .responseTimeOut(10000)
+                .build();
     }
 
     @AfterAll
     static void tearDown() throws Exception {
         logger.info("发送关闭连接请求");
         device.close(AFHsmDevice.client);
-        logger.info("已经关闭连接");
+        logger.info("服务端已经关闭连接");
     }
 
 

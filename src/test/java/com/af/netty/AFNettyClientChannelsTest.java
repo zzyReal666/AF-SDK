@@ -2,13 +2,14 @@ package com.af.netty;
 
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
+import com.af.nettyNew.NettyClientChannels;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-class AFNettyClientTest {
+class AFNettyClientChannelsTest {
     @Test
     void test() throws Exception {
         AFNettyClient client = AFNettyClient.getInstance("192.168.1.224", 8008,"abcd1234");
@@ -64,8 +65,14 @@ class AFNettyClientTest {
 
     @Test
     void test3() throws Exception {
-        AFNettyClient client = AFNettyClient.getInstance("192.168.1.224", 8008,"abd1234");
+        AFNettyClient client = AFNettyClient.getInstance("192.168.10.40", 8008,"abd1234");
+    }
 
 
+
+
+    @Test
+    void test4() throws Exception {
+        NettyClientChannels abcd1234 = new NettyClientChannels.Builder("192.168.10.40", 8008, "abcd1234").timeout(10000).build();
     }
 }

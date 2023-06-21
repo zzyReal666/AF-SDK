@@ -23,6 +23,9 @@ import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description
@@ -30,32 +33,26 @@ import org.slf4j.LoggerFactory;
  */
 
 @Getter
+@Setter
 @ToString
-public class AFNettyClient {
+public class AFNettyClient implements NettyClient {
     //日志
     private static final Logger logger = LoggerFactory.getLogger(AFNettyClient.class);
 
     //重试参数
-    @Setter
     private int MAX_RETRY = 3; // 最大重试次数
-    @Setter
     private int RETRY_DELAY = 5000; // 重试间隔时间（秒）
     private int retryCount = 0; // 当前重试次数
-
     //连接超时时间
-    @Setter
     private int TIMEOUT = 50000; // 超时时间（毫秒）
     //响应超时时间
-    @Setter
     private int RESPONSE_TIMEOUT = 10000; // 超时时间（毫秒）
-
 
     //单例
     private static volatile AFNettyClient instance;
 
 
     //netty
-    @Setter
     private boolean isAvailable = true;
     //是否可用
     private final Bootstrap bootstrap;
@@ -65,7 +62,6 @@ public class AFNettyClient {
     private final String password;
 
     //通道池
-    final NettyChannelPool nettyChannelPool = new NettyChannelPool();
 
 
     /**
@@ -78,11 +74,13 @@ public class AFNettyClient {
         this.host = host;
         this.port = port;
         this.password = password;
-        this.bootstrap = new Bootstrap().group(new NioEventLoopGroup()).channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY, true)  //不写缓存
+        this.bootstrap = new Bootstrap().group(new NioEventLoopGroup())
+                .channel(NioSocketChannel.class)
+                .option(ChannelOption.TCP_NODELAY, true)  //不写缓存
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 7000)  //连接超时时间
                 .option(ChannelOption.SO_KEEPALIVE, true); //保持连接
         //设置最大缓冲
-        bootstrap.option(ChannelOption.SO_RCVBUF, 1024 * 1024 * 100);
+        bootstrap.option(ChannelOption.SO_RCVBUF, 1024 * 1024 * 2);
         //连接
         connect();
         //登录
@@ -106,6 +104,8 @@ public class AFNettyClient {
         }
         return instance;
     }
+
+    //region//======>方法
 
     /**
      * 连接
@@ -142,7 +142,6 @@ public class AFNettyClient {
         }
     }
 
-
     /**
      * 加密发送数据
      */
@@ -164,7 +163,6 @@ public class AFNettyClient {
         return responseMessage;
     }
 
-
     /**
      * 不加密发送数据
      */
@@ -185,7 +183,6 @@ public class AFNettyClient {
         logger.info("接收不解密<== {}", responseMessage);
         return responseMessage;
     }
-
 
     public byte[] send(byte[] msg) {
         try {
@@ -214,7 +211,6 @@ public class AFNettyClient {
         return data;
     }
 
-
     /**
      * 登录 在获取client实例时自动登录
      */
@@ -231,7 +227,6 @@ public class AFNettyClient {
 
     }
 
-
     public void close() {
         if (channel != null) {
             channel.close();
@@ -239,10 +234,7 @@ public class AFNettyClient {
         }
     }
 
-
-
-
-
+    //endregion
 
 }
 

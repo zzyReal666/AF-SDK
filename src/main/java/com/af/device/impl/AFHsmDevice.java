@@ -15,6 +15,8 @@ import com.af.device.IAFHsmDevice;
 import com.af.device.cmd.AFHSMCmd;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.netty.NettyClient;
+import com.af.nettyNew.NettyClientChannels;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
@@ -47,7 +49,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     //region ======================================================成员与单例模式======================================================
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
     private byte[] agKey;  //协商密钥
-    public static AFNettyClient client;  //netty客户端
+    public static NettyClient client;  //netty客户端
     private final SM3 sm3 = new SM3Impl();  //国密SM3算法
     private final AFHSMCmd cmd = new AFHSMCmd(client, agKey);
 
@@ -56,12 +58,144 @@ public class AFHsmDevice implements IAFHsmDevice {
     }
 
     public static AFHsmDevice getInstance(String host, int port, String passwd) {
-        client = AFNettyClient.getInstance(host, port, passwd);
+        client = new NettyClientChannels.Builder(host, port, passwd).build();
         return InstanceHolder.instance;
     }
 
+
+    /**
+     * 建造者模式
+     */
+    public static class Builder {
+
+        //region//======>必须参数
+        private final String host;
+        private final int port;
+        private final String passwd;
+        //endregion
+
+        //region//======>构造方法
+        public Builder(String host, int port, String passwd) {
+            this.host = host;
+            this.port = port;
+            this.passwd = passwd;
+        }
+        //endregion
+
+        //region//======>可选参数
+
+        /**
+         * 是否协商密钥
+         */
+        private boolean isAgKey = true;
+        /**
+         * 连接超时时间 单位毫秒
+         */
+        private int connectTimeOut = 5000;
+
+        /**
+         * 响应超时时间 单位毫秒
+         */
+        private int responseTimeOut = 10000;
+
+        /**
+         * 重试次数
+         */
+        private int retryCount = 3;
+
+        /**
+         * 重试间隔 单位毫秒
+         */
+        private int retryInterval = 5000;
+
+        /**
+         * 缓冲区大小
+         */
+        private int bufferSize = 1024 * 1024;
+
+        /**
+         * 通道数量
+         */
+        private int channelCount = 10;
+
+        //endregion
+
+
+        //region//======>设置参数
+        public Builder isAgKey(boolean isAgKey) {
+            this.isAgKey = isAgKey;
+            return this;
+        }
+
+        public Builder connectTimeOut(int connectTimeOut) {
+            this.connectTimeOut = connectTimeOut;
+            return this;
+        }
+
+        public Builder responseTimeOut(int responseTimeOut) {
+            this.responseTimeOut = responseTimeOut;
+            return this;
+        }
+
+        public Builder retryCount(int retryCount) {
+            this.retryCount = retryCount;
+            return this;
+        }
+
+        public Builder retryInterval(int retryInterval) {
+            this.retryInterval = retryInterval;
+            return this;
+        }
+
+        public Builder bufferSize(int bufferSize) {
+            this.bufferSize = bufferSize;
+            return this;
+        }
+
+        public Builder channelCount(int channelCount) {
+            this.channelCount = channelCount;
+            return this;
+        }
+
+        //endregion
+
+
+        //region//======>build
+        public AFHsmDevice build() {
+            client = new NettyClientChannels.Builder(host, port, passwd)
+                    .timeout(connectTimeOut)
+                    .responseTimeout(responseTimeOut)
+                    .retryCount(retryCount)
+                    .retryInterval(retryInterval)
+                    .bufferSize(bufferSize)
+                    .channelCount(channelCount)
+                    .build();
+            AFHsmDevice hsmDevice = InstanceHolder.instance;
+            if (isAgKey) {
+                hsmDevice.setAgKey();
+            }
+            return hsmDevice;
+        }
+
+
+        //endregion
+
+
+    }
+
+
     public AFHsmDevice setAgKey() {
-        this.agKey = this.keyAgreement(client);
+        //协商密钥
+        if (client instanceof NettyClientChannels) {
+            int channelCount = ((NettyClientChannels) client).getNettyChannelPool().getChannelCount();
+            for (int i = 0; i < channelCount; i++) {
+                this.agKey = this.keyAgreement(client);
+            }
+        } else if (client instanceof AFNettyClient) {
+            this.agKey = this.keyAgreement(client);
+        } else {
+            logger.error("未知的Netty客户端类型");
+        }
         cmd.setAgKey(agKey);
         logger.info("协商密钥成功,密钥为:{}", HexUtil.encodeHexStr(agKey));
         return this;

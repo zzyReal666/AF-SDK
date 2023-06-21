@@ -15,6 +15,8 @@ import com.af.constant.CMDCode;
 import com.af.exception.AFCryptoException;
 import com.af.exception.DeviceException;
 import com.af.netty.AFNettyClient;
+import com.af.netty.NettyClient;
+import com.af.nettyNew.NettyClientChannels;
 import com.af.utils.BytesBuffer;
 import com.af.utils.Sm2Util;
 
@@ -54,7 +56,7 @@ public interface IAFDevice {
     byte[] getRandom(int length) throws AFCryptoException;
 
 
-    default byte[] keyAgreement(AFNettyClient client) {
+    default byte[] keyAgreement(NettyClient client) {
         /*
          * 1、生成公私钥对
          */
@@ -70,7 +72,7 @@ public interface IAFDevice {
         SM4 sm4Padding = new SM4(Mode.ECB, Padding.PKCS5Padding, ROOT_KEY);
         byte[] cPubKey = sm4Padding.encrypt(pubKey);  //只对公钥加密 长度不加密
         byte[] data = new BytesBuffer().append(cPubKey.length).append(cPubKey).toBytes();
-        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_EXCHANGE_PUBLIC_KEY, data,null));
+        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_EXCHANGE_PUBLIC_KEY, data, null));
         if (res.getHeader().getErrorCode() != 0) {
             throw new DeviceException("密钥协商失败，交换公钥服错误,错误码：" + res.getHeader().getErrorCode() + ",错误信息：" + res.getHeader().getErrorInfo());
         }
@@ -89,7 +91,7 @@ public interface IAFDevice {
          * 4、交换随机数，得到rab，私钥解密，公钥验签
          */
         data = new BytesBuffer().append(raCipher.length).append(raCipher).append(raSign.length).append(raSign).toBytes();
-        res = client.send(new RequestMessage(CMDCode.CMD_EXCHANGE_RANDOM, data,null));
+        res = client.send(new RequestMessage(CMDCode.CMD_EXCHANGE_RANDOM, data, null));
         if (res.getHeader().getErrorCode() != 0) {
             throw new DeviceException("密钥协商失败，交换随机数错误,错误码：" + res.getHeader().getErrorCode() + ",错误信息：" + res.getHeader().getErrorInfo());
         }
@@ -121,9 +123,20 @@ public interface IAFDevice {
     /**
      * 关闭连接
      */
-    default void close(AFNettyClient client) {
+    default void close(NettyClient client) {
         RequestMessage req = new RequestMessage(CMDCode.CMD_CLOSE).setIsEncrypt(false);
-        ResponseMessage send = client.send(req);
+        ResponseMessage send = null;
+        if (client instanceof NettyClientChannels) {
+            int channelCount = ((NettyClientChannels) client).getNettyChannelPool().getChannelCount();
+            for (int i = 0; i < channelCount; i++) {
+                send = client.send(req);
+            }
+        } else if (client instanceof AFNettyClient) {
+            send = client.send(req);
+        }
+        if (send == null) {
+            throw new DeviceException("关闭连接失败，响应为空");
+        }
         if (send.getHeader().getErrorCode() != 0) {
             throw new DeviceException("关闭连接失败，错误码：" + send.getHeader().getErrorCode() + ",错误信息：" + send.getHeader().getErrorInfo());
         }
@@ -133,9 +146,9 @@ public interface IAFDevice {
     }
 
     //心跳
-    default int heartBeat(AFNettyClient client,int id) {
+    default int heartBeat(NettyClient client, int id) {
         byte[] param = new BytesBuffer().append(id).toBytes();
-        RequestMessage req = new RequestMessage(CMDCode.CMD_HEART_BEAT,param,null).setIsEncrypt(false);
+        RequestMessage req = new RequestMessage(CMDCode.CMD_HEART_BEAT, param, null).setIsEncrypt(false);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
             throw new DeviceException("心跳失败，错误码：" + res.getHeader().getErrorCode() + ",错误信息：" + res.getHeader().getErrorInfo());
@@ -144,7 +157,7 @@ public interface IAFDevice {
     }
 
     //获取连接个数
-    default int getConnectCount(AFNettyClient client) {
+    default int getConnectCount(NettyClient client) {
         RequestMessage req = new RequestMessage(CMDCode.CMD_GET_CONNECT_COUNT).setIsEncrypt(false);
         ResponseMessage res = client.send(req);
         if (res.getHeader().getErrorCode() != 0) {
