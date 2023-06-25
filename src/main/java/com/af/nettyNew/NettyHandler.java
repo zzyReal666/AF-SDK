@@ -41,7 +41,7 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
         logger.info("与服务器断开连接,连接地址:{},通道ID:{}", ctx.channel().remoteAddress(), ctx.channel().id());
         if (nettyChannelPool.isAvailable()) {
             logger.info("开始重连服务器");
-            nettyChannelPool.init();
+            nettyChannelPool.initChannels();
         }
     }
 }

@@ -41,6 +41,9 @@ public class NettyChannelPool {
      */
     private int port;
 
+
+
+
     /**
      * 密码
      */
@@ -69,7 +72,7 @@ public class NettyChannelPool {
      * 缓冲区大小
      */
 
-    private int bufferSize = 1024;
+    private int bufferSize = 1024 * 1024 * 2;
 
     /**
      * 通道数量
@@ -161,21 +164,14 @@ public class NettyChannelPool {
      * 初始化 通道池获取通道
      */
     public void init() {
-        EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-        bootstrap.group(eventLoopGroup)
-                .channel(NioSocketChannel.class)
-                .option(ChannelOption.SO_KEEPALIVE, Boolean.TRUE)
-                .option(ChannelOption.TCP_NODELAY, Boolean.TRUE)
-                .option(ChannelOption.SO_RCVBUF, bufferSize)
-                .handler(new LoggingHandler(LogLevel.INFO))
-                .handler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    protected void initChannel(SocketChannel ch) throws Exception {
-                        ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new MyDecoder());
-                        ch.pipeline().addLast(new NettyHandler(NettyChannelPool.this));
-                    }
-                });
+        setBootStrap();
+        initChannels();
+    }
+
+    /**
+     * 初始化通道池
+     */
+    protected void initChannels() {
         for (int i = 0; i < channelCount; i++) {
             try {
                 Channel channel = connectToServer();
@@ -185,7 +181,29 @@ public class NettyChannelPool {
             }
         }
         //队列输出channelId
-        channelQueue.forEach(channel -> logger.info("channelId:{}", channel.id().asLongText()));
+        channelQueue.forEach(channel -> logger.info("channelId:{}", channel.id()));
+    }
+
+    /**
+     * 设置bootstrap
+     */
+    private void setBootStrap() {
+        EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+        bootstrap.group(eventLoopGroup)
+                .channel(NioSocketChannel.class)
+                .option(ChannelOption.SO_RCVBUF, bufferSize)
+                .option(ChannelOption.TCP_NODELAY, true)  //不写缓存
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 7000)  //连接超时时间
+                .option(ChannelOption.SO_KEEPALIVE, true) //保持连接
+                .handler(new LoggingHandler(LogLevel.INFO))
+                .handler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    protected void initChannel(SocketChannel ch) throws Exception {
+                        ChannelPipeline pipeline = ch.pipeline();
+                        pipeline.addLast(new MyDecoder());
+                        ch.pipeline().addLast(new NettyHandler(NettyChannelPool.this));
+                    }
+                });
     }
 
     /**

@@ -9,7 +9,7 @@ import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.device.DeviceInfo;
 import com.af.exception.AFCryptoException;
-import com.af.netty.AFNettyClient;
+import com.af.netty.NettyClient;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.signAndVerify.AFSM2DecodeSignedData;
@@ -39,11 +39,11 @@ public class AFSVCmd {
 
     //region// 成员变量
     private static final Logger logger = LoggerFactory.getLogger(AFSVCmd.class);
-    private final AFNettyClient client;
+    private final NettyClient client;
     @Setter
     private byte[] agKey;
 
-    public AFSVCmd(AFNettyClient client, byte[] agKey) {
+    public AFSVCmd(NettyClient client, byte[] agKey) {
         this.client = client;
         this.agKey = agKey;
     }

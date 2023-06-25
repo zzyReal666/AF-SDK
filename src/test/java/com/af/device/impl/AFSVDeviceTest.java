@@ -1,10 +1,10 @@
 package com.af.device.impl;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.HexUtil;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2PrivateKey;
-import com.af.device.AFDeviceFactory;
 import com.af.device.DeviceInfo;
 import com.af.struct.signAndVerify.AFPkcs7DecodeData;
 import com.af.struct.signAndVerify.AFSvCryptoInstance;
@@ -12,6 +12,7 @@ import com.af.struct.signAndVerify.CertAltNameTrustList;
 import com.af.struct.signAndVerify.RSA.RSAKeyPairStructure;
 import com.af.struct.signAndVerify.sm2.SM2KeyPairStructure;
 import com.af.struct.signAndVerify.sm2.SM2PrivateKeyStructure;
+import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import com.af.utils.base64.Base64;
 import jdk.nashorn.internal.ir.annotations.Ignore;
@@ -32,7 +33,12 @@ class AFSVDeviceTest {
     //日志
     static Logger logger = Logger.getLogger("AFSVDeviceTest");
 
-    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8008, "abcd1234");
+//    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8008, "abcd1234");
+    static AFSVDevice device =new  AFSVDevice.Builder("192.168.10.40", 8008, "abcd1234")
+        .isAgKey(true)
+        .responseTimeOut(100000)
+        .build();
+
     //    static byte[] data = "1234567890abcde".getBytes();
     //大数据
     static byte[] data = FileUtil.readBytes("D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData.rar");
@@ -374,7 +380,7 @@ class AFSVDeviceTest {
 
     //SM4 ECB success
     @Test
-    void testSm4() throws Exception {
+    void testSm4ECBIn() throws Exception {
         //key
         byte[] key = BytesOperate.base64DecodeData(device.getRandom(16));
         //iv
@@ -385,10 +391,8 @@ class AFSVDeviceTest {
         byte[] decodeData = device.sm4InternalDecryptECB(1, encodeData);
         assert Arrays.equals(data, decodeData);
 
-        //SM4 ECB 外部
-        byte[] encodeData1 = device.sm4ExternalEncryptECB(key, data);
-        byte[] decodeData1 = device.sm4ExternalDecryptECB(key, encodeData1);
-        assert Arrays.equals(data, decodeData1);
+
+
 
 //        //SM4 ECB 密钥句柄
 //        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
@@ -398,6 +402,49 @@ class AFSVDeviceTest {
 //        device.releaseSessionKey(key1.getId());
 //        assert Arrays.equals(data, bytes1);
 
+
+    }
+    //SM4 ECB
+    @Test
+    void testSm4ECBOut() throws Exception {
+        //key
+        byte[] key = BytesOperate.base64DecodeData(device.getRandom(16));
+        //iv
+        byte[] iv = BytesOperate.base64DecodeData(device.getRandom(16));
+
+        //SM4 ECB 外部
+        byte[] encodeData1 = device.sm4ExternalEncryptECB(key, data);
+        byte[] decodeData1 = device.sm4ExternalDecryptECB(key, encodeData1);
+        assert Arrays.equals(data, decodeData1);
+
+    }
+
+    @Test
+    void test006()throws Exception{
+        System.out.println("文件大小：" + data.length / 1024 / 1024 + "MB");
+        System.out.println("头：" + HexUtil.encodeHexStr(ArrayUtil.sub(data, 0, 10)));
+        System.out.println("尾：" + HexUtil.encodeHexStr(ArrayUtil.sub(data, data.length - 10, data.length)));
+
+        List<byte[]> list = new ArrayList<>();
+        int itemSize = 2 * 1024 * 1024;
+        BytesBuffer buf = new BytesBuffer(data);
+        while (buf.size() > itemSize) {
+            list.add(buf.read(itemSize));
+        }
+        list.add(buf.toBytes());
+
+        System.out.println("分割份数：" + list.size());
+
+        byte[] newData = new byte[0];
+        for (int i = 0; i < list.size(); i++) {
+            newData = ArrayUtil.addAll(newData, list.get(i));
+        }
+        System.out.println("文件大小：" + newData.length / 1024 / 1024 + "MB");
+        System.out.println("头：" + HexUtil.encodeHexStr(ArrayUtil.sub(newData, 0, 10)));
+        System.out.println("尾：" + HexUtil.encodeHexStr(ArrayUtil.sub(newData, newData.length - 10, newData.length)));
+
+        byte[] newData111 = new byte[data.length];
+        System.out.println("111文件大小：" + newData111.length / 1024 / 1024 + "MB");
 
     }
 
