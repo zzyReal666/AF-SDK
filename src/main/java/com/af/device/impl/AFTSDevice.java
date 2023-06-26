@@ -143,7 +143,7 @@ public class AFTSDevice implements IAFTSDevice {
                     .bufferSize(bufferSize)
                     .channelCount(channelCount)
                     .build();
-            AFTSDevice instance = AFTSDevice.getInstance(host, port, passwd);
+            AFTSDevice instance = SingletonHolder.INSTANCE;
             if (isAgKey) {
                 instance.setAgKey();
             }

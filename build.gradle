@@ -1,10 +1,10 @@
 plugins {
     id 'java'
-//    id 'io.freefair.lombok' version '6.1.0'
+
 }
 
 group = 'com.af'
-version = '1.0-SNAPSHOT'
+version = '2.0-SNAPSHOT'
 
 
 repositories {
@@ -45,19 +45,20 @@ dependencies {
 }
 
 test {
-    enabled = false
+    enabled = true
     useJUnitPlatform()
 }
 
 
+//打包成Jar，包含依赖
 jar {
-    // 将依赖项打包到 JAR 文件中
+    manifestContentCharset 'utf-8'
+    metadataCharset 'utf-8'
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
+
 }
-
-
 
 
 //自动生成文档
@@ -65,18 +66,14 @@ tasks.register('generateDocs', Exec) {
     workingDir project.rootDir
 
     //windows 环境执行.bat Unix执行.sh
-    def scriptFile = ''
 
     // 根据操作系统选择脚本文件
     if (System.getProperty('os.name').toLowerCase().contains('windows')) {
-        scriptFile = 'generate_docs.bat'
-        commandLine 'cmd', '/c', scriptFile
+        commandLine 'cmd', '/c', 'generate_docs.bat'
     } else {
-        scriptFile = 'generate_docs.sh'
-        commandLine 'bash', scriptFile
+        commandLine 'bash', 'generate_docs.sh'
     }
     // 执行生成文档的批处理文件
-    commandLine 'cmd', '/c', 'generate_docs.bat'
 }
 
 // 扩展现有的 build 任务
