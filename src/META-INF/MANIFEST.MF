@@ -1,3 +1,29 @@
 Manifest-Version: 1.0
-Export-Package: com.af
+Main-Class: 
+Class-Path: netty-resolver-4.1.91.Final.jar netty-transport-native-kqueu
+ e-4.1.91.Final-osx-aarch_64.jar hutool-core-5.8.18.jar netty-handler-4.
+ 1.91.Final.jar netty-transport-native-kqueue-4.1.91.Final-osx-x86_64.ja
+ r junit-platform-engine-1.9.1.jar slf4j-api-1.7.32.jar logback-core-1.2
+ .9.jar netty-transport-classes-kqueue-4.1.91.Final.jar netty-transport-
+ 4.1.91.Final.jar netty-transport-udt-4.1.91.Final.jar netty-codec-mqtt-
+ 4.1.91.Final.jar netty-codec-haproxy-4.1.91.Final.jar lombok-plugin-8.0
+ .1.jar netty-codec-smtp-4.1.91.Final.jar netty-transport-sctp-4.1.91.Fi
+ nal.jar opentest4j-1.2.0.jar netty-resolver-dns-native-macos-4.1.91.Fin
+ al-osx-x86_64.jar AFSecurityAccess-1.0.jar netty-resolver-dns-4.1.91.Fi
+ nal.jar netty-transport-native-epoll-4.1.91.Final-linux-x86_64.jar nett
+ y-handler-ssl-ocsp-4.1.91.Final.jar netty-codec-http2-4.1.91.Final.jar 
+ junit-platform-commons-1.9.1.jar netty-transport-native-unix-common-4.1
+ .91.Final.jar netty-codec-memcache-4.1.91.Final.jar netty-transport-rxt
+ x-4.1.91.Final.jar netty-all-4.1.91.Final.jar AFSecurityAccess-1.0.jar 
+ netty-codec-stomp-4.1.91.Final.jar netty-handler-proxy-4.1.91.Final.jar
+  logback-classic-1.2.9.jar netty-codec-dns-4.1.91.Final.jar netty-trans
+ port-native-epoll-4.1.91.Final-linux-aarch_64.jar netty-resolver-dns-na
+ tive-macos-4.1.91.Final-osx-aarch_64.jar junit-jupiter-api-5.9.1.jar ju
+ nit-jupiter-engine-5.9.1.jar netty-codec-redis-4.1.91.Final.jar netty-c
+ odec-xml-4.1.91.Final.jar netty-buffer-4.1.91.Final.jar netty-common-4.
+ 1.91.Final.jar netty-resolver-dns-classes-macos-4.1.91.Final.jar junit-
+ jupiter-5.9.1.jar junit-jupiter-params-5.9.1.jar hutool-crypto-5.8.18.j
+ ar netty-codec-4.1.91.Final.jar netty-codec-http-4.1.91.Final.jar netty
+ -codec-socks-4.1.91.Final.jar netty-transport-classes-epoll-4.1.91.Fina
+ l.jar bcprov-jdk15on-1.70.jar
 

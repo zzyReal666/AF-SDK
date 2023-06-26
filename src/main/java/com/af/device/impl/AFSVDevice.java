@@ -482,8 +482,6 @@ public class AFSVDevice implements IAFSVDevice {
         byte[] bytes = cmd.generateKeyPair(Algorithm.SGD_RSA, length);
         RSAKeyPair rsaKeyPair = new RSAKeyPair(bytes);
         rsaKeyPair.decode(bytes);
-        logger.error("RSA密钥对生成成功,原始数据" + rsaKeyPair);
-
 
         //公钥结构体
         RSAPublicKeyStructure rsaPublicKeyStructure = new RSAPublicKeyStructure(rsaKeyPair.getPubKey());
@@ -588,7 +586,6 @@ public class AFSVDevice implements IAFSVDevice {
         }
         // 解析私钥
         RSAPriKey rsaPriKey = decodeRSAPrivateKey(privateKey);
-        logger.error("RSA私钥解析成功,原始数据" + rsaPriKey);
         // 获取模长
         int modulus = rsaPriKey.getBits();
         // PKCS1 签名填充
@@ -713,7 +710,6 @@ public class AFSVDevice implements IAFSVDevice {
         }
         //解析公钥
         RSAPubKey rsaPubKey = decodeRSAPublicKey(publicKey);
-        logger.error("公钥解析成功,原始数据:{}", rsaPubKey);
         //Base64解码签名数据
         signatureData = BytesOperate.base64DecodeData(signatureData);
         //RSA验签
@@ -865,10 +861,9 @@ public class AFSVDevice implements IAFSVDevice {
         }
         //endregion
         //模长
-        byte[] rsaPublicKey = getRSAEncPublicKey(keyIndex);
-        RSAPubKey rsaPubKey = new RSAPubKey(rsaPublicKey);
+        int bits = getBitsByKeyIndex(keyIndex);
         //RSA加密PKCS1填充
-        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), data);
+        data = AFPkcs1Operate.pkcs1EncryptionPublicKey(bits, data);
         //RSA加密
         byte[] rsaEncrypt = cmd.rsaPublicKeyOperation(keyIndex, null, Algorithm.SGD_RSA_ENC, data);
         //返回Base64编码的加密数据
@@ -898,7 +893,7 @@ public class AFSVDevice implements IAFSVDevice {
         //解析公钥
         RSAPubKey rsaPubKey = decodeRSAPublicKey(publicKey);
         //RSA加密PKCS1填充
-        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), data);
+        data = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), data);
         //RSA加密
         byte[] rsaEncrypt = cmd.rsaPublicKeyOperation(0, rsaPubKey, Algorithm.SGD_RSA_ENC, data);
         //返回Base64编码的加密数据
@@ -960,9 +955,8 @@ public class AFSVDevice implements IAFSVDevice {
         //获取模长
         int bits = getBitsByKeyIndex(keyIndex);
         //RSA解密PKCS1去填充
-        byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(bits, rsaDecrypt);
         //返回解密数据 Base64编码
-        return BytesOperate.base64EncodeData(decData);
+        return AFPkcs1Operate.pkcs1DecryptPublicKey(bits, rsaDecrypt);
     }
 
 
@@ -992,9 +986,8 @@ public class AFSVDevice implements IAFSVDevice {
         //RSA解密
         byte[] rsaDecrypt = cmd.rsaPrivateKeyOperation(0, rsaPriKey, Algorithm.SGD_RSA_ENC, encData);
         //RSA解密PKCS1去填充
-        byte[] decData = AFPkcs1Operate.pkcs1DecryptPublicKey(rsaPriKey.getBits(), rsaDecrypt);
         //返回解密数据 Base64编码
-        return BytesOperate.base64EncodeData(decData);
+        return AFPkcs1Operate.pkcs1DecryptPublicKey(rsaPriKey.getBits(), rsaDecrypt);
     }
 
     //endregion
@@ -1070,7 +1063,6 @@ public class AFSVDevice implements IAFSVDevice {
 
             //SM2签名
             byte[] bytes = cmd.sm2Sign(-1, encodeKey, data);
-            logger.error("签名结果:{}", HexUtil.encodeHexStr(bytes));
             SM2Signature sm2Signature = new SM2Signature(bytes).to256();
             SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);                              // 转换为ASN1结构
             return BytesOperate.base64EncodeData(sm2SignStructure.toASN1Primitive().getEncoded("DER"));       // DER编码 base64编码
@@ -4099,7 +4091,6 @@ public class AFSVDevice implements IAFSVDevice {
             System.arraycopy(BytesOperate.int2bytes(256), 0, sm2Pubkey, 0, 4);
             System.arraycopy(encodePubkey, 4, sm2Pubkey, 4, 64);
             sm2PublicKey.decode(sm2Pubkey);
-            logger.error("解析出的公钥为:{}", HexUtil.encodeHexStr(sm2PublicKey.to512().encode()));
             return sm2PublicKey.to512();
         } catch (IOException e) {
             logger.error("证书解析失败", e);

@@ -10,6 +10,7 @@ import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.device.DeviceInfo;
 import com.af.exception.AFCryptoException;
 import com.af.netty.NettyClient;
+import com.af.nettyNew.NettyClientChannels;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.signAndVerify.AFSM2DecodeSignedData;
@@ -198,10 +199,13 @@ public class AFSVCmd {
                 .append(pwd.getBytes(StandardCharsets.UTF_8))
                 .toBytes();
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, param, agKey);
-        ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-            throw new AFCryptoException("获取私钥访问权限失败");
+        int count = client instanceof NettyClientChannels ? ((NettyClientChannels) client).getNettyChannelPool().getChannelCount() : 1;
+        for (int i = 0; i < count; i++) {
+            ResponseMessage responseMessage = client.send(requestMessage);
+            if (responseMessage.getHeader().getErrorCode() != 0) {
+                logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+                throw new AFCryptoException("获取私钥访问权限失败");
+            }
         }
 
     }

@@ -54,6 +54,11 @@ test {
 jar {
     manifestContentCharset 'utf-8'
     metadataCharset 'utf-8'
+    manifest {
+        attributes(
+                'Export-Package': 'com.af'
+        )
+    }
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }

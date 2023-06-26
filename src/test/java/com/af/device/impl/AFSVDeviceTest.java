@@ -41,7 +41,7 @@ class AFSVDeviceTest {
 
     //    static byte[] data = "1234567890abcde".getBytes();
     //大数据
-    static byte[] data = FileUtil.readBytes("D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData.rar");
+    static byte[] data = FileUtil.readBytes("D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData");
 
     //证书文件路径
     static String userCertFileSM2 = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\user.cer";
@@ -181,28 +181,20 @@ class AFSVDeviceTest {
         byte[] rsaSignPublicKey = rsaKeyPairStructure.getPubKey();
 
         //文件路径
-        byte[] fileName = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData.rar".getBytes();
+        byte[] fileName = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData".getBytes();
 
-//        //RSA 内部签名验签 success
-//        byte[] bytes = device.rsaSignature(1, data);
-//        boolean b = device.rsaVerify(1, data, bytes);
-//        assert b;
+        //RSA 内部签名验签 success
+        byte[] bytes = device.rsaSignature(1, "1234567".getBytes());
+        boolean b = device.rsaVerify(1, "1234567".getBytes(), bytes);
+        assert b;
 
         //RSA 外部签名验签
-        byte[] bytes1 = device.rsaSignature(rsaSignPrivateKey, data);
-        boolean b1 = device.rsaVerify(rsaSignPublicKey, data, bytes1);
+        byte[] bytes1 = device.rsaSignature(rsaSignPrivateKey, "1234567".getBytes());
+        boolean b1 = device.rsaVerify(rsaSignPublicKey, "1234567".getBytes(), bytes1);
         assert b1;
 
 
-        //RSA 内部密钥文件签名验签
-        byte[] bytes2 = device.rsaSignature(1, fileName);
-        boolean b2 = device.rsaVerify(1, fileName, bytes2);
-        assert b2;
 
-        //RSA 外部密钥文件签名验签
-        byte[] bytes3 = device.rsaSignature(rsaSignPrivateKey, fileName);
-        boolean b3 = device.rsaVerify(rsaSignPublicKey, fileName, bytes3);
-        assert b3;
     }
 
     //RSA文件签名验签 success
@@ -250,6 +242,29 @@ class AFSVDeviceTest {
 
 
     }
+
+    //RSA 加密解密
+    @Test
+    void testRSAEncAndDec() throws Exception {
+        //生成密钥对
+        RSAKeyPairStructure rsaKeyPairStructure = device.generateRSAKeyPair(ModulusLength.LENGTH_1024);
+        //私钥
+        byte[] rsaSignPrivateKey = rsaKeyPairStructure.getPriKey();
+        //公钥
+        byte[] rsaSignPublicKey = rsaKeyPairStructure.getPubKey();
+
+        //内部密钥加密解密
+        byte[] bytes = device.rsaEncrypt(1, "1234567".getBytes());
+        byte[] bytes1 = device.rsaDecrypt(1, bytes);
+        assert Arrays.equals(bytes1, "1234567".getBytes());
+
+        //外部密钥加密解密
+        byte[] bytes2 = device.rsaEncrypt(rsaSignPublicKey, "1234567".getBytes());
+        byte[] bytes3 = device.rsaDecrypt(rsaSignPrivateKey, bytes2);
+        assert Arrays.equals(bytes3, "1234567".getBytes());
+
+    }
+
 
     //SM2 签名验签  success
     @Test
