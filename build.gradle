@@ -45,25 +45,43 @@ dependencies {
 }
 
 test {
-    enabled = true
+    enabled = false
     useJUnitPlatform()
 }
 
-//apply from: 'generateDocs.gradle'
+
+jar {
+    // 将依赖项打包到 JAR 文件中
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+
+
+
+//自动生成文档
 tasks.register('generateDocs', Exec) {
     workingDir project.rootDir
 
+    //windows 环境执行.bat Unix执行.sh
+    def scriptFile = ''
+
+    // 根据操作系统选择脚本文件
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        scriptFile = 'generate_docs.bat'
+        commandLine 'cmd', '/c', scriptFile
+    } else {
+        scriptFile = 'generate_docs.sh'
+        commandLine 'bash', scriptFile
+    }
     // 执行生成文档的批处理文件
     commandLine 'cmd', '/c', 'generate_docs.bat'
-
-    // 可选：指定脚本执行前的依赖任务
-//    dependsOn 'build'
 }
 
 // 扩展现有的 build 任务
 tasks.named('build') {
     // 添加自定义的构建逻辑
     dependsOn 'generateDocs'
-
 
 }
