@@ -191,7 +191,7 @@ public class AFSVDevice implements IAFSVDevice {
         /**
          * 重试间隔 单位毫秒
          */
-        private int retryInterval = 5000;
+        private int retryInterval = 1000;
 
         /**
          * 缓冲区大小
@@ -403,7 +403,6 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("index 需要大于0");
         }
         byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_RSA_ENC);
-        logger.info("返回需要对比的数据:" + HexUtil.encodeHexStr(bytes));
         return bytesToASN1RSAPubKey(bytes);
     }
 
