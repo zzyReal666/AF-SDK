@@ -4,17 +4,20 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.HexUtil;
 import com.af.constant.Algorithm;
 import com.af.constant.TSMInfoFlag;
-import com.af.device.AFDeviceFactory;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 
 class AFTSDeviceTest {
-    static AFTSDevice device = AFDeviceFactory.getAFTSDevice("192.168.10.40", 8011, "abcd1234");
+//        static AFTSDevice device = AFDeviceFactory.getAFTSDevice("192.168.10.40", 8008, "abcd1234");
+    static AFTSDevice device = new AFTSDevice.Builder("192.168.10.40", 8008, "abcd1234")
+        .responseTimeOut(100000)
+        .build();
+
     final byte[] data = "af/tsa-时间戳测试".getBytes(StandardCharsets.UTF_8);
 
     //证书路径
-    static String deviceCertFile = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\device.cer";
+    static String deviceCertFile = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\user.cer";
     //证书
     static byte[] deviceCert = FileUtil.readBytes(deviceCertFile);
 

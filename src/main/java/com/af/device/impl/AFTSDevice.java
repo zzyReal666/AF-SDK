@@ -7,6 +7,8 @@ import com.af.device.IAFTSDevice;
 import com.af.device.cmd.AFTSMCmd;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.netty.NettyClient;
+import com.af.nettyNew.NettyClientChannels;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -25,7 +27,7 @@ public class AFTSDevice implements IAFTSDevice {
      * 通信客户端
      */
     @Getter
-    private static AFNettyClient client = null;
+    private static NettyClient client = null;
     private byte[] agKey;
 
     private final AFTSMCmd cmd = new AFTSMCmd(client, agKey);
@@ -43,6 +45,110 @@ public class AFTSDevice implements IAFTSDevice {
     public static AFTSDevice getInstance(String host, int port, String passwd) {
         client = AFNettyClient.getInstance(host, port, passwd);
         return SingletonHolder.INSTANCE;
+    }
+
+    /**
+     * 建造者模式
+     */
+    public static class Builder {
+        //必要参数
+        private final String host;
+        private final int port;
+        private final String passwd;
+
+        //构造
+        public Builder(String host, int port, String passwd) {
+            this.host = host;
+            this.port = port;
+            this.passwd = passwd;
+        }
+
+        //可选参数
+
+        /**
+         * 是否协商密钥
+         */
+        private boolean isAgKey = true;
+        /**
+         * 连接超时时间 单位毫秒
+         */
+        private int connectTimeOut = 5000;
+
+        /**
+         * 响应超时时间 单位毫秒
+         */
+        private int responseTimeOut = 10000;
+
+        /**
+         * 重试次数
+         */
+        private int retryCount = 3;
+
+        /**
+         * 重试间隔 单位毫秒
+         */
+        private int retryInterval = 5000;
+
+        /**
+         * 缓冲区大小
+         */
+        private int bufferSize = 1024 * 1024;
+
+        /**
+         * 通道数量
+         */
+        private int channelCount = 10;
+
+        public Builder isAgKey(boolean isAgKey) {
+            this.isAgKey = isAgKey;
+            return this;
+        }
+
+        public Builder connectTimeOut(int connectTimeOut) {
+            this.connectTimeOut = connectTimeOut;
+            return this;
+        }
+
+        public Builder responseTimeOut(int responseTimeOut) {
+            this.responseTimeOut = responseTimeOut;
+            return this;
+        }
+
+        public Builder retryCount(int retryCount) {
+            this.retryCount = retryCount;
+            return this;
+        }
+
+        public Builder retryInterval(int retryInterval) {
+            this.retryInterval = retryInterval;
+            return this;
+        }
+
+        public Builder bufferSize(int bufferSize) {
+            this.bufferSize = bufferSize;
+            return this;
+        }
+
+        public Builder channelCount(int channelCount) {
+            this.channelCount = channelCount;
+            return this;
+        }
+
+        public AFTSDevice build() {
+            client = new NettyClientChannels.Builder(host, port, passwd)
+                    .timeout(connectTimeOut)
+                    .responseTimeout(responseTimeOut)
+                    .retryCount(retryCount)
+                    .retryInterval(retryInterval)
+                    .bufferSize(bufferSize)
+                    .channelCount(channelCount)
+                    .build();
+            AFTSDevice instance = SingletonHolder.INSTANCE;
+            if (isAgKey) {
+                instance.setAgKey();
+            }
+            return instance;
+        }
     }
 
     /**

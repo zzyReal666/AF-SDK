@@ -5,7 +5,7 @@ import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
 import com.af.constant.TSMInfoFlag;
 import com.af.exception.AFCryptoException;
-import com.af.netty.AFNettyClient;
+import com.af.netty.NettyClient;
 import com.af.utils.BytesBuffer;
 
 import java.nio.charset.StandardCharsets;
@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class AFTSMCmd extends AFCmd{
 
-    public AFTSMCmd(AFNettyClient client, byte[] agKey) {
+    public AFTSMCmd(NettyClient client, byte[] agKey) {
         super(client, agKey);
     }
 

@@ -1,5 +1,6 @@
 package com.af.device.impl;
 
+import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.HexUtil;
 import cn.hutool.crypto.digest.SM3;
 import com.af.constant.Algorithm;
@@ -15,6 +16,8 @@ import com.af.device.IAFSVDevice;
 import com.af.device.cmd.AFSVCmd;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
+import com.af.netty.NettyClient;
+import com.af.nettyNew.NettyClientChannels;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
@@ -83,7 +86,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * 通信客户端
      */
-    public static AFNettyClient client;
+    public static NettyClient client;
     /**
      * 命令对象
      */
@@ -143,6 +146,119 @@ public class AFSVDevice implements IAFSVDevice {
     public static AFSVDevice getInstance(String host, int port, String passwd) {
         client = AFNettyClient.getInstance(host, port, passwd);
         return SingletonHolder.INSTANCE;
+    }
+
+
+    /**
+     * 建造者模式
+     */
+    public static class Builder {
+        //region//======>必要参数
+        private final String host;
+        private final int port;
+        private final String passwd;
+        //endregion
+
+        //region//======>构造方法
+        public Builder(String host, int port, String passwd) {
+            this.host = host;
+            this.port = port;
+            this.passwd = passwd;
+        }
+        //endregion
+
+        //region//======>可选参数
+
+        /**
+         * 是否协商密钥
+         */
+        private boolean isAgKey = true;
+        /**
+         * 连接超时时间 单位毫秒
+         */
+        private int connectTimeOut = 5000;
+
+        /**
+         * 响应超时时间 单位毫秒
+         */
+        private int responseTimeOut = 10000;
+
+        /**
+         * 重试次数
+         */
+        private int retryCount = 3;
+
+        /**
+         * 重试间隔 单位毫秒
+         */
+        private int retryInterval = 5000;
+
+        /**
+         * 缓冲区大小
+         */
+        private int bufferSize = 1024 * 1024;
+
+        /**
+         * 通道数量
+         */
+        private int channelCount = 10;
+
+        //endregion
+
+        //region//======>设置参数
+        public Builder isAgKey(boolean isAgKey) {
+            this.isAgKey = isAgKey;
+            return this;
+        }
+
+        public Builder connectTimeOut(int connectTimeOut) {
+            this.connectTimeOut = connectTimeOut;
+            return this;
+        }
+
+        public Builder responseTimeOut(int responseTimeOut) {
+            this.responseTimeOut = responseTimeOut;
+            return this;
+        }
+
+        public Builder retryCount(int retryCount) {
+            this.retryCount = retryCount;
+            return this;
+        }
+
+        public Builder retryInterval(int retryInterval) {
+            this.retryInterval = retryInterval;
+            return this;
+        }
+
+        public Builder bufferSize(int bufferSize) {
+            this.bufferSize = bufferSize;
+            return this;
+        }
+
+        public Builder channelCount(int channelCount) {
+            this.channelCount = channelCount;
+            return this;
+        }
+
+        //endregion
+
+        //region//======>build
+        public AFSVDevice build() {
+            client = new NettyClientChannels.Builder(host, port, passwd)
+                    .timeout(connectTimeOut)
+                    .responseTimeout(responseTimeOut)
+                    .retryCount(retryCount)
+                    .retryInterval(retryInterval)
+                    .bufferSize(bufferSize)
+                    .channelCount(channelCount)
+                    .build();
+            AFSVDevice afsvDevice = AFSVDevice.SingletonHolder.INSTANCE;
+            if (isAgKey) {
+                afsvDevice.setAgKey();
+            }
+            return afsvDevice;
+        }
     }
 
     /**
@@ -1666,13 +1782,12 @@ public class AFSVDevice implements IAFSVDevice {
      * @return 加密数据
      */
     public byte[] sm4InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
-
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 加密，索引不能小于0,当前索引：{}", keyIndex);
             throw new AFCryptoException("SM4 加密，索引不能小于0,当前索引：" + keyIndex);
         }
-        if (null == plain || plain.length == 0) {
+        if (plain == null || plain.length == 0) {
             logger.error("SM4 加密，加密数据不能为空");
             throw new AFCryptoException("SM4 加密，加密数据不能为空");
         }
@@ -1684,6 +1799,7 @@ public class AFSVDevice implements IAFSVDevice {
         for (int i = 0; i < bytes.size(); i++) {
             byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, bytes.get(i));
             bytes.set(i, encrypt);
+            System.gc();
         }
         //合并数据
         return mergePackage(bytes);
@@ -2047,6 +2163,7 @@ public class AFSVDevice implements IAFSVDevice {
         for (int i = 0; i < bytes.size(); i++) {
             byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, bytes.get(i));
             bytes.set(i, decrypt);
+            System.gc();
         }
         //合包 去除填充
         return cutting(mergePackage(bytes));
@@ -4109,22 +4226,15 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * 合并数组
      *
-     * @param bytes 数组集合
+     * @param list 数组集合
      * @return 合并后的数组
      */
-    private byte[] mergePackage(List<byte[]> bytes) throws AFCryptoException {
-        logger.error("合并数组, 数组长度:{}", bytes.size());
-        int length = 0;
-        for (byte[] aByte : bytes) {
-            length += aByte.length;
+    private byte[] mergePackage(List<byte[]> list) {
+        byte[] newData = new byte[0];
+        for (byte[] bytes : list) {
+            newData = ArrayUtil.addAll(newData, bytes);
         }
-        byte[] result = new byte[length];
-        int index = 0;
-        for (byte[] aByte : bytes) {
-            System.arraycopy(aByte, 0, result, index, aByte.length);
-            index += aByte.length;
-        }
-        return result;
+        return newData;
     }
 
     /**

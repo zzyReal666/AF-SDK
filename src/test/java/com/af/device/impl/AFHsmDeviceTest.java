@@ -1,12 +1,10 @@
 package com.af.device.impl;
 
-import cn.hutool.core.io.FileUtil;
 import com.af.constant.Algorithm;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.key.symmetricKey.SessionKey;
-import com.af.device.AFDeviceFactory;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.agreementData.AgreementData;
@@ -14,6 +12,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,21 +22,23 @@ class AFHsmDeviceTest {
 
     static Logger logger = Logger.getLogger("AFHsmDeviceTest");
     static AFHsmDevice device;
-//    static byte[] data = "123456788765432".getBytes(StandardCharsets.UTF_8);
-    static byte[] data = FileUtil.readBytes("D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData10M");
+    static byte[] data = "123456788765432".getBytes(StandardCharsets.UTF_8);
 
 //    static byte[] data = FileUtil.readBytes("D:\\test.zip");
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8008, "abcd1234");
+//        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8008, "abcd1234");
+        device = new AFHsmDevice.Builder("192.168.10.40", 8008, "abcd1234")
+                .responseTimeOut(10000)
+                .build();
     }
 
     @AfterAll
     static void tearDown() throws Exception {
         logger.info("发送关闭连接请求");
         device.close(AFHsmDevice.client);
-        logger.info("已经关闭连接");
+        logger.info("服务端已经关闭连接");
     }
 
 
@@ -158,23 +159,30 @@ class AFHsmDeviceTest {
 
     }
 
-    //生成协商数据 生成协商数据及密钥 生成协商密钥
+    //生成协商数据 生成协商数据及密钥 生成协商密钥 success todo 未验证
     @Test
     void testGenerateAgreementData() throws Exception {
         AgreementData agreementData = new AgreementData();
-        agreementData.setInitiatorId("szaf_zzy".getBytes());
+        agreementData.setInitiatorId("szaf_zzyreq".getBytes());
+        agreementData.setResponderId("szaf_zzyres".getBytes());
+
+        //生成Sm2密钥对
+        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(0);
+        //公钥
+        agreementData.setPublicKey(sm2KeyPair.getPubKey().encode());
+        agreementData.setTempPublicKey(sm2KeyPair.getPubKey().encode());
+        agreementData.setResponderId("szaf_zzyres".getBytes());
 
         //生成协商数据
         AgreementData agreementData1 = device.generateAgreementData(1, ModulusLength.LENGTH_256, agreementData);
         System.out.println("协商数据:" + agreementData1);
 
-        agreementData1.setResponderId("2".getBytes());
-
         //生成协商数据及密钥
+
         AgreementData agreementData2 = device.generateAgreementDataAndKey(1, ModulusLength.LENGTH_256, agreementData);
         System.out.println("协商数据及密钥:" + agreementData2);
         //生成协商密钥
-        AgreementData agreementData3 = device.generateAgreementKey(agreementData1);
+        AgreementData agreementData3 = device.generateAgreementKey(agreementData);
         System.out.println("协商密钥:" + agreementData3);
 
     }
