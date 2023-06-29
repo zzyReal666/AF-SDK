@@ -286,6 +286,7 @@ class AFHsmDeviceTest {
 
         //SM4 ECB 密钥句柄
         SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+        System.out.println("SM4 ECB 密钥句柄:" + key1);
         byte[] bytes = device.sm4HandleEncryptECB(key1.getId(), data);
         byte[] bytes1 = device.sm4HandleDecryptECB(key1.getId(), bytes);
         //释放

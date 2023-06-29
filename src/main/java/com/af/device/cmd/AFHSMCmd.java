@@ -8,6 +8,7 @@ import com.af.constant.ModulusLength;
 import com.af.device.DeviceInfo;
 import com.af.exception.AFCryptoException;
 import com.af.netty.NettyClient;
+import com.af.nettyNew.NettyClientChannels;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.utils.BytesBuffer;
@@ -22,6 +23,7 @@ import java.util.List;
  * @since 2023/5/29 11:13
  */
 public class AFHSMCmd extends AFCmd {
+    int count = client instanceof NettyClientChannels ? ((NettyClientChannels) client).getNettyChannelPool().getChannelCount() : 1;
 
     public AFHSMCmd(NettyClient client, byte[] agKey) {
         super(client, agKey);
@@ -555,10 +557,16 @@ public class AFHSMCmd extends AFCmd {
                 .append(keyData)
                 .toBytes();
         RequestMessage req = new RequestMessage(CMDCode.CMD_IMPORTKEYWITHKEK, param, agKey);
-        ResponseMessage res = client.send(req);
-        if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-导入会话密钥密文（使用对称密钥）,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-导入会话密钥密文（使用对称密钥）,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        ResponseMessage res = null;
+        for (int i = 0; i < count; i++) {
+            res = client.send(req);
+            if (res.getHeader().getErrorCode() != 0) {
+                logger.error("HSM-CMD-导入会话密钥密文（使用对称密钥）,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+                throw new AFCryptoException("HSM-CMD-导入会话密钥密文（使用对称密钥）,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            }
+        }
+        if (res == null) {
+            throw new AFCryptoException("HSM-CMD-导入会话密钥密文（使用对称密钥）,错误码:9999,错误信息:响应为空");
         }
         return res.getData();
     }
@@ -1108,18 +1116,18 @@ public class AFHSMCmd extends AFCmd {
      * @param userId    用户ID
      */
     public void hashInit(Algorithm algorithm, byte[] publicKey, byte[] userId) throws AFCryptoException {
-        logger.info("HSM-CMD-HASH INIT, algorithm:{}, publicKeyLen:{},  userIdLen:{}", algorithm, null == publicKey ? 0 : publicKey.length,null == userId?0: userId.length);
+        logger.info("HSM-CMD-HASH INIT, algorithm:{}, publicKeyLen:{},  userIdLen:{}", algorithm, null == publicKey ? 0 : publicKey.length, null == userId ? 0 : userId.length);
         BytesBuffer buffer = new BytesBuffer()
                 .append(algorithm.getValue())
                 .append(null == publicKey ? 0 : publicKey.length)  // 仅在算法为 SGD_SM3 时有效
                 .append(publicKey)        //仅在算法为 SGD_SM3 时有效
-                .append(null == userId?0: userId.length)
+                .append(null == userId ? 0 : userId.length)
                 .append(userId);
         byte[] param = buffer.toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHINIT, param, agKey));
         if (res.getHeader().getErrorCode() != 0) {
-            logger.error("HSM-CMD-HASH INIT失败, algorithm:{}, publicKeyLen:{},  userIdLen:{}, 错误码:{},错误信息:{}", algorithm, null == publicKey ? 0 : publicKey.length, null == userId?0: userId.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-            throw new AFCryptoException("HSM-CMD-HASH INIT失败, algorithm:" + algorithm + ", publicKeyLen:" + (null == publicKey ? 0 : publicKey.length) + ",  userIdLen:" + (null == userId?0: userId.length) + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+            logger.error("HSM-CMD-HASH INIT失败, algorithm:{}, publicKeyLen:{},  userIdLen:{}, 错误码:{},错误信息:{}", algorithm, null == publicKey ? 0 : publicKey.length, null == userId ? 0 : userId.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("HSM-CMD-HASH INIT失败, algorithm:" + algorithm + ", publicKeyLen:" + (null == publicKey ? 0 : publicKey.length) + ",  userIdLen:" + (null == userId ? 0 : userId.length) + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
     }
 
@@ -1272,16 +1280,21 @@ public class AFHSMCmd extends AFCmd {
      * @param keyType 密钥类型 3|SM2，4|RSA
      */
     public void getPrivateAccess(int index, int keyType, String pwd) throws AFCryptoException {
-        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, new BytesBuffer()
+        byte[] param = new BytesBuffer()
                 .append(index)
                 .append(keyType)
                 .append(pwd.length())
                 .append(pwd.getBytes(StandardCharsets.UTF_8))
-                .toBytes(), agKey);
-        ResponseMessage responseMessage = client.send(requestMessage);
-        if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("获取私钥访问权限错误,错误信息:{}", responseMessage.getHeader().getErrorInfo());
-            throw new AFCryptoException("获取私钥访问权限错误,错误信息:" + responseMessage.getHeader().getErrorInfo());
+                .toBytes();
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, param, agKey);
+        //获取私钥访问权限需要所有通道一起获取
+        int count = client instanceof NettyClientChannels ? ((NettyClientChannels) client).getNettyChannelPool().getChannelCount() : 1;
+        for (int i = 0; i < count; i++) {
+            ResponseMessage responseMessage = client.send(requestMessage);
+            if (responseMessage.getHeader().getErrorCode() != 0) {
+                logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+                throw new AFCryptoException("获取私钥访问权限失败");
+            }
         }
     }
 
