@@ -27,14 +27,11 @@ allprojects {
     }
 }
 dependencies {
-    implementation files('lib/AFSecurityAccess-1.0.jar')
     testImplementation platform('org.junit:junit-bom:5.9.1') // 单元测试
     testImplementation 'org.junit.jupiter:junit-jupiter'     // 单元测试
     implementation 'ch.qos.logback:logback-classic:1.2.9'    // 日志
     compileOnly 'org.projectlombok:lombok:1.18.20'           // lombok
     annotationProcessor 'org.projectlombok:lombok:1.18.20'   // lombok
-    // https://mvnrepository.com/artifact/io.freefair.lombok/io.freefair.lombok.gradle.plugin
-    implementation 'io.freefair.lombok:io.freefair.lombok.gradle.plugin:8.0.1'
     implementation 'io.netty:netty-all:4.1.91.Final'         // netty
     implementation group: 'cn.hutool', name: 'hutool-core', version: '5.8.18' // hutool
     implementation group: 'cn.hutool', name: 'hutool-crypto', version: '5.8.18' // hutool
@@ -54,11 +51,6 @@ test {
 jar {
     manifestContentCharset 'utf-8'
     metadataCharset 'utf-8'
-    manifest {
-        attributes(
-                'Export-Package': 'com.af'
-        )
-    }
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }

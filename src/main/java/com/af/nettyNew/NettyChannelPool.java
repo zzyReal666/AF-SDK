@@ -141,7 +141,8 @@ public class NettyChannelPool {
      *
      * @return channel
      */
-    private Channel connectToServer() throws InterruptedException {
+    private synchronized Channel connectToServer() throws InterruptedException {
+
         if (retryCount <= 0) {
             throw new RuntimeException("重试3次失败，连接服务端失败");
         }
@@ -217,6 +218,8 @@ public class NettyChannelPool {
                 channel.close();
             }
         }
+        //netty 释放资源
+        bootstrap.config().group().shutdownGracefully();
     }
 
     public void putChannel(Channel channel) {

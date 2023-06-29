@@ -44,7 +44,7 @@ class AFSVDeviceTest {
     static byte[] data = FileUtil.readBytes("D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData");
 
     //证书文件路径
-    static String userCertFileSM2 = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\user.cer";
+    static String userCertFileSM2 = "user.cer";
     static String deviceCertPath = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\user.cer";
     static String rootCertPath = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\root.cer";
     //userCertPrivateKey
@@ -405,8 +405,6 @@ class AFSVDeviceTest {
         byte[] encodeData = device.sm4InternalEncryptECB(1, data);
         byte[] decodeData = device.sm4InternalDecryptECB(1, encodeData);
         assert Arrays.equals(data, decodeData);
-
-
 
 
 //        //SM4 ECB 密钥句柄

@@ -1,9 +1,6 @@
 package com.af.struct.signAndVerify;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -14,6 +11,7 @@ import lombok.Setter;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class AFPkcs7DecodeData {
     /**
      * 原始数据

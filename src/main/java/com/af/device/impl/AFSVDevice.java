@@ -1,5 +1,6 @@
 package com.af.device.impl;
 
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.HexUtil;
 import cn.hutool.crypto.digest.SM3;
@@ -52,7 +53,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -73,7 +73,6 @@ import java.util.stream.IntStream;
 @Getter
 @Setter
 @ToString
-
 public class AFSVDevice implements IAFSVDevice {
 
     //region 成员 与构造
@@ -147,7 +146,6 @@ public class AFSVDevice implements IAFSVDevice {
         client = AFNettyClient.getInstance(host, port, passwd);
         return SingletonHolder.INSTANCE;
     }
-
 
     /**
      * 建造者模式
@@ -260,6 +258,8 @@ public class AFSVDevice implements IAFSVDevice {
             return afsvDevice;
         }
     }
+    //endregion
+
 
     /**
      * 协商密钥
@@ -553,16 +553,6 @@ public class AFSVDevice implements IAFSVDevice {
         //签名 Base64 编码
         byte[] bytes = cmd.rsaPrivateKeyOperation(keyIndex, null, Algorithm.SGD_RSA_SIGN, signData);
         return BytesOperate.base64EncodeData(bytes);
-    }
-
-    /**
-     * 根据RSA密钥索引获取密钥模长
-     *
-     * @param keyIndex 密钥索引
-     * @return 密钥模长
-     */
-    private int getBitsByKeyIndex(int keyIndex) throws AFCryptoException {
-        return new RSAPubKey(cmd.exportPublicKey(keyIndex, Algorithm.SGD_RSA_SIGN)).getBits();
     }
 
 
@@ -922,7 +912,7 @@ public class AFSVDevice implements IAFSVDevice {
         //读取证书中的公钥
         RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificatePath);
         //RSA加密PKCS1填充
-        byte[] encData = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), data);
+        data = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), data);
         //RSA加密
         byte[] rsaEncrypt = cmd.rsaPublicKeyOperation(0, rsaPubKey, Algorithm.SGD_RSA_ENC, data);
         //返回Base64编码的加密数据
@@ -1187,9 +1177,9 @@ public class AFSVDevice implements IAFSVDevice {
         //获取私钥访问权限
         cmd.getPrivateAccess(index, 4);
         // 读取文件内容
-        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        byte[] bytes = FileUtil.readBytes(new String(filePath));
         //SM2签名 做SM3杂凑
-        return sm2Signature(index, fileData.getBytes());
+        return sm2Signature(index, bytes);
     }
 
     /**
@@ -1212,9 +1202,9 @@ public class AFSVDevice implements IAFSVDevice {
         logger.info("SV_Device 外部密钥文件签名,filePath:{}", new String(filePath));
         //endregion
         // 读取文件内容
-        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        byte[] bytes = FileUtil.readBytes(new String(filePath));
         //SM2签名
-        return sm2Signature(privateKey, fileData.getBytes());
+        return sm2Signature(privateKey, bytes);
     }
 
     /**
@@ -1238,9 +1228,9 @@ public class AFSVDevice implements IAFSVDevice {
         logger.info("SV_Device 外部私钥文件签名,filePath:{}", new String(filePath));
         //endregion
         // 读取文件内容
-        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        byte[] bytes = FileUtil.readBytes(new String(filePath));
         //SM2签名
-        return sm2SignatureByPrivateKey(privateKey, fileData.getBytes());
+        return sm2SignatureByPrivateKey(privateKey, bytes);
     }
 
     /**
@@ -1268,9 +1258,9 @@ public class AFSVDevice implements IAFSVDevice {
         logger.info("SV_Device 外部证书文件签名,filePath:{}", new String(filePath));
         //endregion
         // 读取文件内容
-        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        byte[] bytes = FileUtil.readBytes(new String(filePath));
         //SM2签名
-        return sm2SignatureByCertificate(privateKey, fileData.getBytes(), base64Certificate);
+        return sm2SignatureByCertificate(privateKey, bytes, base64Certificate);
     }
 
     /**
@@ -1456,9 +1446,9 @@ public class AFSVDevice implements IAFSVDevice {
         logger.info("SM2内部密钥验证文件签名,签名服务器内部密钥索引:{}, 待验证签名文件路径:{}", keyIndex, new String(filePath));
         //endregion
         //读取文件
-        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        byte[] bytes = FileUtil.readBytes(new String(filePath));
         //SM3摘要
-        byte[] digest = sm3.digest(fileData.getBytes());
+        byte[] digest = sm3.digest(bytes);
         //签名数据转换为SM2Signature
         SM2Signature sm2Sign = convertToSM2Signature(signature);
         //SM2验证签名
@@ -1490,9 +1480,9 @@ public class AFSVDevice implements IAFSVDevice {
         logger.info("SM2外部密钥验证文件签名,待验证签名文件路径:{}", new String(filePath));
         //endregion
         //读取文件
-        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        byte[] bytes = FileUtil.readBytes(new String(filePath));
         //SM2验证签名
-        return sm2Verify(sm2PublicKey, fileData.getBytes(), signature);
+        return sm2Verify(sm2PublicKey, bytes, signature);
     }
 
     /**
@@ -1526,13 +1516,13 @@ public class AFSVDevice implements IAFSVDevice {
         }
 
         //读取文件
-        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        byte[] bytes = FileUtil.readBytes(new String(filePath));
         //ASN1签名转换为SM2Signature
         SM2Signature sm2Sign = convertToSM2Signature(signature);
         //从证书中解析出公钥
         SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(base64Certificate);
         //SM3摘要 带公钥
-        byte[] digest = new SM3Impl().SM3HashWithPublicKey256(fileData.getBytes(), sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
+        byte[] digest = new SM3Impl().SM3HashWithPublicKey256(bytes, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
         //SM2验证签名
         return cmd.sm2Verify(-1, sm2PublicKey.encode(), digest, sm2Sign.encode());
 
@@ -1571,14 +1561,14 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("基于证书的SM2验证文件签名失败,hash证书无效");
         }
         //读取文件
-        String fileData = BytesOperate.readFileByLine(new String(filePath));
+        byte[] bytes = FileUtil.readBytes(new String(filePath));
         //ASN1签名转换为SM2Signature
         SM2Signature sm2Sign = convertToSM2Signature(signature).to512();
         //从证书中解析公钥
         SM2PublicKey signKey = parseSM2PublicKeyFromCert(signCert);
         SM2PublicKey hashKey = parseSM2PublicKeyFromCert(hashCert);
         //SM3摘要 带公钥
-        byte[] digest = new SM3Impl().SM3HashWithPublicKey256(fileData.getBytes(), hashKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
+        byte[] digest = new SM3Impl().SM3HashWithPublicKey256(bytes, hashKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
         //SM2验证签名
         return cmd.sm2Verify(-1, signKey.encode(), digest, sm2Sign.encode());
 
@@ -3671,8 +3661,8 @@ public class AFSVDevice implements IAFSVDevice {
      */
     public int validateCertificateByPath(byte[] certPath) throws AFCryptoException {
         logger.info("验证证书有效性");
-        String certData = BytesOperate.readFileByLine(new String(certPath));
-        byte[] derCert = BytesOperate.base64DecodeCert(new String(certData.getBytes()));
+        byte[] bytes = FileUtil.readBytes(new String(certPath));
+        byte[] derCert = BytesOperate.base64DecodeCert(new String(bytes));
         return cmd.validateCertificate(derCert);
     }
 
@@ -3965,6 +3955,17 @@ public class AFSVDevice implements IAFSVDevice {
     //region 工具方法
 
     /**
+     * 根据RSA密钥索引获取密钥模长
+     *
+     * @param keyIndex 密钥索引
+     * @return 密钥模长
+     */
+    private int getBitsByKeyIndex(int keyIndex) throws AFCryptoException {
+        return new RSAPubKey(cmd.exportPublicKey(keyIndex, Algorithm.SGD_RSA_SIGN)).getBits();
+    }
+
+
+    /**
      * 读取文件并且做SHA-256摘要
      *
      * @param filePath 文件路径
@@ -3973,9 +3974,9 @@ public class AFSVDevice implements IAFSVDevice {
     private static byte[] fileReadAndDigest(byte[] filePath) {
         MessageDigest md;
         try {
-            String fileData = BytesOperate.readFileByLine(new String(filePath));
+            byte[] bytes = FileUtil.readBytes(new String(filePath));
             md = MessageDigest.getInstance("SHA-256");
-            md.update(fileData.getBytes(StandardCharsets.UTF_8));
+            md.update(bytes);
         } catch (NoSuchAlgorithmException e) {
             logger.error("读取文件并且做SHA-256摘要异常", e);
             throw new RuntimeException(e);
@@ -4078,8 +4079,8 @@ public class AFSVDevice implements IAFSVDevice {
     private static SM2PublicKey parseSM2PublicKeyFromCert(byte[] base64CertificatePath) throws AFCryptoException {
         logger.info("SV-从证书(证书需要Base64编码)中解析出SM2公钥(AF结构)");
         //解析证书 从证书中获取公钥
-        String certData = BytesOperate.readFileByLine(new String(base64CertificatePath));
-        byte[] derCert = BytesOperate.base64DecodeCert(new String(certData.getBytes()));
+        byte[] bytes = FileUtil.readBytes(new String(base64CertificatePath));
+        byte[] derCert = BytesOperate.base64DecodeCert(new String(bytes));
         InputStream input = new ByteArrayInputStream(derCert);
         try (ASN1InputStream asn1InputStream = new ASN1InputStream(input)) {
             ASN1Primitive asn1Primitive = asn1InputStream.readObject();
@@ -4115,8 +4116,8 @@ public class AFSVDevice implements IAFSVDevice {
             return sm2PublicKeyStructure.toSm2PublicKey().to512();
             //自定义私钥结构
         } catch (IOException e) {
-            logger.error("SM2 ASN1结构转换为自定义SM2私钥结构错误");
-            throw new AFCryptoException("SM2 ASN1结构转换为自定义SM2私钥结构错误");
+            logger.error("SM2 ASN1结构转换为自定义SM2公钥结构错误");
+            throw new AFCryptoException("SM2 ASN1结构转换为自定义SM2公钥结构错误");
         }
     }
 
@@ -4250,7 +4251,7 @@ public class AFSVDevice implements IAFSVDevice {
         }
         logger.info("RSA签名 摘要计算 当前模长:{}", bits);
         //摘要算法
-        String algorithm = "";
+        String algorithm;
         if (bits == 1024) {
             algorithm = "SHA-1";
         } else if (bits == 2048) {

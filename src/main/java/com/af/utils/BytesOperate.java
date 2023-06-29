@@ -307,6 +307,9 @@ public class BytesOperate {
             e.printStackTrace();
         }
         return strLine.toString();
+//        byte[] bytes = FileUtil.readBytes(filePath);
+//        return new String(bytes);
+
     }
 
 }
