@@ -49,7 +49,8 @@ public class AFHsmDevice implements IAFHsmDevice {
     //region ======================================================成员与单例模式======================================================
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
     private byte[] agKey;  //协商密钥
-    public static NettyClient client;  //netty客户端
+    @Getter
+    private static NettyClient client;  //netty客户端
     private final SM3 sm3 = new SM3Impl();  //国密SM3算法
     private final AFHSMCmd cmd = new AFHSMCmd(client, agKey);
 

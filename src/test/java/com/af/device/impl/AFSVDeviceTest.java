@@ -62,7 +62,7 @@ class AFSVDeviceTest {
     @AfterAll
     static void tearDown() throws Exception {
         logger.info("发送关闭连接请求");
-        device.close(AFSVDevice.client);
+        device.close(AFSVDevice.getClient());
         logger.info("已经关闭连接");
     }
 
@@ -74,7 +74,7 @@ class AFSVDeviceTest {
      */
     @Test
     void testClose() throws Exception {
-        device.close(AFSVDevice.client);
+        device.close(AFSVDevice.getClient());
     }
 
     /**

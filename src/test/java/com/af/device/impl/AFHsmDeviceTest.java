@@ -37,7 +37,7 @@ class AFHsmDeviceTest {
     @AfterAll
     static void tearDown() throws Exception {
         logger.info("发送关闭连接请求");
-        device.close(AFHsmDevice.client);
+        device.close(AFHsmDevice.getClient());
         logger.info("服务端已经关闭连接");
     }
 

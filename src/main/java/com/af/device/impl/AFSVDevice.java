@@ -85,7 +85,8 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * 通信客户端
      */
-    public static NettyClient client;
+    @Getter
+    private static NettyClient client;
     /**
      * 命令对象
      */
