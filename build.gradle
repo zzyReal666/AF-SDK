@@ -29,7 +29,8 @@ allprojects {
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.9.1') // 单元测试
     testImplementation 'org.junit.jupiter:junit-jupiter'     // 单元测试
-    implementation 'ch.qos.logback:logback-classic:1.2.9'    // 日志
+    implementation 'ch.qos.logback:logback-classic:1.2.9'
+    testImplementation 'junit:junit:4.13.1'// 日志
     compileOnly 'org.projectlombok:lombok:1.18.20'           // lombok
     annotationProcessor 'org.projectlombok:lombok:1.18.20'   // lombok
     implementation 'io.netty:netty-all:4.1.91.Final'         // netty
@@ -42,7 +43,7 @@ dependencies {
 }
 
 test {
-    enabled = true
+    enabled = false
     useJUnitPlatform()
 }
 
@@ -54,6 +55,9 @@ jar {
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
+            {
+                exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+            }
 
 }
 

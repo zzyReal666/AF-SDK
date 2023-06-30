@@ -42,8 +42,6 @@ public class NettyChannelPool {
     private int port;
 
 
-
-
     /**
      * 密码
      */
@@ -100,6 +98,18 @@ public class NettyChannelPool {
      */
     private Bootstrap bootstrap = new Bootstrap();
 
+
+//    /**
+//     * channels  用于需要同一个通道计算的情况
+//     */
+//    private Map<ChannelId, Channel> channels = new ConcurrentHashMap<>();
+
+    /**
+     * channel 用于需要同一个通道计算的情况
+     */
+    private Channel channel;
+
+
     //endregion
 
     public NettyChannelPool(int channelCount) {
@@ -122,7 +132,7 @@ public class NettyChannelPool {
 
     /**
      * 同步获取netty channel
-     * 随机获取一个channel 后续改为其他算法
+     * 从队列中获取
      */
     public Channel syncGetChannel() throws InterruptedException {
         Channel channel = channelQueue.poll();
@@ -169,14 +179,28 @@ public class NettyChannelPool {
         initChannels();
     }
 
+//    private void initListChannels() {
+//        for (int i = 0; i < channelCount; i++) {
+//            try {
+//                Channel channel = connectToServer();
+//                channels.put(channel.id(), channel);
+//                //初始化需要同一个通道计算的情况
+//            } catch (InterruptedException e) {
+//                logger.error("初始化通道池失败", e);
+//            }
+//        }
+//    }
+
     /**
      * 初始化通道池
      */
     protected void initChannels() {
+        //初始化通道池
         for (int i = 0; i < channelCount; i++) {
             try {
-                Channel channel = connectToServer();
-                channelQueue.offer(channel);
+                Channel channels = connectToServer();
+                channelQueue.offer(channels);
+                //初始化需要同一个通道计算的情况
             } catch (InterruptedException e) {
                 logger.error("初始化通道池失败", e);
             }

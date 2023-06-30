@@ -17,6 +17,8 @@ public interface NettyClient {
      */
     ResponseMessage send(RequestMessage requestMessage);
 
+    ResponseMessage send(RequestMessage requestMessage, boolean singleChannel);
+
     /**
      * 关闭连接
      */

@@ -15,7 +15,7 @@ import com.af.struct.signAndVerify.sm2.SM2PrivateKeyStructure;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import com.af.utils.base64.Base64;
-import jdk.nashorn.internal.ir.annotations.Ignore;
+import org.junit.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
@@ -705,7 +705,7 @@ class AFSVDeviceTest {
         byte[] bytes = device.sm3Hmac(key, data);
         System.out.println(new String(bytes));
     }
-
+//
 //    //Hash
 //    @Test
 //    void testHash() throws Exception {

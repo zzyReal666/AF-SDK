@@ -284,6 +284,7 @@ class AFHsmDeviceTest {
         byte[] decodeData1 = device.sm4ExternalDecryptECB(key, encodeData1);
         assert Arrays.equals(data, decodeData1);
 
+
         //SM4 ECB 密钥句柄
         SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
         System.out.println("SM4 ECB 密钥句柄:" + key1);
@@ -487,7 +488,7 @@ class AFHsmDeviceTest {
 
     }
 
-    //MAC计算
+    //MAC计算   singleChannel
     @Test
     void testMac() throws Exception {
         //key
@@ -517,6 +518,7 @@ class AFHsmDeviceTest {
         SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
         byte[] mac5 = device.sm1HandleMac(key2.getId(), iv, data);
         //释放密钥句柄
+        device.releaseSessionKey(key2.getId());
 
     }
 

@@ -160,6 +160,11 @@ public class AFNettyClient implements NettyClient {
         return responseMessage;
     }
 
+    @Override
+    public ResponseMessage send(RequestMessage requestMessage, boolean singleChannel) {
+        return send(requestMessage);
+    }
+
     /**
      * 不加密发送数据
      */
