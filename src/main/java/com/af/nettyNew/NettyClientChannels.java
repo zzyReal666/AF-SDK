@@ -127,7 +127,7 @@ public class NettyClientChannels implements NettyClient {
      * 发送数据 接收响应 需要同一通道计算情况下使用
      *
      * @param requestMessage 请求报文
-     * @param singleChannel  是否单通道
+     * @param type  请求类型
      */
     public ResponseMessage send(RequestMessage requestMessage, SpecialRequestsType type) {
         logger.info(requestMessage.isEncrypt() ? "加密==>{}" : "==>{}", requestMessage);
