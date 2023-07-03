@@ -1,3 +1,4 @@
+
 package com.af.device.impl;
 
 import cn.hutool.core.io.FileUtil;
@@ -321,30 +322,6 @@ public class AFSVDevice implements IAFSVDevice {
 
     //region 导出公钥
 
-//    /**
-//     * <p>导出RSA公钥</p>
-//     * <p>导出密码机内部对应索引和用途的RSA公钥信息</p>
-//     *
-//     * @param keyIndex ：密码设备内部存储的RSA索引号
-//     * @param keyUsage ：密钥用途，0：签名公钥；1：加密公钥
-//     * @return : 返回Base64编码的公钥数据
-//     */
-//
-//    public byte[] getRSAPublicKey(int keyIndex, int keyUsage) throws AFCryptoException {
-//        if (keyIndex < 0 || keyIndex > 1023) {
-//            throw new AFCryptoException("keyIndex范围为1-1023");
-//        }
-//        if (keyUsage != 0 && keyUsage != 1) {
-//            throw new AFCryptoException("keyUsage取值为0或1,0:签名公钥;1:加密公钥");
-//        }
-//        byte[] encoded;
-//        byte[] sequenceBytes = cmd.getRSAPublicKey(keyIndex, keyUsage);
-//
-//        logger.info("返回数据:" + HexUtil.encodeHexStr(sequenceBytes));
-//        encoded = bytesToASN1RSAPubKey(sequenceBytes);
-//        return BytesOperate.base64EncodeData(encoded);
-//    }
-
     /**
      * 获取SM2签名公钥
      *
@@ -619,22 +596,22 @@ public class AFSVDevice implements IAFSVDevice {
      * RSA 文件签名 外部私钥
      *
      * @param privateKey 外部私钥 ASN1结构 Base64编码
-     * @param fileName   文件名
+     * @param filePath   文件名
      * @return Base64编码的签名数据
      */
-    public byte[] rsaSignFile(byte[] privateKey, byte[] fileName) throws AFCryptoException {
+    public byte[] rsaSignFile(byte[] privateKey, byte[] filePath) throws AFCryptoException {
         // 参数检查
         if (privateKey == null || privateKey.length == 0) {
             logger.error("外部私钥为空");
             throw new AFCryptoException("外部私钥为空");
         }
-        if (fileName == null || fileName.length == 0) {
+        if (filePath == null || filePath.length == 0) {
             logger.error("文件名为空");
             throw new AFCryptoException("文件名为空");
         }
 
         // 读取文件 生成文件摘要 SHA256
-        byte[] md5Result = fileReadAndDigest(fileName);
+        byte[] md5Result = fileReadAndDigest(filePath);
         // RSA签名
         return rsaSignature(privateKey, md5Result);
 
@@ -798,7 +775,7 @@ public class AFSVDevice implements IAFSVDevice {
         }
         //endregion
         //获取证书中的公钥
-        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificatePath);
+        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificatePath(certificatePath);
         return rsaVerify(rsaPubKey.encode(), inData, signatureData);
     }
 
@@ -827,7 +804,7 @@ public class AFSVDevice implements IAFSVDevice {
         }
         //endregion
         //读取证书中的公钥
-        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificatePath);
+        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificatePath(certificatePath);
         //外部公钥文件验签
         return rsaVerifyFile(rsaPubKey.encode(), filePath, signatureData);
     }
@@ -911,7 +888,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("原始数据为空");
         }
         //读取证书中的公钥
-        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificate(certificatePath);
+        RSAPubKey rsaPubKey = getRSAPublicKeyFromCertificatePath(certificatePath);
         //RSA加密PKCS1填充
         data = AFPkcs1Operate.pkcs1EncryptionPublicKey(rsaPubKey.getBits(), data);
         //RSA加密
@@ -1051,7 +1028,6 @@ public class AFSVDevice implements IAFSVDevice {
             byte[] encodeKey = sm2PrivateKey.encode();
             //SM3杂凑
             data = sm3.digest(data);
-
             //SM2签名
             byte[] bytes = cmd.sm2Sign(-1, encodeKey, data);
             SM2Signature sm2Signature = new SM2Signature(bytes).to256();
@@ -1107,7 +1083,7 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
-     * SM2 签名 外部私钥 带证书
+     * SM2 签名 外部私钥 带证书   公钥Hash,私钥签名 带z值
      *
      * @param data                  待签名数据
      * @param privateKey            私钥 ASN1结构 Base64编码
@@ -1239,10 +1215,10 @@ public class AFSVDevice implements IAFSVDevice {
      *
      * @param filePath          待签名文件路径
      * @param privateKey        外部密钥 Base64编码 ASN1结构
-     * @param base64Certificate 证书 Base64编码 用于获取公钥,并做SM3杂凑
+     * @param base64CertificatePath 证书路径 Base64编码 用于获取公钥,并做SM3杂凑
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    public byte[] sm2SignFileByCertificate(byte[] privateKey, byte[] filePath, byte[] base64Certificate) throws AFCryptoException {
+    public byte[] sm2SignFileByCertificate(byte[] privateKey, byte[] filePath, byte[] base64CertificatePath) throws AFCryptoException {
         //region//======>参数检查 日志打印
         if (filePath == null || filePath.length == 0) {
             logger.error("SV_Device 外部证书文件签名,待签名的文件名称为空");
@@ -1252,7 +1228,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SV_Device 外部证书文件签名,私钥为空");
             throw new AFCryptoException("SV_Device 外部证书文件签名,私钥为空");
         }
-        if (base64Certificate == null || base64Certificate.length == 0) {
+        if (base64CertificatePath == null || base64CertificatePath.length == 0) {
             logger.error("SV_Device 外部证书文件签名,证书为空");
             throw new AFCryptoException("SV_Device 外部证书文件签名,证书为空");
         }
@@ -1261,7 +1237,7 @@ public class AFSVDevice implements IAFSVDevice {
         // 读取文件内容
         byte[] bytes = FileUtil.readBytes(new String(filePath));
         //SM2签名
-        return sm2SignatureByCertificate(privateKey, bytes, base64Certificate);
+        return sm2SignatureByCertificate(privateKey, bytes, base64CertificatePath);
     }
 
     /**
@@ -1489,14 +1465,14 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM2 验证文件签名 一张证书
      *
-     * @param base64Certificate 证书 Base64编码
+     * @param base64CertificatePath 证书路径 Base64编码
      * @param filePath          待验证签名文件路径
      * @param signature         签名数据 Base64编码 ASN1 DER 格式
      * @return true:验证成功 false:验证失败
      */
-    public boolean sm2VerifyFileByCertificate(byte[] base64Certificate, byte[] filePath, byte[] signature) throws AFCryptoException {
+    public boolean sm2VerifyFileByCertificate(byte[] base64CertificatePath, byte[] filePath, byte[] signature) throws AFCryptoException {
         //region//======>参数检查
-        if (base64Certificate == null || base64Certificate.length == 0) {
+        if (base64CertificatePath == null || base64CertificatePath.length == 0) {
             logger.error("基于证书的SM2验证文件签名失败,待验证签名的外部证书为空");
             throw new AFCryptoException("基于证书的SM2验证文件签名失败,待验证签名的外部证书为空");
         }
@@ -1508,10 +1484,10 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("基于证书的SM2验证文件签名失败,待验证签名数据为空");
             throw new AFCryptoException("基于证书的SM2验证文件签名失败,待验证签名数据为空");
         }
-        logger.info("基于证书的SM2验证文件签名,待验证签名的外部证书:{}, 待验证签名文件路径:{}", new String(base64Certificate), new String(filePath));
+        logger.info("基于证书的SM2验证文件签名,待验证签名的外部证书:{}, 待验证签名文件路径:{}", new String(base64CertificatePath), new String(filePath));
         //endregion
         //验证证书有效性
-        if (0 != validateCertificateByPath(base64Certificate)) {
+        if (0 != validateCertificateByPath(base64CertificatePath)) {
             logger.error("基于证书的SM2验证文件签名失败,待验证签名的外部证书无效");
             throw new AFCryptoException("基于证书的SM2验证文件签名失败,待验证签名的外部证书无效");
         }
@@ -1521,7 +1497,7 @@ public class AFSVDevice implements IAFSVDevice {
         //ASN1签名转换为SM2Signature
         SM2Signature sm2Sign = convertToSM2Signature(signature);
         //从证书中解析出公钥
-        SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(base64Certificate);
+        SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(base64CertificatePath);
         //SM3摘要 带公钥
         byte[] digest = new SM3Impl().SM3HashWithPublicKey256(bytes, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
         //SM2验证签名
@@ -1657,14 +1633,14 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM2 加密 证书
      *
-     * @param certificate 证书数据 base64编码
+     * @param certificatePath 证书数据 base64编码
      * @param inData      待加密数据
      * @return 加密后的数据 base64编码的 ASN1 DER编码
      */
-    public byte[] sm2EncryptByCertificate(byte[] certificate, byte[] inData) throws AFCryptoException {
+    public byte[] sm2EncryptByCertificate(byte[] certificatePath, byte[] inData) throws AFCryptoException {
         //region//======>参数检查 日志打印
         logger.info("使用证书进行SM2加密");
-        if (certificate == null || certificate.length == 0) {
+        if (certificatePath == null || certificatePath.length == 0) {
             logger.error("SM2证书加密失败,证书数据为空");
             throw new AFCryptoException("SM2证书加密失败,证书数据为空");
         }
@@ -1678,7 +1654,7 @@ public class AFSVDevice implements IAFSVDevice {
 //        }
         //endregion
         //从证书中解析出公钥
-        SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(certificate).to512();
+        SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(certificatePath).to512();
         // 加密数据
         byte[] bytes = cmd.sm2Encrypt(-1, sm2PublicKey.encode(), inData);
         // 封装密文
@@ -3743,6 +3719,20 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
+     * 获取设备证书
+     * @param usage 证书用途 1：加密证书 | 2：签名证书
+     * @return ：Base64编码的服务器证书
+     */
+    public byte[] getServerCertByUsage(int usage) throws AFCryptoException {
+        byte[] cert;
+        cert = cmd.getServerCertByUsage(usage);
+        if (null == cert) {
+            throw new AFCryptoException("获取服务器证书失败");
+        }
+        return BytesOperate.base64EncodeCert(cert);
+    }
+
+    /**
      * 获取应用实体信息
      * <p>获取应用策略</p>
      * <p>根据策略名称获取应用策略，此应用策略为用户在管理程序中创建。用户获取应用策略后，签名服务器会根据用户设定的策略内容进行相关的服务操作</p>
@@ -4051,7 +4041,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param certificatePath 证书路径
      * @return RSAPubKey 对象
      */
-    private RSAPubKey getRSAPublicKeyFromCertificate(byte[] certificatePath) throws AFCryptoException {
+    private RSAPubKey getRSAPublicKeyFromCertificatePath(byte[] certificatePath) throws AFCryptoException {
         logger.info("SV-从证书中获取RSA公钥,证书路径:{}", null == certificatePath ? "" : new String(certificatePath));
         if (null == certificatePath || certificatePath.length == 0) {
             logger.info("证书路径为空");

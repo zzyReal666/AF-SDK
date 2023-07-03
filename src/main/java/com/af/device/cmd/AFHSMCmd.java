@@ -5,6 +5,7 @@ import com.af.bean.ResponseMessage;
 import com.af.constant.Algorithm;
 import com.af.constant.CMDCode;
 import com.af.constant.ModulusLength;
+import com.af.constant.SpecialRequestsType;
 import com.af.device.DeviceInfo;
 import com.af.exception.AFCryptoException;
 import com.af.netty.NettyClient;
@@ -449,7 +450,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(keyLength)
                 .toBytes();
         RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATEKEY_ECC, param, agKey);
-        ResponseMessage res = client.send(req, true);
+        ResponseMessage res = client.send(req, SpecialRequestsType.SessionKey);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-CMD-生成会话密钥,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-CMD-生成会话密钥,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -530,7 +531,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(keyLength)
                 .toBytes();
         RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATEKEYWITHKEK, param, agKey);
-        ResponseMessage res = client.send(req, true);
+        ResponseMessage res = client.send(req, SpecialRequestsType.SessionKey);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-CMD-生成会话密钥（使用对称密钥）,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-CMD-生成会话密钥（使用对称密钥）,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -582,7 +583,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(keyIndex)
                 .toBytes();
         RequestMessage req = new RequestMessage(CMDCode.CMD_DESTROYKEY, param, agKey);
-        ResponseMessage res = client.send(req, true);
+        ResponseMessage res = client.send(req, SpecialRequestsType.SessionKey);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-CMD-释放密钥信息,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-CMD-释放密钥信息,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -1076,7 +1077,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(data.length)
                 .append(data);
         byte[] param = buffer.toBytes();
-        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_CALCULATEMAC, param, agKey), true);
+        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_CALCULATEMAC, param, agKey), SpecialRequestsType.MAC);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-CMD-MAC计算失败, algorithm:{}, type:{}, keyIndex:{}, keyLen:{}, ivLen:{}, dataLen:{}, 错误码:{},错误信息:{}", algorithm, type, keyIndex, null == key ? 0 : key.length, null == iv ? 0 : iv.length, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-CMD-MAC计算失败, algorithm:" + algorithm + ", type:" + type + ", keyIndex:" + keyIndex + ", keyLen:" + (null == key ? 0 : key.length) + ", ivLen:" + (null == iv ? 0 : iv.length) + ", dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -1124,7 +1125,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(null == userId ? 0 : userId.length)
                 .append(userId);
         byte[] param = buffer.toBytes();
-        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHINIT, param, agKey));
+        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHINIT, param, agKey),SpecialRequestsType.Hash);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-CMD-HASH INIT失败, algorithm:{}, publicKeyLen:{},  userIdLen:{}, 错误码:{},错误信息:{}", algorithm, null == publicKey ? 0 : publicKey.length, null == userId ? 0 : userId.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-CMD-HASH INIT失败, algorithm:" + algorithm + ", publicKeyLen:" + (null == publicKey ? 0 : publicKey.length) + ",  userIdLen:" + (null == userId ? 0 : userId.length) + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -1142,7 +1143,7 @@ public class AFHSMCmd extends AFCmd {
                 .append(data.length)
                 .append(data);
         byte[] param = buffer.toBytes();
-        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHUPDATE, param, agKey));
+        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHUPDATE, param, agKey),SpecialRequestsType.Hash);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-CMD-HASH UPDATE失败, dataLen:{}, 错误码:{},错误信息:{}", data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-CMD-HASH UPDATE失败, dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -1157,7 +1158,7 @@ public class AFHSMCmd extends AFCmd {
      */
     public byte[] hashFinal() throws AFCryptoException {
         logger.info("HSM-CMD-HASH FINAL");
-        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHFINAL, null, agKey));
+        ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_HASHFINAL, null, agKey),SpecialRequestsType.Hash);
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-CMD-HASH FINAL失败, 错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-CMD-HASH FINAL失败, 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -1296,10 +1297,13 @@ public class AFHSMCmd extends AFCmd {
                 throw new AFCryptoException("获取私钥访问权限失败");
             }
         }
-        ResponseMessage responseMessage = client.send(requestMessage, true);
-        if (responseMessage.getHeader().getErrorCode() != 0) {
-            logger.error("singleChannel获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-            throw new AFCryptoException("获取私钥访问权限失败");
+        //遍历SpecialRequestsType 枚举
+        for (SpecialRequestsType specialRequestsType : SpecialRequestsType.values()) {
+            ResponseMessage responseMessage = client.send(requestMessage, specialRequestsType);
+            if (responseMessage.getHeader().getErrorCode() != 0) {
+                logger.error("specialRequestsType获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+                throw new AFCryptoException("获取私钥访问权限失败");
+            }
         }
     }
 

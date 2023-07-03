@@ -115,7 +115,7 @@ class AFHsmDeviceTest {
 
     }
 
-    //生成会话密钥 导入会话密钥密文 释放密钥信息 success
+    //生成会话密钥 导入会话密钥密文 释放密钥信息 success todo single
     @Test
     void testReleaseKeyPair() throws Exception {
 
@@ -159,7 +159,7 @@ class AFHsmDeviceTest {
 
     }
 
-    //生成协商数据 生成协商数据及密钥 生成协商密钥 success todo 未验证
+    //生成协商数据 生成协商数据及密钥 生成协商密钥 success todo 未验证  single
     @Test
     void testGenerateAgreementData() throws Exception {
         AgreementData agreementData = new AgreementData();
@@ -534,6 +534,7 @@ class AFHsmDeviceTest {
     //Hash
     @Test
     void testHash() throws Exception {
+        //不带公钥
 
         byte[] userId = "1234567812345678".getBytes();
         //init
@@ -550,6 +551,8 @@ class AFHsmDeviceTest {
         byte[] bytes2 = device.sm3Hash(data);
         System.out.println("sm3 hash 一步结果:" + new String(bytes2));
 
+
+        //带公钥
 
         //生成Sm2密钥对
         SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(1);

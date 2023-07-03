@@ -2,6 +2,7 @@ package com.af.netty;
 
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
+import com.af.constant.SpecialRequestsType;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -17,7 +18,7 @@ public interface NettyClient {
      */
     ResponseMessage send(RequestMessage requestMessage);
 
-    ResponseMessage send(RequestMessage requestMessage, boolean singleChannel);
+    ResponseMessage send(RequestMessage requestMessage, SpecialRequestsType type);
 
     /**
      * 关闭连接

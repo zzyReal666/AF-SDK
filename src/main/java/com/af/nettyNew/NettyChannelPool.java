@@ -1,5 +1,6 @@
 package com.af.nettyNew;
 
+import com.af.constant.SpecialRequestsType;
 import com.af.netty.handler.MyDecoder;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -14,10 +15,12 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -107,7 +110,7 @@ public class NettyChannelPool {
     /**
      * channel 用于需要同一个通道计算的情况
      */
-    private Channel channel;
+    private List<Channel> channels = new CopyOnWriteArrayList<>();
 
 
     //endregion
@@ -198,13 +201,23 @@ public class NettyChannelPool {
         //初始化通道池
         for (int i = 0; i < channelCount; i++) {
             try {
-                Channel channels = connectToServer();
-                channelQueue.offer(channels);
+                Channel channel = connectToServer();
+                channelQueue.offer(channel);
                 //初始化需要同一个通道计算的情况
             } catch (InterruptedException e) {
                 logger.error("初始化通道池失败", e);
             }
         }
+
+        try {
+            //遍历SpecialRequestsType 枚举
+            for (SpecialRequestsType specialRequestsType : SpecialRequestsType.values()) {
+                channels.add(connectToServer());
+            }
+        } catch (InterruptedException e) {
+            logger.error("初始化通道池失败", e);
+        }
+
         //队列输出channelId
         channelQueue.forEach(channel -> logger.info("channelId:{}", channel.id()));
     }

@@ -105,7 +105,7 @@ class AFSVDeviceTest {
     }
 
     /**
-     * 随机数 success
+     * 随机数 success    todo 为什么需要base64编码
      */
     @Test
     void testGetRandom2() throws Exception {

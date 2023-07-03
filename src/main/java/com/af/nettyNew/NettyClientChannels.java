@@ -2,6 +2,7 @@ package com.af.nettyNew;
 
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
+import com.af.constant.SpecialRequestsType;
 import com.af.netty.NettyClient;
 import com.af.utils.BytesBuffer;
 import io.netty.buffer.ByteBuf;
@@ -23,7 +24,6 @@ import org.slf4j.LoggerFactory;
 @Setter
 public class NettyClientChannels implements NettyClient {
     private static final Logger logger = LoggerFactory.getLogger(NettyClientChannels.class);
-
 
     final NettyChannelPool nettyChannelPool = new NettyChannelPool();
 
@@ -129,14 +129,14 @@ public class NettyClientChannels implements NettyClient {
      * @param requestMessage 请求报文
      * @param singleChannel  是否单通道
      */
-    public ResponseMessage send(RequestMessage requestMessage, boolean singleChannel) {
+    public ResponseMessage send(RequestMessage requestMessage, SpecialRequestsType type) {
         logger.info(requestMessage.isEncrypt() ? "加密==>{}" : "==>{}", requestMessage);
         //开始时间
         long startTime = System.currentTimeMillis();
         //编码
         byte[] req = requestMessage.encode();
         //发送数据
-        byte[] res = send(req, requestMessage.getHeader().getTaskNO(), singleChannel);
+        byte[] res = send(req, requestMessage.getHeader().getTaskNO(), type);
         ResponseMessage responseMessage = new ResponseMessage(res, requestMessage.isEncrypt(), requestMessage.getAgKey());
         //结束时间
         long endTime = System.currentTimeMillis();
@@ -156,6 +156,28 @@ public class NettyClientChannels implements NettyClient {
             throw new RuntimeException(e);
         }
         //创建回调函数
+        return sendAndReceive(msg, seq, channel);
+    }
+
+    public byte[] send(byte[] msg, int seq, SpecialRequestsType type) {
+        //获取通道
+        Channel channel;
+        if (type.equals(SpecialRequestsType.SessionKey)) {
+            channel = nettyChannelPool.getChannels().get(0);
+        } else if (type.equals(SpecialRequestsType.Hash)) {
+            channel = nettyChannelPool.getChannels().get(1);
+        } else if (type.equals(SpecialRequestsType.NegotiationData)) {
+            channel = nettyChannelPool.getChannels().get(2);
+        } else if (type == SpecialRequestsType.MAC) {
+            channel = nettyChannelPool.getChannels().get(3);
+        } else {
+            logger.error("type错误");
+            throw new RuntimeException("type错误");
+        }
+        return sendAndReceive(msg, seq, channel);
+    }
+
+    private byte[] sendAndReceive(byte[] msg, int seq, Channel channel) {
         CallbackService callbackService = new CallbackService();
         ChannelUtils.putCallback2DataMap(channel, seq, callbackService);
         //发送数据 接收响应
@@ -178,31 +200,6 @@ public class NettyClientChannels implements NettyClient {
         }
     }
 
-    public byte[] send(byte[] msg, int seq, boolean singleChannel) {
-        //获取通道
-        Channel channel = nettyChannelPool.getChannel();
-        //创建回调函数
-        CallbackService callbackService = new CallbackService();
-        ChannelUtils.putCallback2DataMap(channel, seq, callbackService);
-        //发送数据 接收响应
-        try {
-            synchronized (callbackService) {
-                //msg 转为 ByteBuf
-                ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
-                //发送数据
-                channel.writeAndFlush(byteBuf);
-                //接收数据
-                callbackService.wait(nettyChannelPool.getResponseTimeout());
-            }
-            byte[] result = callbackService.result;
-            //放回通道
-            nettyChannelPool.putChannel(channel);
-            return result;
-        } catch (InterruptedException e) {
-            logger.error("发送数据失败");
-            throw new RuntimeException(e);
-        }
-    }
 
     /**
      * 连接到服务器 创建通道

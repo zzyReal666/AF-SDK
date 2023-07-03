@@ -389,7 +389,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param algorithm ：对称算法标识  SGD_RSA_ENC|SGD_SM2_2
      * @param keyIndex  ：用于加密会话密钥的密钥索引
      * @param key       ：会话密钥密文
-     * @return 会话密钥id 密钥长度
+     * @return 会话密钥id
      */
     public SessionKey importSessionKey(Algorithm algorithm, int keyIndex, byte[] key) throws AFCryptoException {
         //参数检查
@@ -476,6 +476,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param algorithm 加密算法标识 SGD_SM1_ECB|SGD_SMS4_ECB
      * @param keyIndex  加密密钥索引
      * @param key       会话密钥密文
+     * @return 会话密钥id 会话密钥长度
      */
     public SessionKey importSessionKeyBySym(Algorithm algorithm, int keyIndex, byte[] key) throws AFCryptoException {
         //参数检查
@@ -618,7 +619,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     //region======================================================RSA======================================================
 
     /**
-     * RSA内部加密运算
+     * RSA内部密钥加密运算
      *
      * @param index ：RSA内部密钥索引
      * @param data  : 原始数据
@@ -633,7 +634,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
 
     /**
-     * RSA内部解密运算 私钥解密
+     * RSA内部密钥解密运算 私钥解密
      *
      * @param index ：RSA内部密钥索引
      * @param data  : 加密数据
@@ -649,7 +650,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     }
 
     /**
-     * RSA外部加密运算 公钥加密
+     * RSA外部密钥加密运算 公钥加密
      *
      * @param publicKey ：RSA公钥信息
      * @param data      : 原始数据
@@ -665,7 +666,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     /**
      * RSA外部解密运算 私钥解密
      *
-     * @param prvKey ：RSA私钥信息
+         * @param prvKey ：RSA私钥信息
      * @param data   : 加密数据
      * @return ：返回运算结果
      */
@@ -715,17 +716,17 @@ public class AFHsmDevice implements IAFHsmDevice {
     /**
      * RSA外部签名运算 私钥签名
      *
-     * @param prvKey ：RSA私钥信息
+     * @param privateKey ：RSA私钥信息
      * @param data   : 原始数据
      * @return ：返回运算结果
      */
-    public byte[] rsaExternalSign(RSAPriKey prvKey, byte[] data) throws AFCryptoException {
+    public byte[] rsaExternalSign(RSAPriKey privateKey, byte[] data) throws AFCryptoException {
         //获取摘要
-        byte[] hash = digestForRSASign(-1, prvKey.getBits(), data);
+        byte[] hash = digestForRSASign(-1, privateKey.getBits(), data);
         //填充
-        hash = AFPkcs1Operate.pkcs1EncryptionPrivate(prvKey.getBits(), hash);
+        hash = AFPkcs1Operate.pkcs1EncryptionPrivate(privateKey.getBits(), hash);
         //签名 私钥加密
-        return cmd.rsaPrivateKeyOperation(0, prvKey, Algorithm.SGD_RSA_SIGN, hash);
+        return cmd.rsaPrivateKeyOperation(0, privateKey, Algorithm.SGD_RSA_SIGN, hash);
     }
 
     /**
@@ -822,7 +823,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher 密文数据
      * @return 明文数据
      */
-    public byte[] sm2ExternalDecrypt(SM2PrivateKey prvKey, byte[] cipher) throws AFCryptoException {
+        public byte[] sm2ExternalDecrypt(SM2PrivateKey prvKey, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (prvKey == null) {
             logger.error("SM2 外部密钥解密，私钥信息不能为空");
@@ -867,7 +868,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param index 密钥索引
      * @param data  原始数据
      * @param sign  签名数据
-     * @return 验签结果
+         * @return 验签结果
      */
     public boolean sm2InternalVerify(int index, byte[] data, byte[] sign) throws AFCryptoException {
         //参数检查
@@ -1635,10 +1636,10 @@ public class AFHsmDevice implements IAFHsmDevice {
      *
      * @param keyIndex 密钥索引
      * @param iv       初始向量
-     * @param plain    明文
+     * @param cipher    明文
      * @return 密文
      */
-    public byte[] sm1InternalDecryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
+    public byte[] sm1InternalDecryptCBC(int keyIndex, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1652,12 +1653,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 解密，初始向量长度必须为16字节");
             throw new AFCryptoException("SM1 解密，初始向量长度必须为16字节");
         }
-        if (plain == null || plain.length == 0) {
+        if (cipher == null || cipher.length == 0) {
             logger.error("SM1 解密，加密数据不能为空");
             throw new AFCryptoException("SM1 解密，加密数据不能为空");
         }
         //分包
-        List<byte[]> bytes = splitPackage(plain);
+        List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
             byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM1_CBC, 1, keyIndex, null, iv, bytes.get(i));

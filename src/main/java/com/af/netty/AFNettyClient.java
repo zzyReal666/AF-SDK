@@ -4,6 +4,7 @@ import com.af.bean.ReqestMessageForNoEncrypt;
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.bean.ResponseMessageForNoEncrypt;
+import com.af.constant.SpecialRequestsType;
 import com.af.netty.handler.AFNettyClientHandler;
 import com.af.netty.handler.MyDecoder;
 import com.af.utils.BytesBuffer;
@@ -161,9 +162,10 @@ public class AFNettyClient implements NettyClient {
     }
 
     @Override
-    public ResponseMessage send(RequestMessage requestMessage, boolean singleChannel) {
+    public ResponseMessage send(RequestMessage requestMessage, SpecialRequestsType type) {
         return send(requestMessage);
     }
+
 
     /**
      * 不加密发送数据
