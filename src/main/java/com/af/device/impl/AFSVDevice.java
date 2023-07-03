@@ -1083,7 +1083,7 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
-     * SM2 签名 外部私钥 带证书   公钥Hash,私钥签名 带z值
+     * SM2 签名 外部私钥+证书  公钥Hash,私钥签名 带z值
      *
      * @param data              待签名数据
      * @param privateKey        私钥 ASN1结构 Base64编码
@@ -1155,7 +1155,7 @@ public class AFSVDevice implements IAFSVDevice {
         cmd.getPrivateAccess(index, 4);
         // 读取文件内容
         byte[] bytes = FileUtil.readBytes(new String(filePath));
-        //SM2签名 做SM3杂凑
+        //SM2签名
         return sm2Signature(index, bytes);
     }
 
@@ -1186,7 +1186,7 @@ public class AFSVDevice implements IAFSVDevice {
 
     /**
      * SM2 文件签名 外部私钥 不带证书
-     * 不带Z值
+     * 带Z值
      *
      * @param privateKey 外部私钥 Base64编码 ASN1结构
      * @param filePath   待签名文件路径
@@ -1206,19 +1206,20 @@ public class AFSVDevice implements IAFSVDevice {
         //endregion
         // 读取文件内容
         byte[] bytes = FileUtil.readBytes(new String(filePath));
-        //SM2签名
+        //SM2签名 带Z值
         return sm2SignatureByPrivateKey(privateKey, bytes);
     }
 
+
     /**
-     * SM2 文件签名 外部私钥 带证书
+     * SM2 文件签名 外部私钥 +证书  带Z值
      *
-     * @param filePath              待签名文件路径
-     * @param privateKey            外部密钥 Base64编码 ASN1结构
-     * @param base64CertificatePath 证书路径 Base64编码 用于获取公钥,并做SM3杂凑
+     * @param filePath          待签名文件路径
+     * @param privateKey        外部密钥 Base64编码 ASN1结构
+     * @param base64Certificate 证书 Base64编码 用于获取公钥,并做SM3杂凑
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    public byte[] sm2SignFileByCertificate(byte[] privateKey, byte[] filePath, byte[] base64CertificatePath) throws AFCryptoException {
+    public byte[] sm2SignFileByCertificate(byte[] privateKey, byte[] filePath, byte[] base64Certificate) throws AFCryptoException {
         //region//======>参数检查 日志打印
         if (filePath == null || filePath.length == 0) {
             logger.error("SV_Device 外部证书文件签名,待签名的文件名称为空");
@@ -1228,7 +1229,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SV_Device 外部证书文件签名,私钥为空");
             throw new AFCryptoException("SV_Device 外部证书文件签名,私钥为空");
         }
-        if (base64CertificatePath == null || base64CertificatePath.length == 0) {
+        if (base64Certificate == null || base64Certificate.length == 0) {
             logger.error("SV_Device 外部证书文件签名,证书为空");
             throw new AFCryptoException("SV_Device 外部证书文件签名,证书为空");
         }
@@ -1237,7 +1238,7 @@ public class AFSVDevice implements IAFSVDevice {
         // 读取文件内容
         byte[] bytes = FileUtil.readBytes(new String(filePath));
         //SM2签名
-        return sm2SignatureByCertificate(privateKey, bytes, base64CertificatePath);
+        return sm2SignatureByCertificate(privateKey, bytes, base64Certificate);
     }
 
     /**
@@ -1310,7 +1311,7 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
-     * SM2 验签 一张证书
+     * SM2 验签 一张证书 带z值
      *
      * @param cert      证书
      * @param data      待验签数据
@@ -3598,7 +3599,7 @@ public class AFSVDevice implements IAFSVDevice {
     //region 证书管理
 
     /**
-     * <p>获取证书的个数</p>
+     * 获取证书的个数
      * <p>根据证书别名获取信任证书的个数</p>
      *
      * @param altName ：证书别名
@@ -3611,7 +3612,7 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
-     * <p>根据别名获取单个证书</p>
+     *根据别名获取单个证书
      * <p>根据别名获取单个证书</p>
      *
      * @param altName   ：证书别名
@@ -3664,7 +3665,7 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
-     * <p>获取证书信息</p>
+     * 获取证书信息
      * <p>获取用户指定的证书信息内容</p>
      *
      * @param base64Certificate ：Base64编码的证书文件
@@ -3678,7 +3679,7 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
-     * <p>获取证书扩展信息</p>
+     * 获取证书扩展信息
      * <p>获取用户指定的证书扩展信息内容</p>
      *
      * @param base64Certificate ：Base64编码的证书文件
@@ -4032,24 +4033,23 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * 从证书中获取RSA公钥
      *
-     * @param certificatePath 证书路径
+     * @param certificate 证书 base64 编码 DER
      * @return RSAPubKey 对象
      */
-    private RSAPubKey getRSAPublicKeyFromCertificatePath(byte[] certificatePath) throws AFCryptoException {
-        logger.info("SV-从证书中获取RSA公钥,证书路径:{}", null == certificatePath ? "" : new String(certificatePath));
-        if (null == certificatePath || certificatePath.length == 0) {
+    private RSAPubKey getRSAPublicKeyFromCertificatePath(byte[] certificate) throws AFCryptoException {
+        if (null == certificate || certificate.length == 0) {
             logger.info("证书路径为空");
             throw new AFCryptoException("证书路径为空");
         }
         RSAPubKey rsaPubKey = null;
         try {
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            X509Certificate cert = (X509Certificate) cf.generateCertificate(new FileInputStream(new String(certificatePath)));
+            X509Certificate cert = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certificate));
             PublicKey publicKey = cert.getPublicKey();
             byte[] derRSAPubKey = new byte[publicKey.getEncoded().length - 24];
             System.arraycopy(publicKey.getEncoded(), 24, derRSAPubKey, 0, publicKey.getEncoded().length - 24);
             rsaPubKey = decodeRSAPublicKey(BytesOperate.base64EncodeData(derRSAPubKey));
-        } catch (CertificateException | FileNotFoundException e) {
+        } catch (CertificateException e) {
             logger.error("解析证书失败", e);
         }
         return rsaPubKey;
@@ -4085,6 +4085,7 @@ public class AFSVDevice implements IAFSVDevice {
 
     /**
      * SM2 ASN1结构转换为自定义SM2公钥结构
+     *
      * @param publicKey 公钥数据 ASN1结构 Base64编码
      * @return SM2公钥 AF结构
      */
