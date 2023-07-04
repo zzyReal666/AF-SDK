@@ -1350,10 +1350,10 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
-     * SM2 验签 两张证书
+     * SM2 验签 两张证书 带Z值
      *
-     * @param signCert 签名证书 Base64编码
-     * @param hashCert 杂凑证书 Base64编码
+     * @param signCert 签名证书 Base64编码 DER格式
+     * @param hashCert 杂凑证书 Base64编码 DER格式
      * @param data     原始数据
      * @param signData 签名数据 Base64编码 ASN1 DER结构
      */
@@ -3761,8 +3761,8 @@ public class AFSVDevice implements IAFSVDevice {
      * @param policyName : 实体名称
      * @return : Base64编码的证书
      */
-    public byte[] getEncCertByPolicyName(byte[] policyName) throws AFCryptoException {
-        return BytesOperate.base64EncodeCert(cmd.getCertByPolicyName(policyName, ConstantNumber.SGD_SERVER_CERT_ENC));
+    public byte[] getEncCertByPolicyName(String policyName) throws AFCryptoException {
+        return BytesOperate.base64EncodeCert(cmd.getCertByPolicyName(policyName.getBytes(), ConstantNumber.SGD_SERVER_CERT_ENC));
     }
 
 
@@ -3859,7 +3859,7 @@ public class AFSVDevice implements IAFSVDevice {
      * PKCS7 签名信息解码
      *
      * @param signedData Base64编码的签名数据
-     * @return 签名数据结构体
+     * @return 签名数据结构体 解码后的数据，包括签名者证书，HASH算法标识，被签名的数据以及签名值
      */
     public AFSM2DecodeSignedData decodeSignedDataForSM2(byte[] signedData) throws AFCryptoException {
         byte[] derSignedData = BytesOperate.base64DecodeData(new String(signedData));

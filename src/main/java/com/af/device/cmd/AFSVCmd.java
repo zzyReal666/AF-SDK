@@ -884,8 +884,8 @@ public class AFSVCmd {
      * 验证证书二
      * <p>验证证书是否被吊销，通过CRL模式获取当前证书的有效性。</p>
      *
-     * @param base64Certificate ： 待验证的证书--BASE64编码格式
-     * @param crlData           :           待验证证书的CRL文件数据 --BASE64编码格式
+     * @param base64Certificate 待验证的证书--BASE64编码格式
+     * @param crlData           待验证证书的CRL文件数据 --BASE64编码格式
      * @return ：返回证书验证结果，true ：当前证书已被吊销, false ：当前证书未被吊销
      */
     public boolean isCertificateRevoked(byte[] base64Certificate, byte[] crlData) throws CertificateException, AFCryptoException { //success
@@ -1093,7 +1093,7 @@ public class AFSVCmd {
         return res.getDataBuffer().readOneData();
     }
 
-    /**
+     /**
      * PKCS7 签名信息解码
      * <p>解码签名数据</p>
      * <p>解码基于SM2算法的签名数据</p>
