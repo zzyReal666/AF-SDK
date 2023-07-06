@@ -48,7 +48,7 @@ test {
 }
 
 
-//打包成Jar，包含依赖
+//打包成Jar，包含依赖  gradle jar -x test 不执行测试
 jar {
     manifestContentCharset 'utf-8'
     metadataCharset 'utf-8'
@@ -60,6 +60,9 @@ jar {
             }
 
 }
+
+
+
 
 
 //自动生成文档
