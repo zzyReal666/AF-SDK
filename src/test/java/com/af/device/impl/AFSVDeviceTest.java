@@ -186,6 +186,7 @@ class AFSVDeviceTest {
         byte[] fileName = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData".getBytes();
 
         //RSA 内部签名验签 success
+        device.getPrivateAccess(1, 4,"12345678910");
         byte[] bytes = device.rsaSignature(1, "1234567".getBytes());
         boolean b = device.rsaVerify(1, "1234567".getBytes(), bytes);
         assert b;
