@@ -27,6 +27,7 @@ allprojects {
     }
 }
 dependencies {
+    implementation fileTree(dir: 'lib', include: ['*.jar'])
     testImplementation platform('org.junit:junit-bom:5.9.1') // 单元测试
     testImplementation 'org.junit.jupiter:junit-jupiter'     // 单元测试
     implementation 'ch.qos.logback:logback-classic:1.2.9'
@@ -39,11 +40,10 @@ dependencies {
     // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.70'
 
-
 }
 
 test {
-    enabled = false
+    enabled = true
     useJUnitPlatform()
 }
 
