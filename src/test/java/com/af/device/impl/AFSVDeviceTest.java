@@ -82,7 +82,9 @@ class AFSVDeviceTest {
      */
     @Test
     void testGetPrivateKeyAccessRight() throws Exception {
-        device.getPrivateAccess(1, 4);
+        device.getPrivateAccess(1, 3,"12345678");
+        device.getPrivateAccess(1, 4,"12345678910");
+        device.getPrivateAccess(15, 3,"12345678");
     }
 
     /**

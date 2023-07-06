@@ -189,14 +189,13 @@ public class AFSVCmd {
      * @param index   索引
      * @param keyType 密钥类型 3:SM2 4:RSA
      */
-    public void getPrivateAccess(int index, int keyType) throws AFCryptoException { //success
+    public void getPrivateAccess(int index, int keyType,String psw) throws AFCryptoException { //success
         logger.info("SV-CMD 获取私钥访问权限, index: {}, keyType: {}", index, keyType);
-        String pwd = "12345678";
         byte[] param = new BytesBuffer()
                 .append(index)
                 .append(keyType)
-                .append(pwd.length())
-                .append(pwd.getBytes(StandardCharsets.UTF_8))
+                .append(psw.length())
+                .append(psw.getBytes(StandardCharsets.UTF_8))
                 .toBytes();
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, param, agKey);
         int count = client instanceof NettyClientChannels ? ((NettyClientChannels) client).getNettyChannelPool().getChannelCount() : 1;

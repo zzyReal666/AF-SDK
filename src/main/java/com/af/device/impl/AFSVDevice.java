@@ -315,8 +315,8 @@ public class AFSVDevice implements IAFSVDevice {
      * @param index 私钥索引
      */
 
-    public void getPrivateAccess(int index, int keyType) throws AFCryptoException {
-        cmd.getPrivateAccess(index, keyType);
+    public void getPrivateAccess(int index, int keyType,String psw) throws AFCryptoException {
+        cmd.getPrivateAccess(index, keyType,psw);
     }
     //endregion
 
@@ -517,8 +517,8 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("待签名数据为空");
         }
         //endregion
-        //获取私钥访问权限
-        cmd.getPrivateAccess(keyIndex, 4);
+//        //获取私钥访问权限
+//        getPrivateAccess(keyIndex, 4);
         //获取模长
         int bits = getBitsByKeyIndex(keyIndex);
         //PKCS1 签名填充
@@ -981,8 +981,8 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("待签名的数据为空");
         }
         //endregion
-        //获取私钥访问权限
-        cmd.getPrivateAccess(index, 3);
+//        //获取私钥访问权限
+//        cmd.getPrivateAccess(index, 3);
         //SM3杂凑
         byte[] digest = sm3.digest(data);
         //SM2签名
@@ -1151,8 +1151,8 @@ public class AFSVDevice implements IAFSVDevice {
         }
         logger.info("SV_Device 内部密钥文件签名,index:{},filePath:{}", index, new String(filePath));
         //endregion
-        //获取私钥访问权限
-        cmd.getPrivateAccess(index, 4);
+//        //获取私钥访问权限
+//        cmd.getPrivateAccess(index, 4);
         // 读取文件内容
         byte[] bytes = FileUtil.readBytes(new String(filePath));
         //SM2签名
@@ -1696,8 +1696,8 @@ public class AFSVDevice implements IAFSVDevice {
         }
         logger.info("使用内部密钥进行SM2解密");
         //endregion
-        //获取私钥访问权限
-        cmd.getPrivateAccess(keyIndex, 3);
+//        //获取私钥访问权限
+//        cmd.getPrivateAccess(keyIndex, 3);
         //密文转换为SM2Cipher
         SM2Cipher sm2Cipher = getSm2Cipher(encData).to512();
         logger.error("SM2内部密钥解密,密文数据:{}", sm2Cipher.encode());
