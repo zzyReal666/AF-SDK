@@ -1698,6 +1698,7 @@ public class AFSVDevice implements IAFSVDevice {
 //        cmd.getPrivateAccess(keyIndex, 3);
         //密文转换为SM2Cipher
         SM2Cipher sm2Cipher = getSm2Cipher(encData).to512();
+        logger.error("SM2内部密钥解密,密文数据:{}", sm2Cipher.encode());
         //SM2解密
         byte[] bytes = cmd.sm2Decrypt(keyIndex, null, sm2Cipher.encode());
         return BytesOperate.base64EncodeData(bytes);
