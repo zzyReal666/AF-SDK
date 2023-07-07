@@ -1584,9 +1584,7 @@ public class AFSVDevice implements IAFSVDevice {
 
         //SM2加密
         byte[] bytes = cmd.sm2Encrypt(keyIndex, null, inData);
-        logger.error("SM2内部密钥加密,SM2加密原始结果:{}", bytes);
         SM2Cipher sm2Cipher = new SM2Cipher(bytes).to256();
-        logger.error("SM2内部密钥加密,SM2加密处理后结果:{}", sm2Cipher.encode());
         //SM2加密结果转换为ASN1编码
         SM2CipherStructure sm2CipherStructure = new SM2CipherStructure(sm2Cipher);
         //ASN1编码转换为DER编码
@@ -1702,7 +1700,6 @@ public class AFSVDevice implements IAFSVDevice {
 //        cmd.getPrivateAccess(keyIndex, 3);
         //密文转换为SM2Cipher
         SM2Cipher sm2Cipher = getSm2Cipher(encData).to512();
-        logger.error("SM2内部密钥解密,密文数据:{}", sm2Cipher.encode());
         //SM2解密
         byte[] bytes = cmd.sm2Decrypt(keyIndex, null, sm2Cipher.encode());
         return BytesOperate.base64EncodeData(bytes);
