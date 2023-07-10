@@ -56,8 +56,6 @@ public class AFHsmDevice implements IAFHsmDevice {
     private final SM3 sm3 = new SM3Impl();  //国密SM3算法
     private final AFHSMCmd cmd = new AFHSMCmd(client, agKey);
 
-    private  AFHsmDevice() {
-    }
     private AFHsmDevice(NettyClient client) {
         AFHsmDevice.client = client;
     }
@@ -868,7 +866,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         //获取私钥访问权限
         getPrivateKeyAccessRight(index, 3, "12345678");
         //签名
-        return cmd.sm2Sign(index, null, digest);
+        return cmd.sm2Sign(index, null, data);
     }
 
     /**
@@ -896,7 +894,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         //SM3 摘要
         byte[] digest = new cn.hutool.crypto.digest.SM3().digest(data);
         //验签
-        return cmd.sm2Verify(index, null, digest, sign);
+        return cmd.sm2Verify(index, null, data, sign);
     }
 
     /**
@@ -919,7 +917,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         //SM3 摘要
         byte[] digest = new cn.hutool.crypto.digest.SM3().digest(data);
         //签名
-        return cmd.sm2Sign(-1, prvKey.encode(), digest);
+        return cmd.sm2Sign(-1, prvKey.encode(), data);
     }
 
     /**
@@ -947,7 +945,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         //SM3 摘要
         byte[] digest = new cn.hutool.crypto.digest.SM3().digest(data);
         //验签
-        return cmd.sm2Verify(-1, pubKey.encode(), digest, sign);
+        return cmd.sm2Verify(-1, pubKey.encode(), data, sign);
     }
     //endregion
 
@@ -3241,20 +3239,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data 待填充数据
      * @return 填充后数据
      */
-    private static byte[] padding(byte[] data) {
-        int paddingNumber = 16 - (data.length % 16);
-        byte[] paddingData = new byte[paddingNumber];
-        Arrays.fill(paddingData, (byte) paddingNumber);
-        byte[] outData = new byte[data.length + paddingNumber];
-        System.arraycopy(data, 0, outData, 0, data.length);
-        System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
-        return outData;
-    }
-
 //    private static byte[] padding(byte[] data) {
-////        if ((data.length % 16) == 0) {
-////            return data;
-////        }
 //        int paddingNumber = 16 - (data.length % 16);
 //        byte[] paddingData = new byte[paddingNumber];
 //        Arrays.fill(paddingData, (byte) paddingNumber);
@@ -3264,6 +3249,19 @@ public class AFHsmDevice implements IAFHsmDevice {
 //        return outData;
 //    }
 
+    private static byte[] padding(byte[] data) {
+        if ((data.length % 16) == 0) {
+            return data;
+        }
+        int paddingNumber = 16 - (data.length % 16);
+        byte[] paddingData = new byte[paddingNumber];
+        Arrays.fill(paddingData, (byte) paddingNumber);
+        byte[] outData = new byte[data.length + paddingNumber];
+        System.arraycopy(data, 0, outData, 0, data.length);
+        System.arraycopy(paddingData, 0, outData, data.length, paddingNumber);
+        return outData;
+    }
+
 
     /**
      * 去填充
@@ -3272,16 +3270,30 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return 去填充后数据
      * 去填充异常
      */
-    private static byte[] cutting(byte[] data) throws AFCryptoException {
+//    private static byte[] cutting(byte[] data) throws AFCryptoException {
+//        int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
+//        for (int i = 0; i < paddingNumber; ++i) {
+//            if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
+//                throw new AFCryptoException("验证填充数据错误");
+//            }
+//        }
+//        byte[] outData = new byte[data.length - paddingNumber];
+//        System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
+//        return outData;
+//    }
+
+        private static byte[] cutting(byte[] data)  throws AFCryptoException {
         int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
+        if (paddingNumber >= 16) paddingNumber = 0;
         for (int i = 0; i < paddingNumber; ++i) {
             if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
-                throw new AFCryptoException("验证填充数据错误");
+                return null;
             }
         }
         byte[] outData = new byte[data.length - paddingNumber];
         System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
-        return outData;
+        //注意!!!!为了适配JCE接口,这里cutting不需要执行 直接返回
+        return data;
     }
 
     /**
@@ -3302,18 +3314,6 @@ public class AFHsmDevice implements IAFHsmDevice {
                 })
                 .collect(Collectors.toList());
     }
-//    private static byte[] cutting(byte[] data) {
-//        int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);
-//        if (paddingNumber >= 16) paddingNumber = 0;
-//        for (int i = 0; i < paddingNumber; ++i) {
-//            if ((int) data[data.length - paddingNumber + i] != paddingNumber) {
-//                return null;
-//            }
-//        }
-//        byte[] outData = new byte[data.length - paddingNumber];
-//        System.arraycopy(data, 0, outData, 0, data.length - paddingNumber);
-//        return outData;
-//    }
 
     //endregion
 }

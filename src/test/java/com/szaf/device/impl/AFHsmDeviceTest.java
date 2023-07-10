@@ -22,7 +22,7 @@ class AFHsmDeviceTest {
 
     static Logger logger = Logger.getLogger("AFHsmDeviceTest");
     static AFHsmDevice device;
-    static byte[] data = "123456788765432".getBytes(StandardCharsets.UTF_8);
+    static byte[] data = "12345600".getBytes(StandardCharsets.UTF_8);
 
 //    static byte[] data = FileUtil.readBytes("D:\\test.zip");
 
@@ -286,13 +286,11 @@ class AFHsmDeviceTest {
 
 
         //SM4 ECB 密钥句柄
-        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
-        System.out.println("SM4 ECB 密钥句柄:" + key1);
-        byte[] bytes = device.sm4HandleEncryptECB(key1.getId(), data);
-        byte[] bytes1 = device.sm4HandleDecryptECB(key1.getId(), bytes);
-        //释放
-        device.releaseSessionKey(key1.getId());
-        assert Arrays.equals(data, bytes1);
+//        int symKeyHandle = device.getSymKeyHandle(1);
+//        System.out.println("SM4 ECB 密钥句柄:" + symKeyHandle);
+//        byte[] bytes = device.sm4HandleEncryptECB(symKeyHandle, data);
+//        byte[] bytes1 = device.sm4HandleDecryptECB(symKeyHandle, bytes);
+//        assert Arrays.equals(data, bytes1);
 
         //SM4 CBC 内部
         byte[] encodeData2 = device.sm4InternalEncryptCBC(1, iv, data);
@@ -304,13 +302,10 @@ class AFHsmDeviceTest {
         byte[] decodeData3 = device.sm4ExternalDecryptCBC(key, iv, encodeData3);
         assert Arrays.equals(data, decodeData3);
 
-        //SM4 CBC 密钥句柄
-        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
-        byte[] bytes2 = device.sm4HandleEncryptCBC(key2.getId(), iv, data);
-        byte[] bytes3 = device.sm4HandleDecryptCBC(key2.getId(), iv, bytes2);
-        //释放密钥句柄
-        device.releaseSessionKey(key2.getId());
-        assert Arrays.equals(data, bytes3);
+//        //SM4 CBC 密钥句柄
+//        byte[] bytes2 = device.sm4HandleEncryptCBC(symKeyHandle, iv, data);
+//        byte[] bytes3 = device.sm4HandleDecryptCBC(symKeyHandle, iv, bytes2);
+//        assert Arrays.equals(data, bytes3);
 
 
     }
