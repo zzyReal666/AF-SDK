@@ -25,16 +25,17 @@ import org.slf4j.LoggerFactory;
 public class NettyClientChannels implements NettyClient {
     private static final Logger logger = LoggerFactory.getLogger(NettyClientChannels.class);
 
-    final NettyChannelPool nettyChannelPool = new NettyChannelPool();
+    final NettyChannelPool nettyChannelPool = new NettyChannelPool(NettyClientChannels.this);
 
-
+    private int taskNo;
     FixedChannelPool channelPool;
 
     //region//建造者模式
-    private NettyClientChannels(String host, int port, String password) {
+    private NettyClientChannels(String host, int port, String password, int taskNo) {
         nettyChannelPool.setHost(host);
         nettyChannelPool.setPort(port);
         nettyChannelPool.setPassword(password);
+        this.taskNo = taskNo;
         //连接
         connect();
         //登录
@@ -48,8 +49,8 @@ public class NettyClientChannels implements NettyClient {
     public static class Builder {
         public final NettyClientChannels instance;
 
-        public Builder(String host, int port, String password) {
-            instance = new NettyClientChannels(host, port, password);
+        public Builder(String host, int port, String password, int taskNo) {
+            instance = new NettyClientChannels(host, port, password, taskNo);
         }
 
         public Builder timeout(int timeout) {
@@ -107,6 +108,8 @@ public class NettyClientChannels implements NettyClient {
      * 发送消息并且接收响应
      */
     public ResponseMessage send(RequestMessage requestMessage) {
+
+        requestMessage.setTaskNo(taskNo);
         logger.info(requestMessage.isEncrypt() ? "加密==>{}" : "==>{}", requestMessage);
         //开始时间
         long startTime = System.currentTimeMillis();
@@ -127,7 +130,7 @@ public class NettyClientChannels implements NettyClient {
      * 发送数据 接收响应 需要同一通道计算情况下使用
      *
      * @param requestMessage 请求报文
-     * @param type  请求类型
+     * @param type           请求类型
      */
     public ResponseMessage send(RequestMessage requestMessage, SpecialRequestsType type) {
         logger.info(requestMessage.isEncrypt() ? "加密==>{}" : "==>{}", requestMessage);
@@ -178,26 +181,53 @@ public class NettyClientChannels implements NettyClient {
     }
 
     private byte[] sendAndReceive(byte[] msg, int seq, Channel channel) {
-        CallbackService callbackService = new CallbackService();
-        ChannelUtils.putCallback2DataMap(channel, seq, callbackService);
-        //发送数据 接收响应
+//        CallbackService callbackService = new CallbackService();
+//        ChannelUtils.putCallback2DataMap(channel, seq, callbackService);
+//        //发送数据 接收响应
+//        try {
+//            synchronized (callbackService) {
+//                //msg 转为 ByteBuf
+//                ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
+//                //发送数据
+//                channel.writeAndFlush(byteBuf);
+//                //接收数据
+//                callbackService.wait(nettyChannelPool.getResponseTimeout());
+//            }
+//            byte[] result = callbackService.result;
+//            //放回通道
+//            nettyChannelPool.putChannel(channel);
+//            return result;
+//        } catch (InterruptedException e) {
+//            logger.error("发送数据失败");
+//            throw new RuntimeException(e);
+//        }
+
         try {
-            synchronized (callbackService) {
-                //msg 转为 ByteBuf
-                ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
+            //msg 转为 ByteBuf
+            ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
+            byte[] read;
+            synchronized (this) {
                 //发送数据
-                channel.writeAndFlush(byteBuf);
+                channel.writeAndFlush(byteBuf).sync();
                 //接收数据
-                callbackService.wait(nettyChannelPool.getResponseTimeout());
+                read = read();
             }
-            byte[] result = callbackService.result;
             //放回通道
             nettyChannelPool.putChannel(channel);
-            return result;
+            return read;
         } catch (InterruptedException e) {
             logger.error("发送数据失败");
             throw new RuntimeException(e);
         }
+
+
+    }
+    private byte[] read() throws InterruptedException {
+        //阻塞当前线程 等待数据返回 指定超时时间
+        this.wait(nettyChannelPool.getTimeout());
+        byte[] data = NettyHandler.response;
+        NettyHandler.response = null;
+        return data;
     }
 
 

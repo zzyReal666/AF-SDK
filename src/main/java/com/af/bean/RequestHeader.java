@@ -1,9 +1,8 @@
 package com.af.bean;
 
-import com.af.constant.CmdConsts;
 import com.af.utils.BytesBuffer;
 import lombok.Getter;
-import lombok.ToString;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @since 2023/4/19 16:06
  */
 @Getter
+@Setter
 public class RequestHeader {
 
     /**
@@ -35,7 +35,8 @@ public class RequestHeader {
     /**
      * 任务编号
      */
-    protected final int taskNO;
+    @Setter
+    protected int taskNO;
 
 
     /**
@@ -52,11 +53,11 @@ public class RequestHeader {
     public RequestHeader(int length, int cmd) {
         this.length = length + HEADER_LENGTH;
         this.cmd = cmd;
-        if (CmdConsts.CMD_LOGIN == cmd) {
-            taskNO = 0;
-        } else {
-            taskNO = atomicInteger.incrementAndGet();
-        }
+//        if (CmdConsts.CMD_LOGIN == cmd) {
+//            taskNO = 0;
+//        } else {
+//            taskNO = atomicInteger.incrementAndGet();
+//        }
     }
 
     /**

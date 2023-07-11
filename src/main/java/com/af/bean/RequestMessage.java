@@ -103,4 +103,8 @@ public class RequestMessage {
         result += ")";
         return result;
     }
+
+    public void setTaskNo(int taskNo) {
+        this.header.setTaskNO(taskNo);
+    }
 }

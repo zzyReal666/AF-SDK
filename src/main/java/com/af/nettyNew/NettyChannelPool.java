@@ -35,6 +35,8 @@ public class NettyChannelPool {
     //region//======>属性
     private static final Logger logger = LoggerFactory.getLogger(NettyChannelPool.class);
 
+    private NettyClientChannels clientChannels;
+
     /**
      * 主机
      */
@@ -122,6 +124,17 @@ public class NettyChannelPool {
         for (int i = 0; i < channelCount; i++) {
             this.locks[i] = new Object();
         }
+    }
+
+    public NettyChannelPool(NettyClientChannels clientChannels) {
+        this.channelCount = channelCount;
+        this.channelQueue = new ConcurrentLinkedQueue<>();
+        this.locks = new Object[channelCount];
+        for (int i = 0; i < channelCount; i++) {
+            this.locks[i] = new Object();
+        }
+        this.clientChannels = clientChannels;
+
     }
 
     public NettyChannelPool() {

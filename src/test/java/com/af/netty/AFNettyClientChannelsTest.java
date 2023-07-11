@@ -73,6 +73,6 @@ class AFNettyClientChannelsTest {
 
     @Test
     void test4() throws Exception {
-        NettyClientChannels abcd1234 = new NettyClientChannels.Builder("192.168.10.40", 8008, "abcd1234").timeout(10000).build();
+        NettyClientChannels abcd1234 = new NettyClientChannels.Builder("192.168.10.40", 8008, "abcd1234", 0).timeout(10000).build();
     }
 }

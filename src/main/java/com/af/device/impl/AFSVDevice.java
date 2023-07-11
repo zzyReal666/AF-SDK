@@ -14,6 +14,7 @@ import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.device.DeviceInfo;
+import com.af.device.IAFDevice;
 import com.af.device.IAFSVDevice;
 import com.af.device.cmd.AFSVCmd;
 import com.af.exception.AFCryptoException;
@@ -52,7 +53,9 @@ import org.bouncycastle.math.ec.ECPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -245,7 +248,7 @@ public class AFSVDevice implements IAFSVDevice {
 
         //region//======>build
         public AFSVDevice build() {
-            client = new NettyClientChannels.Builder(host, port, passwd)
+            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
                     .timeout(connectTimeOut)
                     .responseTimeout(responseTimeOut)
                     .retryCount(retryCount)

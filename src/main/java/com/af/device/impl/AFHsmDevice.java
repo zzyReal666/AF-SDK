@@ -11,10 +11,10 @@ import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.key.symmetricKey.SessionKey;
 import com.af.device.DeviceInfo;
+import com.af.device.IAFDevice;
 import com.af.device.IAFHsmDevice;
 import com.af.device.cmd.AFHSMCmd;
 import com.af.exception.AFCryptoException;
-import com.af.netty.AFNettyClient;
 import com.af.netty.NettyClient;
 import com.af.nettyNew.NettyClientChannels;
 import com.af.struct.impl.RSA.RSAKeyPair;
@@ -59,7 +59,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     }
 
     public static AFHsmDevice getInstance(String host, int port, String passwd) {
-        client = new NettyClientChannels.Builder(host, port, passwd).build();
+        client = new NettyClientChannels.Builder(host, port, passwd, 0).build();
         return InstanceHolder.instance;
     }
 
@@ -163,7 +163,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
         //region//======>build
         public AFHsmDevice build() {
-            client = new NettyClientChannels.Builder(host, port, passwd)
+            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
                     .timeout(connectTimeOut)
                     .responseTimeout(responseTimeOut)
                     .retryCount(retryCount)
@@ -187,16 +187,17 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     public AFHsmDevice setAgKey() {
         //协商密钥
-        if (client instanceof NettyClientChannels) {
-            int channelCount = ((NettyClientChannels) client).getNettyChannelPool().getChannelCount();
-            for (int i = 0; i < channelCount; i++) {
-                this.agKey = this.keyAgreement(client);
-            }
-        } else if (client instanceof AFNettyClient) {
-            this.agKey = this.keyAgreement(client);
-        } else {
-            logger.error("未知的Netty客户端类型");
-        }
+//        if (client instanceof NettyClientChannels) {
+//            int channelCount = ((NettyClientChannels) client).getNettyChannelPool().getChannelCount();
+//            for (int i = 0; i < channelCount; i++) {
+//                this.agKey = this.keyAgreement(client);
+//            }
+//        } else if (client instanceof AFNettyClient) {
+//            this.agKey = this.keyAgreement(client);
+//        } else {
+//            logger.error("未知的Netty客户端类型");
+//        }
+        this.agKey = this.keyAgreement(client);
         cmd.setAgKey(agKey);
         logger.info("协商密钥成功,密钥为:{}", HexUtil.encodeHexStr(agKey));
         return this;
