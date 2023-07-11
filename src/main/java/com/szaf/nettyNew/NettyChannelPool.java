@@ -35,6 +35,7 @@ public class NettyChannelPool {
     //region//======>属性
     private static final Logger logger = LoggerFactory.getLogger(NettyChannelPool.class);
 
+    private NettyClientChannels nettyClientChannels;
     /**
      * 主机
      */
@@ -124,6 +125,16 @@ public class NettyChannelPool {
         }
     }
 
+    public NettyChannelPool(NettyClientChannels clientChannels) {
+        this.channelQueue = new ConcurrentLinkedQueue<>();
+        this.locks = new Object[channelCount];
+        for (int i = 0; i < channelCount; i++) {
+            this.locks[i] = new Object();
+        }
+        this.nettyClientChannels = clientChannels;
+
+    }
+
     public NettyChannelPool() {
         this.channelQueue = new ConcurrentLinkedQueue<>();
         this.locks = new Object[channelCount];
@@ -155,6 +166,7 @@ public class NettyChannelPool {
      * @return channel
      */
     private synchronized Channel connectToServer() throws InterruptedException {
+
 
         if (retryCount <= 0) {
             throw new RuntimeException("重试3次失败，连接服务端失败");
@@ -201,8 +213,12 @@ public class NettyChannelPool {
         //初始化通道池
         for (int i = 0; i < channelCount; i++) {
             try {
+                long start = System.currentTimeMillis();
                 Channel channel = connectToServer();
                 channelQueue.offer(channel);
+                long end = System.currentTimeMillis();
+                logger.error("第" + i + "个channel初始化时间：" + (end - start) + "ms");
+                System.out.println("第" + i + "个channel初始化时间：" + (end - start) + "ms");
                 //初始化需要同一个通道计算的情况
             } catch (InterruptedException e) {
                 logger.error("初始化通道池失败", e);

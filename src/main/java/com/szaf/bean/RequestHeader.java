@@ -3,6 +3,7 @@ package com.szaf.bean;
 import com.szaf.constant.CmdConsts;
 import com.szaf.utils.BytesBuffer;
 import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @since 2023/4/19 16:06
  */
 @Getter
+@Setter
 public class RequestHeader {
 
     /**
@@ -34,7 +36,7 @@ public class RequestHeader {
     /**
      * 任务编号
      */
-    protected final int taskNO;
+    protected int taskNO;
 
 
     /**

@@ -14,9 +14,7 @@ import com.szaf.bean.ResponseMessage;
 import com.szaf.constant.CMDCode;
 import com.szaf.exception.AFCryptoException;
 import com.szaf.exception.DeviceException;
-import com.szaf.netty.AFNettyClient;
 import com.szaf.netty.NettyClient;
-import com.szaf.nettyNew.NettyClientChannels;
 import com.szaf.utils.BytesBuffer;
 import com.szaf.utils.Sm2Util;
 
@@ -116,7 +114,7 @@ public interface IAFDevice {
             agreementKey[i] = (byte) (ra[i] ^ rb[i]);
         }
 //        return agreementKey;
-        return ROOT_KEY;
+        return agreementKey;
     }
 
 
@@ -126,14 +124,15 @@ public interface IAFDevice {
     default void close(NettyClient client) {
         RequestMessage req = new RequestMessage(CMDCode.CMD_CLOSE).setIsEncrypt(false);
         ResponseMessage send = null;
-        if (client instanceof NettyClientChannels) {
-            int channelCount = ((NettyClientChannels) client).getNettyChannelPool().getChannelCount();
-            for (int i = 0; i < channelCount; i++) {
-                send = client.send(req);
-            }
-        } else if (client instanceof AFNettyClient) {
-            send = client.send(req);
-        }
+//        if (client instanceof NettyClientChannels) {
+//            int channelCount = ((NettyClientChannels) client).getNettyChannelPool().getChannelCount();
+//            for (int i = 0; i < channelCount; i++) {
+//                send = client.send(req);
+//            }
+//        } else if (client instanceof AFNettyClient) {
+//            send = client.send(req);
+//        }
+        send = client.send(req);
         if (send == null) {
             throw new DeviceException("关闭连接失败，响应为空");
         }
@@ -167,4 +166,19 @@ public interface IAFDevice {
     }
 
 
+    static int generateTaskNo() {
+        //随机生成一个任务号 根据随机数种子 种子为当前cpu时间
+        long seed = System.currentTimeMillis();
+        //获取当前时间 单位 秒
+        int t = (int) (seed / 1000L);
+        //获取当前线程号
+        int threadId = Thread.currentThread().hashCode();
+        int i = (t + (t + random(100) * random(88) * random(99) + random(90) + 1) * 100) + threadId;
+        //取绝对值
+        return Math.abs(i);
+    }
+
+    static int random(int n) {
+        return (int) (Math.random() * n);
+    }
 }

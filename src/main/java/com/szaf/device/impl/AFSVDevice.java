@@ -14,6 +14,7 @@ import com.szaf.crypto.key.sm2.SM2KeyPair;
 import com.szaf.crypto.key.sm2.SM2PrivateKey;
 import com.szaf.crypto.key.sm2.SM2PublicKey;
 import com.szaf.device.DeviceInfo;
+import com.szaf.device.IAFDevice;
 import com.szaf.device.IAFSVDevice;
 import com.szaf.device.cmd.AFSVCmd;
 import com.szaf.exception.AFCryptoException;
@@ -247,7 +248,7 @@ public class AFSVDevice implements IAFSVDevice {
 
         //region//======>build
         public AFSVDevice build() {
-            client = new NettyClientChannels.Builder(host, port, passwd)
+            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
                     .timeout(connectTimeOut)
                     .responseTimeout(responseTimeOut)
                     .retryCount(retryCount)

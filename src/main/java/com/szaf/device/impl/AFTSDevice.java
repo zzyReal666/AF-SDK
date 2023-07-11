@@ -3,6 +3,7 @@ package com.szaf.device.impl;
 import com.szaf.constant.Algorithm;
 import com.szaf.constant.TSMInfoFlag;
 import com.szaf.device.DeviceInfo;
+import com.szaf.device.IAFDevice;
 import com.szaf.device.IAFTSDevice;
 import com.szaf.device.cmd.AFTSMCmd;
 import com.szaf.exception.AFCryptoException;
@@ -135,7 +136,7 @@ public class AFTSDevice implements IAFTSDevice {
         }
 
         public AFTSDevice build() {
-            client = new NettyClientChannels.Builder(host, port, passwd)
+            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
                     .timeout(connectTimeOut)
                     .responseTimeout(responseTimeOut)
                     .retryCount(retryCount)

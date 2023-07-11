@@ -1,5 +1,6 @@
 package com.szaf.device.impl;
 
+import cn.hutool.core.util.HexUtil;
 import com.szaf.constant.Algorithm;
 import com.szaf.constant.ModulusLength;
 import com.szaf.crypto.key.sm2.SM2KeyPair;
@@ -30,7 +31,7 @@ class AFHsmDeviceTest {
     static void setUpBeforeClass() throws Exception {
 //        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8008, "abcd1234");
         device = new AFHsmDevice.Builder("192.168.10.40", 8008, "abcd1234")
-                .responseTimeOut(10000)
+                .responseTimeOut(100000)
                 .build();
     }
 
@@ -491,29 +492,33 @@ class AFHsmDeviceTest {
         //iv
         byte[] iv = device.getRandom(16);
 
+        System.out.println("");
+
         //SM4 内部
         byte[] mac = device.sm4InternalMac(1, iv, data);
+        System.out.println("mac:" + HexUtil.encodeHexStr(mac));
 
         //SM4 外部
         byte[] mac1 = device.sm4ExternalMac(key, iv, data);
+        System.out.println("mac1:" +HexUtil.encodeHexStr(mac1));
 
         //SM4 密钥句柄
-        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
-        byte[] mac2 = device.sm4HandleMac(key1.getId(), iv, data);
-        //释放密钥句柄
-        device.releaseSessionKey(key1.getId());
+        int symKeyHandle = device.getSymKeyHandle(1);
+        byte[] mac2 = device.sm4HandleMac(symKeyHandle, iv, data);
+        System.out.println("mac2:" + HexUtil.encodeHexStr(mac2));
 
         //SM1 内部
         byte[] mac3 = device.sm1InternalMac(1, iv, data);
+        System.out.println("mac3:" + HexUtil.encodeHexStr(mac3));
 
         //SM1 外部
         byte[] mac4 = device.sm1ExternalMac(key, iv, data);
+        System.out.println( "mac4:" + HexUtil.encodeHexStr(mac4));
 
         //SM1 密钥句柄
-        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
-        byte[] mac5 = device.sm1HandleMac(key2.getId(), iv, data);
-        //释放密钥句柄
-        device.releaseSessionKey(key2.getId());
+        int symKeyHandle1 = device.getSymKeyHandle(1);
+        byte[] mac5 = device.sm1HandleMac(symKeyHandle1, iv, data);
+        System.out.println("mac5:" + HexUtil.encodeHexStr(mac5));
 
     }
 
