@@ -103,11 +103,6 @@ public class NettyChannelPool {
     private Bootstrap bootstrap = new Bootstrap();
 
 
-//    /**
-//     * channels  用于需要同一个通道计算的情况
-//     */
-//    private Map<ChannelId, Channel> channels = new ConcurrentHashMap<>();
-
     /**
      * channel 用于需要同一个通道计算的情况
      */
@@ -116,6 +111,8 @@ public class NettyChannelPool {
 
     //endregion
 
+
+    //region//======>构造方法
     public NettyChannelPool(int channelCount) {
         this.channelCount = channelCount;
         this.channelQueue = new ConcurrentLinkedQueue<>();
@@ -143,6 +140,8 @@ public class NettyChannelPool {
         }
 
     }
+
+    //endregion
 
     /**
      * 同步获取netty channel
@@ -194,18 +193,6 @@ public class NettyChannelPool {
         initChannels();
     }
 
-//    private void initListChannels() {
-//        for (int i = 0; i < channelCount; i++) {
-//            try {
-//                Channel channel = connectToServer();
-//                channels.put(channel.id(), channel);
-//                //初始化需要同一个通道计算的情况
-//            } catch (InterruptedException e) {
-//                logger.error("初始化通道池失败", e);
-//            }
-//        }
-//    }
-
     /**
      * 初始化通道池
      */
@@ -213,12 +200,8 @@ public class NettyChannelPool {
         //初始化通道池
         for (int i = 0; i < channelCount; i++) {
             try {
-                long start = System.currentTimeMillis();
                 Channel channel = connectToServer();
                 channelQueue.offer(channel);
-                long end = System.currentTimeMillis();
-                logger.error("第" + i + "个channel初始化时间：" + (end - start) + "ms");
-                System.out.println("第" + i + "个channel初始化时间：" + (end - start) + "ms");
                 //初始化需要同一个通道计算的情况
             } catch (InterruptedException e) {
                 logger.error("初始化通道池失败", e);
