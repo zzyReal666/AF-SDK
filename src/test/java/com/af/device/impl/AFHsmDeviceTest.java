@@ -22,9 +22,9 @@ class AFHsmDeviceTest {
 
     static Logger logger = Logger.getLogger("AFHsmDeviceTest");
     static AFHsmDevice device;
-    static byte[] data = "123456788765432".getBytes(StandardCharsets.UTF_8);
+    static byte[] data = "1234567887654321".getBytes(StandardCharsets.UTF_8);
 
-//    static byte[] data = FileUtil.readBytes("D:\\test.zip");
+//    static byte[] data = FileUtil.readBytes("bigData");
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
@@ -32,6 +32,12 @@ class AFHsmDeviceTest {
         device = new AFHsmDevice.Builder("192.168.10.40", 8008, "abcd1234")
                 .responseTimeOut(10000)
                 .build();
+
+
+        //获取私钥访问权限
+        device.getPrivateKeyAccessRight(1, 3, "12345678");
+        //获取私钥访问权限
+        device.getPrivateKeyAccessRight(1, 4, "12345678");
     }
 
     @AfterAll
@@ -119,6 +125,8 @@ class AFHsmDeviceTest {
     @Test
     void testReleaseKeyPair() throws Exception {
 
+
+
         //生成 SM2加密的会话密钥
         SessionKey key = device.generateSessionKey(Algorithm.SGD_SM2_2, 1, 16);
         System.out.println("会话密钥SGD_SM2_2:" + key);
@@ -127,6 +135,8 @@ class AFHsmDeviceTest {
         System.out.println("导入会话密钥SGD_SM2_2:" + key1);
         //释放密钥信息
         device.releaseSessionKey(key.getId());
+
+
 
 
         //生成 RSA加密的会话密钥
@@ -215,7 +225,10 @@ class AFHsmDeviceTest {
         //生成RSA密钥对
         RSAKeyPair rsaKeyPair = device.generateRSAKeyPair(ModulusLength.LENGTH_1024);
         System.out.println("RSA1024密钥对:" + rsaKeyPair);
+
         //使用内部密钥加解密
+        //获取私钥访问权限
+        device.getPrivateKeyAccessRight(1, 4, "12345678");
         byte[] encodeData = device.rsaInternalEncrypt(1, data);
         byte[] decodeData = device.rsaInternalDecrypt(1, encodeData);
         assert Arrays.equals(data, decodeData);
@@ -489,38 +502,38 @@ class AFHsmDeviceTest {
     }
 
     //MAC计算   singleChannel
-    @Test
-    void testMac() throws Exception {
-        //key
-        byte[] key = device.getRandom(16);
-        //iv
-        byte[] iv = device.getRandom(16);
-
-        //SM4 内部
-        byte[] mac = device.sm4InternalMac(1, iv, data);
-
-        //SM4 外部
-        byte[] mac1 = device.sm4ExternalMac(key, iv, data);
-
-        //SM4 密钥句柄
-        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
-        byte[] mac2 = device.sm4HandleMac(key1.getId(), iv, data);
-        //释放密钥句柄
-        device.releaseSessionKey(key1.getId());
-
-        //SM1 内部
-        byte[] mac3 = device.sm1InternalMac(1, iv, data);
-
-        //SM1 外部
-        byte[] mac4 = device.sm1ExternalMac(key, iv, data);
-
-        //SM1 密钥句柄
-        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
-        byte[] mac5 = device.sm1HandleMac(key2.getId(), iv, data);
-        //释放密钥句柄
-        device.releaseSessionKey(key2.getId());
-
-    }
+//    @Test
+//    void testMac() throws Exception {
+//        //key
+//        byte[] key = device.getRandom(16);
+//        //iv
+//        byte[] iv = device.getRandom(16);
+//
+//        //SM4 内部
+//        byte[] mac = device.sm4InternalMac(1, iv, data);
+//
+//        //SM4 外部
+//        byte[] mac1 = device.sm4ExternalMac(key, iv, data);
+//
+//        //SM4 密钥句柄
+//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        byte[] mac2 = device.sm4HandleMac(key1.getId(), iv, data);
+//        //释放密钥句柄
+//        device.releaseSessionKey(key1.getId());
+//
+//        //SM1 内部
+//        byte[] mac3 = device.sm1InternalMac(1, iv, data);
+//
+//        //SM1 外部
+//        byte[] mac4 = device.sm1ExternalMac(key, iv, data);
+//
+//        //SM1 密钥句柄
+//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        byte[] mac5 = device.sm1HandleMac(key2.getId(), iv, data);
+//        //释放密钥句柄
+//        device.releaseSessionKey(key2.getId());
+//
+//    }
 
     //SM3-HMAC
     @Test

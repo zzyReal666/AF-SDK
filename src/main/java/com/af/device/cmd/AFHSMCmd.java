@@ -1287,22 +1287,12 @@ public class AFHSMCmd extends AFCmd {
                 .append(pwd.getBytes(StandardCharsets.UTF_8))
                 .toBytes();
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, param, agKey);
-        //获取私钥访问权限需要所有通道一起获取
-        int count = client instanceof NettyClientChannels ? ((NettyClientChannels) client).getNettyChannelPool().getChannelCount() : 1;
-        for (int i = 0; i < count; i++) {
-            ResponseMessage responseMessage = client.send(requestMessage);
-            if (responseMessage.getHeader().getErrorCode() != 0) {
-                logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-                throw new AFCryptoException("获取私钥访问权限失败");
-            }
-        }
         ResponseMessage responseMessage = client.send(requestMessage);
         if (responseMessage.getHeader().getErrorCode() != 0) {
             logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("获取私钥访问权限失败");
         }
     }
-
 
     //===========================================工具方法===========================================
 

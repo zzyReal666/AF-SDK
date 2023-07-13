@@ -241,10 +241,19 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param keyType  密钥类型 4:RSA; 3:SM2;
      * @param passwd   私钥访问权限口令
      */
-    private void getPrivateKeyAccessRight(int keyIndex, int keyType, String passwd) throws AFCryptoException {
+    public void getPrivateKeyAccessRight(int keyIndex, int keyType, String passwd) throws AFCryptoException {
         logger.info("获取获取私钥访问权限 keyIndex:{}, keyType:{}, passwd:{}", keyIndex, keyType, passwd);
+        if (keyIndex < 0 || keyIndex > 0xFFFF) {
+            logger.error("密钥索引不合法,索引范围为0-65535,当前索引为:{}", keyIndex);
+            throw new AFCryptoException("密钥索引不合法");
+        }
+        if (keyType != 3 && keyType != 4) {
+            logger.error("密钥类型不合法,当前类型为:{}", keyType);
+            throw new AFCryptoException("密钥类型不合法");
+        }
         cmd.getPrivateAccess(keyIndex, keyType, passwd);
     }
+
     //endregion
 
     // region ======================================================导出公钥======================================================
@@ -295,6 +304,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         return new RSAPubKey(rsaEncPublicKey);
     }
     //endregion
+
 
     //region======================================================生成密钥对======================================================
 
@@ -386,6 +396,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 导入会话密钥密文 非对称加密
+     * 需要获取私钥访问权限
      *
      * @param algorithm ：对称算法标识  SGD_RSA_ENC|SGD_SM2_2
      * @param keyIndex  ：用于加密会话密钥的密钥索引
@@ -398,14 +409,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("导入会话密钥失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_2):{}", algorithm);
             throw new AFCryptoException("导入会话密钥失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_2):" + algorithm);
         }
-        //获取私钥访问权限
-        int keyType;
-        if (algorithm == Algorithm.SGD_RSA_ENC) {
-            keyType = 4;
-        } else {
-            keyType = 3;
-        }
-        getPrivateKeyAccessRight(keyIndex, keyType, "12345678");
+
         //导入会话密钥
         byte[] bytes = cmd.importSessionKey(algorithm, keyIndex, key);
         BytesBuffer buffer = new BytesBuffer(bytes);
@@ -416,6 +420,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 数字信封转换
+     * 需要获取私钥访问权限
      *
      * @param algorithm 算法标识 SGD_RSA_ENC|SGD_SM2_3
      * @param keyIndex  密钥索引
@@ -429,14 +434,6 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("数字信封转换失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_3):{}", algorithm);
             throw new AFCryptoException("数字信封转换失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_3):" + algorithm);
         }
-        //获取私钥访问权限
-        int keyType;
-        if (algorithm == Algorithm.SGD_RSA_ENC) {
-            keyType = 4;
-        } else {
-            keyType = 3;
-        }
-        getPrivateKeyAccessRight(keyIndex, keyType, "12345678");
         return cmd.convertEnvelope(algorithm, keyIndex, pubKey, data);
 
     }
@@ -505,6 +502,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 生成协商数据
+     * 需要获取私钥访问权限
      *
      * @param keyIndex 密钥索引
      * @param length   模长
@@ -525,8 +523,6 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("生成协商数据失败,发起方id为空");
         }
 
-        //获取私钥访问权限
-        getPrivateKeyAccessRight(keyIndex, 3, "12345678");
         byte[] bytes = cmd.generateAgreementData(keyIndex, length, data.getInitiatorId());
         BytesBuffer buffer = new BytesBuffer(bytes);
         data = new AgreementData();
@@ -571,8 +567,8 @@ public class AFHsmDevice implements IAFHsmDevice {
         }
         //endregion
 
-        //获取私钥访问权限
-        getPrivateKeyAccessRight(keyIndex, 3, "12345678");
+//        //获取私钥访问权限
+//        getPrivateKeyAccessRight(keyIndex, 3, "12345678");
         byte[] bytes = cmd.generateAgreementDataAndKey(keyIndex, length, data.getPublicKey(), data.getTempPublicKey(), data.getInitiatorId(), data.getResponderId());
         BytesBuffer buffer = new BytesBuffer(bytes);
         data = new AgreementData();
@@ -642,8 +638,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return ：返回运算结果
      */
     public byte[] rsaInternalDecrypt(int index, byte[] data) throws AFCryptoException {
-        //获取私钥访问权限
-        getPrivateKeyAccessRight(index, 4, "12345678");
+
         //解密
         byte[] bytes = cmd.rsaPrivateKeyOperation(index, null, Algorithm.SGD_RSA_ENC, data);
         //去填充
@@ -667,7 +662,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     /**
      * RSA外部解密运算 私钥解密
      *
-         * @param prvKey ：RSA私钥信息
+     * @param prvKey ：RSA私钥信息
      * @param data   : 加密数据
      * @return ：返回运算结果
      */
@@ -686,8 +681,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return ：返回运算结果
      */
     public byte[] rsaInternalSign(int index, byte[] data) throws AFCryptoException {
-        //获取私钥访问权限
-        getPrivateKeyAccessRight(index, 4, "12345678");
+//        //获取私钥访问权限
+//        getPrivateKeyAccessRight(index, 4, "12345678");
         //获取摘要
         byte[] hash = digestForRSASign(index, -1, data);
         //填充
@@ -718,7 +713,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * RSA外部签名运算 私钥签名
      *
      * @param privateKey ：RSA私钥信息
-     * @param data   : 原始数据
+     * @param data       : 原始数据
      * @return ：返回运算结果
      */
     public byte[] rsaExternalSign(RSAPriKey privateKey, byte[] data) throws AFCryptoException {
@@ -792,8 +787,8 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM2 内部密钥解密，解密数据不能为空");
             throw new AFCryptoException("SM2 内部密钥解密，解密数据不能为空");
         }
-        //获取私钥访问权限
-        getPrivateKeyAccessRight(index, 3, "12345678");
+//        //获取私钥访问权限
+//        getPrivateKeyAccessRight(index, 3, "12345678");
         return cmd.sm2Decrypt(index, null, cipher);
     }
 
@@ -824,7 +819,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher 密文数据
      * @return 明文数据
      */
-        public byte[] sm2ExternalDecrypt(SM2PrivateKey prvKey, byte[] cipher) throws AFCryptoException {
+    public byte[] sm2ExternalDecrypt(SM2PrivateKey prvKey, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (prvKey == null) {
             logger.error("SM2 外部密钥解密，私钥信息不能为空");
@@ -857,8 +852,8 @@ public class AFHsmDevice implements IAFHsmDevice {
         }
         //SM3 摘要
         byte[] digest = new cn.hutool.crypto.digest.SM3().digest(data);
-        //获取私钥访问权限
-        getPrivateKeyAccessRight(index, 3, "12345678");
+//        //获取私钥访问权限
+//        getPrivateKeyAccessRight(index, 3, "12345678");
         //签名
         return cmd.sm2Sign(index, null, digest);
     }
@@ -869,7 +864,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param index 密钥索引
      * @param data  原始数据
      * @param sign  签名数据
-         * @return 验签结果
+     * @return 验签结果
      */
     public boolean sm2InternalVerify(int index, byte[] data, byte[] sign) throws AFCryptoException {
         //参数检查
@@ -1637,7 +1632,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      *
      * @param keyIndex 密钥索引
      * @param iv       初始向量
-     * @param cipher    明文
+     * @param cipher   明文
      * @return 密文
      */
     public byte[] sm1InternalDecryptCBC(int keyIndex, byte[] iv, byte[] cipher) throws AFCryptoException {
