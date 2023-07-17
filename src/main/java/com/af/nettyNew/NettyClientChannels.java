@@ -222,9 +222,10 @@ public class NettyClientChannels implements NettyClient {
 
 
     }
+
     private byte[] read() throws InterruptedException {
         //阻塞当前线程 等待数据返回 指定超时时间
-        this.wait(nettyChannelPool.getTimeout());
+        this.wait(nettyChannelPool.getResponseTimeout());
         byte[] data = NettyHandler.response;
         NettyHandler.response = null;
         return data;

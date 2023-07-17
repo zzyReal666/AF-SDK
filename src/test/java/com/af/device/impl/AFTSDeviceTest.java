@@ -17,7 +17,7 @@ class AFTSDeviceTest {
     final byte[] data = "af/tsa-时间戳测试".getBytes(StandardCharsets.UTF_8);
 
     //证书路径
-    static String deviceCertFile = "C:\\Users\\zzype\\Desktop\\gmcert_1_23063018294910.cert.pem";
+    static String deviceCertFile = "user.cer";
     //证书
     static byte[] deviceCert = FileUtil.readBytes(deviceCertFile);
 
