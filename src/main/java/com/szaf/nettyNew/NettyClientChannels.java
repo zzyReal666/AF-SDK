@@ -159,26 +159,8 @@ public class NettyClientChannels implements NettyClient {
             logger.error("获取通道失败");
             throw new RuntimeException(e);
         }
-//        //创建回调函数
-//        return sendAndReceive(msg, seq, channel);
-
-        try {
-            //msg 转为 ByteBuf
-            ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
-            byte[] read;
-            synchronized (this) {
-                //发送数据
-                channel.writeAndFlush(byteBuf).sync();
-                read = read();
-                //放回通道
-                nettyChannelPool.putChannel(channel);
-            }
-            //接收数据
-            return read;
-        } catch (InterruptedException e) {
-            logger.error("发送数据失败");
-            throw new RuntimeException(e);
-        }
+        //创建回调函数
+        return sendAndReceive(msg, seq, channel);
 
     }
 
@@ -205,25 +187,7 @@ public class NettyClientChannels implements NettyClient {
             logger.error("type错误");
             throw new RuntimeException("type错误");
         }
-//        return sendAndReceive(msg, seq, channel);
-        try {
-            //msg 转为 ByteBuf
-            ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
-            byte[] read;
-            synchronized (this) {
-                //发送数据
-                channel.writeAndFlush(byteBuf);
-                //接收数据
-                read = read();
-                //放回通道
-                nettyChannelPool.putChannel(channel);
-            }
-            return read;
-        } catch (InterruptedException e) {
-            logger.error("发送数据失败");
-            throw new RuntimeException(e);
-        }
-
+        return sendAndReceive(msg, seq, channel);
     }
 
     private byte[] sendAndReceive(byte[] msg, int seq, Channel channel) {

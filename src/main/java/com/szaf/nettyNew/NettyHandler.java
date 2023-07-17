@@ -1,5 +1,6 @@
 package com.szaf.nettyNew;
 
+import com.szaf.utils.BytesOperate;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.slf4j.Logger;
@@ -28,14 +29,10 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        //        int seq = BytesOperate.bytes2int(receive, 4);
-//        NettyClientChannels.CallbackService callbackService = ChannelUtils.<NettyClientChannels.CallbackService>removeCallback( ctx.channel(), seq);
-//        callbackService.receiveMessage(receive);
-        response = (byte[]) msg;
-        //唤醒
-        synchronized (nettyChannelPool.getNettyClientChannels()) {
-            nettyChannelPool.getNettyClientChannels().notifyAll();
-        }
+        byte[] receive = (byte[]) msg;
+        int seq = BytesOperate.bytes2int(receive, 4);
+        NettyClientChannels.CallbackService callbackService = ChannelUtils.<NettyClientChannels.CallbackService>removeCallback(ctx.channel(), seq);
+        callbackService.receiveMessage(receive);
     }
 
     /**
