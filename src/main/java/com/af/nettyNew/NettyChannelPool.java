@@ -181,8 +181,8 @@ public class NettyChannelPool {
         });
         Channel channel = channelFuture.sync().channel();
         //为刚刚创建的channel，初始化channel属性
-        Attribute<Map<Integer, Object>> attribute = channel.attr(ChannelUtils.DATA_MAP_ATTRIBUTEKEY);
-        ConcurrentHashMap<Integer, Object> dataMap = new ConcurrentHashMap<>();
+        Attribute<Map<Channel, Object>> attribute = channel.attr(ChannelUtils.DATA_MAP_ATTRIBUTEKEY);
+        ConcurrentHashMap<Channel, Object> dataMap = new ConcurrentHashMap<>();
         attribute.set(dataMap);
         return channel;
     }

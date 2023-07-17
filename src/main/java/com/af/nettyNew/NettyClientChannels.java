@@ -181,44 +181,44 @@ public class NettyClientChannels implements NettyClient {
     }
 
     private byte[] sendAndReceive(byte[] msg, int seq, Channel channel) {
-//        CallbackService callbackService = new CallbackService();
-//        ChannelUtils.putCallback2DataMap(channel, seq, callbackService);
-//        //发送数据 接收响应
-//        try {
-//            synchronized (callbackService) {
-//                //msg 转为 ByteBuf
-//                ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
-//                //发送数据
-//                channel.writeAndFlush(byteBuf);
-//                //接收数据
-//                callbackService.wait(nettyChannelPool.getResponseTimeout());
-//            }
-//            byte[] result = callbackService.result;
-//            //放回通道
-//            nettyChannelPool.putChannel(channel);
-//            return result;
-//        } catch (InterruptedException e) {
-//            logger.error("发送数据失败");
-//            throw new RuntimeException(e);
-//        }
-
+        CallbackService callbackService = new CallbackService();
+        ChannelUtils.putCallback2DataMap(channel, seq, callbackService);
+        //发送数据 接收响应
         try {
-            //msg 转为 ByteBuf
-            ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
-            byte[] read;
-            synchronized (this) {
+            synchronized (callbackService) {
+                //msg 转为 ByteBuf
+                ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
                 //发送数据
-                channel.writeAndFlush(byteBuf).sync();
+                channel.writeAndFlush(byteBuf);
                 //接收数据
-                read = read();
+                callbackService.wait(nettyChannelPool.getResponseTimeout());
             }
+            byte[] result = callbackService.result;
             //放回通道
             nettyChannelPool.putChannel(channel);
-            return read;
+            return result;
         } catch (InterruptedException e) {
             logger.error("发送数据失败");
             throw new RuntimeException(e);
         }
+//
+//        try {
+//            //msg 转为 ByteBuf
+//            ByteBuf byteBuf = Unpooled.wrappedBuffer(msg);
+//            byte[] read;
+//            synchronized (this) {
+//                //发送数据
+//                channel.writeAndFlush(byteBuf).sync();
+//                //接收数据
+//                read = read();
+//            }
+//            //放回通道
+//            nettyChannelPool.putChannel(channel);
+//            return read;
+//        } catch (InterruptedException e) {
+//            logger.error("发送数据失败");
+//            throw new RuntimeException(e);
+//        }
 
 
     }
