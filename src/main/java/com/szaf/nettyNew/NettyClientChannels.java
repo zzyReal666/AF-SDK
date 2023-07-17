@@ -133,6 +133,7 @@ public class NettyClientChannels implements NettyClient {
      * @param requestMessage 请求报文
      * @param type           请求类型
      */
+    @Deprecated
     public ResponseMessage send(RequestMessage requestMessage, SpecialRequestsType type) {
         logger.info(requestMessage.isEncrypt() ? "加密==>{}" : "==>{}", requestMessage);
         //开始时间
@@ -140,7 +141,7 @@ public class NettyClientChannels implements NettyClient {
         //编码
         byte[] req = requestMessage.encode();
         //发送数据
-        byte[] res = send(req, requestMessage.getHeader().getTaskNO(), type);
+        byte[] res = send(req, requestMessage.getHeader().getTaskNO());
         ResponseMessage responseMessage = new ResponseMessage(res, requestMessage.isEncrypt(), requestMessage.getAgKey());
         //结束时间
         long endTime = System.currentTimeMillis();
@@ -162,32 +163,6 @@ public class NettyClientChannels implements NettyClient {
         //创建回调函数
         return sendAndReceive(msg, seq, channel);
 
-    }
-
-    private byte[] read() throws InterruptedException {
-        //阻塞当前线程 等待数据返回 指定超时时间
-        this.wait(nettyChannelPool.getResponseTimeout());
-        byte[] data = NettyHandler.response;
-        NettyHandler.response = null;
-        return data;
-    }
-
-    public byte[] send(byte[] msg, int seq, SpecialRequestsType type) {
-        //获取通道
-        Channel channel;
-        if (type.equals(SpecialRequestsType.SessionKey)) {
-            channel = nettyChannelPool.getChannels().get(0);
-        } else if (type.equals(SpecialRequestsType.Hash)) {
-            channel = nettyChannelPool.getChannels().get(1);
-        } else if (type.equals(SpecialRequestsType.NegotiationData)) {
-            channel = nettyChannelPool.getChannels().get(2);
-        } else if (type == SpecialRequestsType.MAC) {
-            channel = nettyChannelPool.getChannels().get(3);
-        } else {
-            logger.error("type错误");
-            throw new RuntimeException("type错误");
-        }
-        return sendAndReceive(msg, seq, channel);
     }
 
     private byte[] sendAndReceive(byte[] msg, int seq, Channel channel) {
@@ -220,7 +195,6 @@ public class NettyClientChannels implements NettyClient {
     private void connect() {
         nettyChannelPool.init();
     }
-
 
     /**
      * 登录
