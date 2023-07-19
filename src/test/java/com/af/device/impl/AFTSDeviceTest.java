@@ -61,7 +61,7 @@ class AFTSDeviceTest {
         String tsInfo = device.getTsInfo(bytes);
         System.out.println("不携带证书获取时间戳信息:" + tsInfo);
 
-
+        //获取时间戳信息
         String tsInfo1 = device.getTsInfo(bytes1);
         System.out.println("携带证书获取时间戳信息:" + tsInfo1);
 
@@ -79,7 +79,7 @@ class AFTSDeviceTest {
         byte[] bytes1 = device.tsRequestAndResponse(data, 0);
         System.out.println(HexUtil.encodeHexStr(bytes1));
 
-     
+
 
         //遍历TSMInfoFlag
         for (TSMInfoFlag value : TSMInfoFlag.values()) {

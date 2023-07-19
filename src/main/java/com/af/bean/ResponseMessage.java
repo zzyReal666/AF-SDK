@@ -97,7 +97,7 @@ public class ResponseMessage {
         String data;
         if (null == this.data || this.data.length == 0) {
             data = "";
-        } else if (this.data.length > 128) {
+        } else if (this.data.length > 512) {
             data = Integer.toString(this.data.length);
         } else {
             data = HexUtil.encodeHexStr(this.data);

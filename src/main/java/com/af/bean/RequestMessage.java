@@ -51,7 +51,9 @@ public class RequestMessage {
             this.header = new RequestHeader(0, cmd);
             this.data = null;
         } else {
-            this.data = null == agKey ? data : SM4Utils.encrypt(data, agKey);  // 加密 如果agKey为null 则不加密
+            // 加密 如果agKey为null 则不加密
+            this.data = null == agKey ? data : SM4Utils.encrypt(data, agKey);
+            // 构建请求头 如果是加密数据 数据长度显示加密后的长度
             this.header = new RequestHeader(this.data.length, cmd);
         }
     }
@@ -93,7 +95,7 @@ public class RequestMessage {
         if (null == this.data || this.data.length == 0) {  // 无数据
             data = "";
             result += ", data=" + data;
-        } else if (this.data.length > 128) {               // 数据过长只显示长度
+        } else if (this.data.length > 512) {               // 数据过长只显示长度
             data = Integer.toString(this.data.length);
             result += ", dataLen=" + data;
         } else {                                           // 数据正常

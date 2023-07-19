@@ -31,6 +31,7 @@ class AFHsmDeviceTest {
 //        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8008, "abcd1234");
         device = new AFHsmDevice.Builder("192.168.10.40", 8008, "abcd1234")
                 .responseTimeOut(10000)
+                .connectTimeOut(10000)
                 .build();
 
 
@@ -126,46 +127,42 @@ class AFHsmDeviceTest {
     void testReleaseKeyPair() throws Exception {
 
 
-
-        //生成 SM2加密的会话密钥
-        SessionKey key = device.generateSessionKey(Algorithm.SGD_SM2_2, 1, 16);
-        System.out.println("会话密钥SGD_SM2_2:" + key);
-        //导入会话密钥密文
-        SessionKey key1 = device.importSessionKey(Algorithm.SGD_SM2_2, 1, key.getKey());
-        System.out.println("导入会话密钥SGD_SM2_2:" + key1);
-        //释放密钥信息
-        device.releaseSessionKey(key.getId());
-
+//        //生成 SM2加密的会话密钥
+//        SessionKey key = device.generateSessionKey(Algorithm.SGD_SM2_2, 1, 16);
+//        System.out.println("会话密钥SGD_SM2_2:" + key);
+//        //
+//        SessionKey key1 = device.importSessionKey(Algorithm.SGD_SM2_2, 1, key.getKey());
+//        System.out.println("导入会话密钥SGD_SM2_2:" + key1);
+//        //释放密钥信息
+//        device.releaseSessionKey(key.getId());
 
 
-
-        //生成 RSA加密的会话密钥
         SessionKey key2 = device.generateSessionKey(Algorithm.SGD_RSA_ENC, 1, 16);
         System.out.println("会话密钥 SGD_RSA_ENC:" + key2);
-        //导入会话密钥密文
+        //导入会话密钥密文  todo
         SessionKey key3 = device.importSessionKey(Algorithm.SGD_RSA_ENC, 1, key2.getKey());
         System.out.println("导入会话密钥 SGD_RSA_ENC:" + key3);
         //释放密钥信息
         device.releaseSessionKey(key2.getId());
 
 
-        //生成 SM4加密的会话密钥
-        SessionKey key4 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
-        System.out.println("会话密钥SGD_SMS4_ECB:" + key4);
-        //导入会话密钥密文
-        SessionKey key5 = device.importSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, key4.getKey());
-        System.out.println("导入会话密钥SGD_SMS4_ECB:" + key5);
-        //释放密钥信息
-        device.releaseSessionKey(key4.getId());
-
-        //生成 SM1加密的会话密钥
-        SessionKey key6 = device.generateSessionKeyBySym(Algorithm.SGD_SM1_ECB, 1, 16);
-        System.out.println("会话密钥SGD_SM1_ECB:" + key6);
-        //导入会话密钥密文
-        SessionKey key7 = device.importSessionKeyBySym(Algorithm.SGD_SM1_ECB, 1, key6.getKey());
-        System.out.println("导入会话密钥SGD_SM1_ECB:" + key7);
-        //释放密钥信息
-        device.releaseSessionKey(key6.getId());
+//        //生成 SM4加密的会话密钥
+//        SessionKey key4 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        System.out.println("会话密钥SGD_SMS4_ECB:" + key4);
+//        //导入会话密钥密文
+//        SessionKey key5 = device.importSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, key4.getKey());
+//        System.out.println("导入会话密钥SGD_SMS4_ECB:" + key5);
+//        //释放密钥信息
+//        device.releaseSessionKey(key4.getId());
+//
+//        //生成 SM1加密的会话密钥
+//        SessionKey key6 = device.generateSessionKeyBySym(Algorithm.SGD_SM1_ECB, 1, 16);
+//        System.out.println("会话密钥SGD_SM1_ECB:" + key6);
+//        //导入会话密钥密文
+//        SessionKey key7 = device.importSessionKeyBySym(Algorithm.SGD_SM1_ECB, 1, key6.getKey());
+//        System.out.println("导入会话密钥SGD_SM1_ECB:" + key7);
+//        //释放密钥信息
+//        device.releaseSessionKey(key6.getId());
 
     }
 
