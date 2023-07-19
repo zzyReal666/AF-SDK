@@ -381,7 +381,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("生成会话密钥失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_2):{}", algorithm);
             throw new AFCryptoException("生成会话密钥失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_2):" + algorithm);
         }
-        byte[] bytes = cmd.generateSessionKey(algorithm, keyIndex, length);
+        byte[] bytes = cmd.generateSessionKey(algorithm, keyIndex, length,null);
         BytesBuffer buffer = new BytesBuffer(bytes);
         SessionKey key = new SessionKey();
         key.setId(buffer.readInt());

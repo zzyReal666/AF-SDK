@@ -436,17 +436,20 @@ public class AFHSMCmd extends AFCmd {
      *
      * @param algorithm 算法标识 SGD_RSA_ENC|SGD_SM2_2
      * @param keyIndex  密钥索引 外部密钥索引为 0
-     * @param keyLength 密钥长度]
+     * @param keyLength 密钥长度
+     * @param publicKey  外部公钥 如果是内部公钥,该参数传null
      * @return 1、4 字节会话密钥 ID
      * 2、4 字节加密信息长度
      * 3、加密信息
      */
-    public byte[] generateSessionKey(Algorithm algorithm, int keyIndex, int keyLength) throws AFCryptoException {
-        logger.info("HSM-CMD-生成会话密钥, keyType: {}, keyIndex: {}, keyLength: {}", algorithm, keyIndex, keyLength);
+    public byte[] generateSessionKey(Algorithm algorithm, int keyIndex, int keyLength,byte[] publicKey) throws AFCryptoException {
+        logger.info("HSM-CMD-生成会话密钥, keyType: {}, keyIndex: {}, keyLength: {},publicKeyLength:{}", algorithm, keyIndex, keyLength,null == publicKey ? 0 : publicKey.length);
         byte[] param = new BytesBuffer()
                 .append(algorithm.getValue())
                 .append(keyIndex)
                 .append(keyLength)
+                .append(null == publicKey ? 0 : publicKey.length)
+                .append(publicKey)
                 .toBytes();
         RequestMessage req = new RequestMessage(CMDCode.CMD_GENERATEKEY_ECC, param, agKey);
         ResponseMessage res = client.send(req);
