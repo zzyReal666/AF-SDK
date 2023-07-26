@@ -2986,7 +2986,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data 计算数据
      * @return Hash
      */
-    public byte[] sm3Hash(byte[] data) throws AFCryptoException {
+    public synchronized byte[] sm3Hash(byte[] data) throws AFCryptoException {
         //init
         sm3HashInit();
         //update

@@ -1,5 +1,6 @@
 package com.af.device.impl;
 
+import cn.hutool.core.util.HexUtil;
 import com.af.constant.Algorithm;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
@@ -122,47 +123,47 @@ class AFHsmDeviceTest {
 
     }
 
-    //生成会话密钥 导入会话密钥密文 释放密钥信息 success todo single
+    //生成会话密钥 导入会话密钥密文 释放密钥信息 success
     @Test
     void testReleaseKeyPair() throws Exception {
 
 
-//        //生成 SM2加密的会话密钥
-//        SessionKey key = device.generateSessionKey(Algorithm.SGD_SM2_2, 1, 16);
-//        System.out.println("会话密钥SGD_SM2_2:" + key);
-//        //
-//        SessionKey key1 = device.importSessionKey(Algorithm.SGD_SM2_2, 1, key.getKey());
-//        System.out.println("导入会话密钥SGD_SM2_2:" + key1);
-//        //释放密钥信息
-//        device.releaseSessionKey(key.getId());
+        //生成 SM2加密的会话密钥
+        SessionKey key = device.generateSessionKey(Algorithm.SGD_SM2_2, 1, 16);
+        System.out.println("会话密钥SGD_SM2_2:" + key);
+        //
+        SessionKey key1 = device.importSessionKey(Algorithm.SGD_SM2_2, 1, key.getKey());
+        System.out.println("导入会话密钥SGD_SM2_2:" + key1);
+        //释放密钥信息
+        device.releaseSessionKey(key.getId());
 
 
         SessionKey key2 = device.generateSessionKey(Algorithm.SGD_RSA_ENC, 1, 16);
         System.out.println("会话密钥 SGD_RSA_ENC:" + key2);
-        //导入会话密钥密文  todo
+        //导入会话密钥密文
         SessionKey key3 = device.importSessionKey(Algorithm.SGD_RSA_ENC, 1, key2.getKey());
         System.out.println("导入会话密钥 SGD_RSA_ENC:" + key3);
         //释放密钥信息
         device.releaseSessionKey(key2.getId());
 
 
-//        //生成 SM4加密的会话密钥
-//        SessionKey key4 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
-//        System.out.println("会话密钥SGD_SMS4_ECB:" + key4);
-//        //导入会话密钥密文
-//        SessionKey key5 = device.importSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, key4.getKey());
-//        System.out.println("导入会话密钥SGD_SMS4_ECB:" + key5);
-//        //释放密钥信息
-//        device.releaseSessionKey(key4.getId());
-//
-//        //生成 SM1加密的会话密钥
-//        SessionKey key6 = device.generateSessionKeyBySym(Algorithm.SGD_SM1_ECB, 1, 16);
-//        System.out.println("会话密钥SGD_SM1_ECB:" + key6);
-//        //导入会话密钥密文
-//        SessionKey key7 = device.importSessionKeyBySym(Algorithm.SGD_SM1_ECB, 1, key6.getKey());
-//        System.out.println("导入会话密钥SGD_SM1_ECB:" + key7);
-//        //释放密钥信息
-//        device.releaseSessionKey(key6.getId());
+        //生成 SM4加密的会话密钥
+        SessionKey key4 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+        System.out.println("会话密钥SGD_SMS4_ECB:" + key4);
+        //导入会话密钥密文
+        SessionKey key5 = device.importSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, key4.getKey());
+        System.out.println("导入会话密钥SGD_SMS4_ECB:" + key5);
+        //释放密钥信息
+        device.releaseSessionKey(key4.getId());
+
+        //生成 SM1加密的会话密钥
+        SessionKey key6 = device.generateSessionKeyBySym(Algorithm.SGD_SM1_ECB, 1, 16);
+        System.out.println("会话密钥SGD_SM1_ECB:" + key6);
+        //导入会话密钥密文
+        SessionKey key7 = device.importSessionKeyBySym(Algorithm.SGD_SM1_ECB, 1, key6.getKey());
+        System.out.println("导入会话密钥SGD_SM1_ECB:" + key7);
+        //释放密钥信息
+        device.releaseSessionKey(key6.getId());
 
     }
 
@@ -556,10 +557,10 @@ class AFHsmDeviceTest {
 
         //final
         byte[] bytes = device.sm3HashFinal();
-        System.out.println("sm3 hash 分步结果:" + new String(bytes));
+        System.out.println("sm3 hash 分步结果:" + HexUtil.encodeHexStr(bytes));
 
         byte[] bytes2 = device.sm3Hash(data);
-        System.out.println("sm3 hash 一步结果:" + new String(bytes2));
+        System.out.println("sm3 hash 一步结果:" + HexUtil.encodeHexStr(bytes2));
 
 
         //带公钥
@@ -578,10 +579,10 @@ class AFHsmDeviceTest {
 
         //final
         byte[] bytes1 = device.sm3HashFinal();
-        System.out.println("sm3 hash 带公钥 分步结果:" + new String(bytes1));
+        System.out.println("sm3 hash 带公钥 分步结果:" + HexUtil.encodeHexStr(bytes1));
 
         byte[] bytes3 = device.sm3HashWithPubKey(pubKey, userId, data);
-        System.out.println("sm3 hash 带公钥 一步结果:" + new String(bytes3));
+        System.out.println("sm3 hash 带公钥 一步结果:" +HexUtil.encodeHexStr(bytes3));
 
 
     }

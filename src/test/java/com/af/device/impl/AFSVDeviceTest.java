@@ -33,11 +33,11 @@ class AFSVDeviceTest {
     //日志
     static Logger logger = Logger.getLogger("AFSVDeviceTest");
 
-//    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8008, "abcd1234");
-    static AFSVDevice device =new  AFSVDevice.Builder("192.168.10.40", 8008, "abcd1234")
-        .isAgKey(true)
-        .responseTimeOut(100000)
-        .build();
+    //    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8008, "abcd1234");
+    static AFSVDevice device = new AFSVDevice.Builder("192.168.10.40", 8008, "abcd1234")
+            .isAgKey(true)
+            .responseTimeOut(100000)
+            .build();
 
     //    static byte[] data = "1234567890abcde".getBytes();
     //大数据
@@ -82,9 +82,9 @@ class AFSVDeviceTest {
      */
     @Test
     void testGetPrivateKeyAccessRight() throws Exception {
-        device.getPrivateAccess(1, 3,"12345678");
-        device.getPrivateAccess(1, 4,"12345678910");
-        device.getPrivateAccess(15, 3,"12345678");
+        device.getPrivateAccess(1, 3, "12345678");
+        device.getPrivateAccess(1, 4, "12345678910");
+        device.getPrivateAccess(15, 3, "12345678");
     }
 
     /**
@@ -186,7 +186,7 @@ class AFSVDeviceTest {
         byte[] fileName = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData".getBytes();
 
         //RSA 内部签名验签 success
-        device.getPrivateAccess(1, 4,"12345678910");
+        device.getPrivateAccess(1, 4, "12345678910");
         byte[] bytes = device.rsaSignature(1, "1234567".getBytes());
         boolean b = device.rsaVerify(1, "1234567".getBytes(), bytes);
         assert b;
@@ -195,7 +195,6 @@ class AFSVDeviceTest {
         byte[] bytes1 = device.rsaSignature(rsaSignPrivateKey, "1234567".getBytes());
         boolean b1 = device.rsaVerify(rsaSignPublicKey, "1234567".getBytes(), bytes1);
         assert b1;
-
 
 
     }
@@ -420,6 +419,7 @@ class AFSVDeviceTest {
 
 
     }
+
     //SM4 ECB
     @Test
     void testSm4ECBOut() throws Exception {
@@ -436,7 +436,7 @@ class AFSVDeviceTest {
     }
 
     @Test
-    void test006()throws Exception{
+    void test006() throws Exception {
         System.out.println("文件大小：" + data.length / 1024 / 1024 + "MB");
         System.out.println("头：" + HexUtil.encodeHexStr(ArrayUtil.sub(data, 0, 10)));
         System.out.println("尾：" + HexUtil.encodeHexStr(ArrayUtil.sub(data, data.length - 10, data.length)));
@@ -708,48 +708,49 @@ class AFSVDeviceTest {
         byte[] bytes = device.sm3Hmac(key, data);
         System.out.println(new String(bytes));
     }
-//
-//    //Hash
-//    @Test
-//    void testHash() throws Exception {
-//
-//        byte[] userId = "1234567812345678".getBytes();
-//        //init
-//        device.sm3HashInit();
-//
-//        //update
-//        device.sm3HashUpdate(data);
-//        device.sm3HashUpdate(data);
-//
-//        //final
-//        byte[] bytes = device.sm3HashFinal();
-//        System.out.println("sm3 hash 分步结果:" + new String(bytes));
-//
-//        byte[] bytes2 = device.sm3Hash(userId, data);
-//        System.out.println("sm3 hash 一步结果:" + new String(bytes2));
-//
-//
-//        //生成Sm2密钥对
-//        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(1);
-//        //公钥
-//        SM2PublicKey pubKey = sm2KeyPair.getPubKey();
-//
-//        //init with pubKey
-//        device.sm3HashInitWithPubKey(pubKey, userId);
-//
-//        //update
-//        device.sm3HashUpdate(data);
-//        device.sm3HashUpdate(data);
-//
-//        //final
-//        byte[] bytes1 = device.sm3HashFinal();
-//        System.out.println("sm3 hash 带公钥 分步结果:" + new String(bytes1));
-//
-//        byte[] bytes3 = device.sm3HashWithPubKey(pubKey, userId, data);
-//        System.out.println("sm3 hash 带公钥 一步结果:" + new String(bytes3));
-//
-//
-//    }
+
+    //
+    //Hash
+    @Test
+    void testHash() throws Exception {
+
+        byte[] userId = "1234567812345678".getBytes();
+        //init
+        device.sm3HashInit();
+
+        //update
+        device.sm3HashUpdate(data);
+        device.sm3HashUpdate(data);
+
+        //final
+        byte[] bytes = device.sm3HashFinal();
+        System.out.println("sm3 hash 分步结果:" + new String(bytes));
+
+        byte[] bytes2 = device.sm3Hash(data);
+        System.out.println("sm3 hash 一步结果:" + new String(bytes2));
+
+
+        //生成Sm2密钥对
+        SM2KeyPairStructure sm2KeyPairStructure = device.generateSM2KeyPair(1);
+        //公钥
+        byte[] pubKey = sm2KeyPairStructure.getPubKey();
+
+        //init with pubKey
+        device.sm3HashInitWithPubKey(pubKey, userId);
+
+        //update
+        device.sm3HashUpdate(data);
+        device.sm3HashUpdate(data);
+
+        //final
+        byte[] bytes1 = device.sm3HashFinal();
+        System.out.println("sm3 hash 带公钥 分步结果:" + new String(bytes1));
+
+        byte[] bytes3 = device.sm3HashWithPubKey(pubKey, userId, data);
+        System.out.println("sm3 hash 带公钥 一步结果:" + new String(bytes3));
+
+
+    }
 
 
     //获取连接个数 success

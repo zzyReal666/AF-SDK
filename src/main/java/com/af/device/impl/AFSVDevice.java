@@ -318,8 +318,8 @@ public class AFSVDevice implements IAFSVDevice {
      * @param index 私钥索引
      */
 
-    public void getPrivateAccess(int index, int keyType,String psw) throws AFCryptoException {
-        cmd.getPrivateAccess(index, keyType,psw);
+    public void getPrivateAccess(int index, int keyType, String psw) throws AFCryptoException {
+        cmd.getPrivateAccess(index, keyType, psw);
     }
     //endregion
 
@@ -3515,8 +3515,11 @@ public class AFSVDevice implements IAFSVDevice {
 
     /**
      * Hash init 带公钥
+     *
+     * @param publicKey 公钥  Base64编码 符合ASN.1格式DER编码
+     * @param userId    用户ID
      */
-    public void sm3HashInitWithPubKey(SM2PublicKey publicKey, byte[] userId) throws AFCryptoException {
+    public void sm3HashInitWithPubKey(byte[] publicKey, byte[] userId) throws AFCryptoException {
         //参数检查
         if (publicKey == null) {
             logger.error("SM3 Hash init(带公钥)，公钥不能为空");
@@ -3526,7 +3529,9 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM3 Hash init(带公钥)，用户ID不能为空");
             throw new AFCryptoException("SM3 Hash init(带公钥)，用户ID不能为空");
         }
-        cmd.hashInit(Algorithm.SGD_SM3, publicKey.encode(), userId);
+        //解析公钥
+        SM2PublicKey sm2PublicKey = structureToSM2PubKey(publicKey);
+        cmd.hashInit(Algorithm.SGD_SM3, sm2PublicKey.encode(), userId);
     }
 
     /**
@@ -3552,7 +3557,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM3 Hash
      */
-    public byte[] sm3Hash(byte[] userId, byte[] data) throws AFCryptoException {
+    public byte[] sm3Hash(byte[] data) throws AFCryptoException {
         //init
         sm3HashInit();
         //update
@@ -3565,7 +3570,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM3 Hash 带公钥
      */
-    public byte[] sm3HashWithPubKey(SM2PublicKey publicKey, byte[] userId, byte[] data) throws AFCryptoException {
+    public byte[] sm3HashWithPubKey(byte[] publicKey, byte[] userId, byte[] data) throws AFCryptoException {
         //init
         sm3HashInitWithPubKey(publicKey, userId);
         //update
@@ -3613,7 +3618,7 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
-     *根据别名获取单个证书
+     * 根据别名获取单个证书
      * <p>根据别名获取单个证书</p>
      *
      * @param altName   ：证书别名
