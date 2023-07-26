@@ -223,7 +223,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param length 随机数长度 字节数
      * @return 随机数
      */
-    public synchronized byte[] getRandom(int length) throws AFCryptoException {
+    public byte[] getRandom(int length) throws AFCryptoException {
         //参数检查
         if (length <= 0 || length > ConstantNumber.MAX_RANDOM_LENGTH) {
             logger.error("随机数长度不合法,长度范围为1-4096,当前长度为:{}", length);
@@ -428,7 +428,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data      加密输入信息
      * @return 加密输出信息
      */
-    public synchronized byte[] convertEnvelope(Algorithm algorithm, int keyIndex, byte[] pubKey, byte[] data) throws AFCryptoException {
+    public byte[] convertEnvelope(Algorithm algorithm, int keyIndex, byte[] pubKey, byte[] data) throws AFCryptoException {
         //参数检查
         if (algorithm != Algorithm.SGD_RSA_ENC && algorithm != Algorithm.SGD_SM2_3) {
             logger.error("数字信封转换失败,算法标识错误,algorithm(SGD_RSA_ENC|SGD_SM2_3):{}", algorithm);
@@ -622,7 +622,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data  : 原始数据
      * @return ：返回运算结果
      */
-    public synchronized byte[] rsaInternalEncrypt(int index, byte[] data) throws AFCryptoException {
+    public byte[] rsaInternalEncrypt(int index, byte[] data) throws AFCryptoException {
         //填充
         byte[] bytes = AFPkcs1Operate.pkcs1EncryptionPublicKey(getRSAEncPublicKey(index).getBits(), data);
         //加密
@@ -637,7 +637,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data  : 加密数据
      * @return ：返回运算结果
      */
-    public synchronized byte[] rsaInternalDecrypt(int index, byte[] data) throws AFCryptoException {
+    public byte[] rsaInternalDecrypt(int index, byte[] data) throws AFCryptoException {
 
         //解密
         byte[] bytes = cmd.rsaPrivateKeyOperation(index, null, Algorithm.SGD_RSA_ENC, data);
@@ -652,7 +652,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data      : 原始数据
      * @return ：返回运算结果
      */
-    public synchronized byte[] rsaExternalEncrypt(RSAPubKey publicKey, byte[] data) throws AFCryptoException {
+    public byte[] rsaExternalEncrypt(RSAPubKey publicKey, byte[] data) throws AFCryptoException {
         //填充
         data = AFPkcs1Operate.pkcs1EncryptionPublicKey(publicKey.getBits(), data);
         //加密
@@ -666,7 +666,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data   : 加密数据
      * @return ：返回运算结果
      */
-    public synchronized byte[] rsaExternalDecrypt(RSAPriKey prvKey, byte[] data) throws AFCryptoException {
+    public byte[] rsaExternalDecrypt(RSAPriKey prvKey, byte[] data) throws AFCryptoException {
         //解密
         data = cmd.rsaPrivateKeyOperation(0, prvKey, Algorithm.SGD_RSA_ENC, data);
         //去填充
@@ -680,7 +680,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data  : 原始数据
      * @return ：返回运算结果
      */
-    public synchronized byte[] rsaInternalSign(int index, byte[] data) throws AFCryptoException {
+    public byte[] rsaInternalSign(int index, byte[] data) throws AFCryptoException {
 //        //获取私钥访问权限
 //        getPrivateKeyAccessRight(index, 4, "12345678");
         //获取摘要
@@ -716,7 +716,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data       : 原始数据
      * @return ：返回运算结果
      */
-    public synchronized byte[] rsaExternalSign(RSAPriKey privateKey, byte[] data) throws AFCryptoException {
+    public byte[] rsaExternalSign(RSAPriKey privateKey, byte[] data) throws AFCryptoException {
         //获取摘要
         byte[] hash = digestForRSASign(-1, privateKey.getBits(), data);
         //填充
@@ -753,7 +753,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain 明文数据
      * @return 密文数据
      */
-    public synchronized byte[] sm2InternalEncrypt(int index, byte[] plain) throws AFCryptoException {
+    public byte[] sm2InternalEncrypt(int index, byte[] plain) throws AFCryptoException {
         //参数检查
         if (index < 0) {
             logger.error("SM2 内部密钥加密，索引不能小于0,当前索引：{}", index);
@@ -777,7 +777,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher 密文数据
      * @return 明文数据
      */
-    public synchronized byte[] sm2InternalDecrypt(int index, byte[] cipher) throws AFCryptoException {
+    public byte[] sm2InternalDecrypt(int index, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (index < 0) {
             logger.error("SM2 内部密钥解密，索引不能小于0,当前索引：{}", index);
@@ -799,7 +799,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain  明文数据
      * @return 密文数据
      */
-    public synchronized byte[] sm2ExternalEncrypt(SM2PublicKey pubKey, byte[] plain) throws AFCryptoException {
+    public byte[] sm2ExternalEncrypt(SM2PublicKey pubKey, byte[] plain) throws AFCryptoException {
         //参数检查
         if (pubKey == null) {
             logger.error("SM2 外部密钥加密，公钥信息不能为空");
@@ -819,7 +819,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher 密文数据
      * @return 明文数据
      */
-    public synchronized byte[] sm2ExternalDecrypt(SM2PrivateKey prvKey, byte[] cipher) throws AFCryptoException {
+    public byte[] sm2ExternalDecrypt(SM2PrivateKey prvKey, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (prvKey == null) {
             logger.error("SM2 外部密钥解密，私钥信息不能为空");
@@ -840,7 +840,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data  原始数据
      * @return 签名数据
      */
-    public synchronized byte[] sm2InternalSign(int index, byte[] data) throws AFCryptoException {
+    public byte[] sm2InternalSign(int index, byte[] data) throws AFCryptoException {
         //参数检查
         if (index < 0) {
             logger.error("SM2 内部密钥签名，索引不能小于0,当前索引：{}", index);
@@ -893,7 +893,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data   原始数据
      * @return 签名数据
      */
-    public synchronized byte[] sm2ExternalSign(SM2PrivateKey prvKey, byte[] data) throws AFCryptoException {
+    public byte[] sm2ExternalSign(SM2PrivateKey prvKey, byte[] data) throws AFCryptoException {
         //参数检查
         if (prvKey == null) {
             logger.error("SM2 外部密钥签名，私钥信息不能为空");
@@ -947,7 +947,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain    原始数据
      * @return 加密数据
      */
-    public synchronized byte[] sm4InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
+    public byte[] sm4InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -977,7 +977,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain 原始数据
      * @return 加密数据
      */
-    public synchronized byte[] sm4ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
+    public byte[] sm4ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 加密，密钥信息不能为空");
@@ -1010,7 +1010,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain     原始数据
      * @return 加密数据
      */
-    public synchronized byte[] sm4HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
+    public byte[] sm4HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
         //参数检查
         if (plain == null || plain.length == 0) {
             logger.error("SM4 加密，加密数据不能为空");
@@ -1037,7 +1037,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain    原始数据
      * @return 加密数据
      */
-    public synchronized byte[] sm4InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
+    public byte[] sm4InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1075,7 +1075,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain 原始数据
      * @return 加密数据
      */
-    public synchronized byte[] sm4ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
+    public byte[] sm4ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 加密，密钥信息不能为空");
@@ -1117,7 +1117,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain     明文
      * @return 密文
      */
-    public synchronized byte[] sm4HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
+    public byte[] sm4HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
         if (iv == null || iv.length == 0) {
             logger.error("SM4 加密，初始向量不能为空");
@@ -1150,7 +1150,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain    明文
      * @return 密文
      */
-    public synchronized byte[] sm1InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
+    public byte[] sm1InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1179,7 +1179,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain 明文
      * @return 密文
      */
-    public synchronized byte[] sm1ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
+    public byte[] sm1ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM1 加密，密钥信息不能为空");
@@ -1212,7 +1212,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain     明文
      * @return 密文
      */
-    public synchronized byte[] sm1HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
+    public byte[] sm1HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
         //参数检查
         if (plain == null || plain.length == 0) {
             logger.error("SM1 加密，加密数据不能为空");
@@ -1238,7 +1238,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain    明文
      * @return 密文
      */
-    public synchronized byte[] sm1InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
+    public byte[] sm1InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length == 0) {
@@ -1273,7 +1273,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain 明文
      * @return 密文
      */
-    public synchronized byte[] sm1ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
+    public byte[] sm1ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM1 加密，密钥信息不能为空");
@@ -1315,7 +1315,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plain     明文
      * @return 密文
      */
-    public synchronized byte[] sm1HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
+    public byte[] sm1HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length == 0) {
@@ -1352,7 +1352,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher   密文
      * @return 明文
      */
-    public synchronized byte[] sm4InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
+    public byte[] sm4InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1381,7 +1381,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher 密文
      * @return 明文
      */
-    public synchronized byte[] sm4ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
+    public byte[] sm4ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 解密，密钥信息不能为空");
@@ -1413,7 +1413,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher    密文
      * @return 明文
      */
-    public synchronized byte[] sm4HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
+    public byte[] sm4HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
         //参数检查
 
         if (cipher == null || cipher.length == 0) {
@@ -1439,7 +1439,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher   密文
      * @return 明文
      */
-    public synchronized byte[] sm4InternalDecryptCBC(int keyIndex, byte[] iv, byte[] cipher) throws AFCryptoException {
+    public byte[] sm4InternalDecryptCBC(int keyIndex, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1476,7 +1476,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher 密文
      * @return 明文
      */
-    public synchronized byte[] sm4ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
+    public byte[] sm4ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 解密，密钥信息不能为空");
@@ -1517,7 +1517,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher    密文
      * @return 明文
      */
-    public synchronized byte[] sm4HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
+    public byte[] sm4HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length == 0) {
@@ -1550,7 +1550,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher   密文
      * @return 明文
      */
-    public synchronized byte[] sm1InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
+    public byte[] sm1InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1578,7 +1578,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher 密文
      * @return 明文
      */
-    public synchronized byte[] sm1ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
+    public byte[] sm1ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM1 解密，密钥信息不能为空");
@@ -1610,7 +1610,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher    密文
      * @return 明文
      */
-    public synchronized byte[] sm1HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
+    public byte[] sm1HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (cipher == null || cipher.length == 0) {
             logger.error("SM1 解密，加密数据不能为空");
@@ -1635,7 +1635,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher   明文
      * @return 密文
      */
-    public synchronized byte[] sm1InternalDecryptCBC(int keyIndex, byte[] iv, byte[] cipher) throws AFCryptoException {
+    public byte[] sm1InternalDecryptCBC(int keyIndex, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1673,7 +1673,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher 密文
      * @return 明文
      */
-    public synchronized byte[] sm1ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
+    public byte[] sm1ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM1 解密，密钥信息不能为空");
@@ -1714,7 +1714,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipher    密文
      * @return 明文
      */
-    public synchronized byte[] sm1HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
+    public byte[] sm1HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (iv == null || iv.length == 0) {
             logger.error("SM1 解密，初始向量不能为空");
@@ -1749,7 +1749,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm4InternalBatchEncryptECB(int keyIndex, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm4InternalBatchEncryptECB(int keyIndex, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 批量加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1795,7 +1795,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm4ExternalBatchEncryptECB(byte[] keyIndex, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm4ExternalBatchEncryptECB(byte[] keyIndex, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (keyIndex == null || keyIndex.length == 0) {
             logger.error("SM4 批量加密，索引不能为空");
@@ -1838,7 +1838,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm4HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm4HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
 
         if (plainList == null || plainList.size() == 0) {
@@ -1881,7 +1881,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm4InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm4InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 批量加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1930,7 +1930,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm4ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm4ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM4 批量加密，key不能为空，且长度必须为16");
@@ -1979,7 +1979,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm4HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm4HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
 
         //参数检查
         if (iv == null || iv.length != 16) {
@@ -2024,7 +2024,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm1InternalBatchEncryptECB(int keyIndex, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm1InternalBatchEncryptECB(int keyIndex, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2068,7 +2068,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm1ExternalBatchEncryptECB(byte[] key, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm1ExternalBatchEncryptECB(byte[] key, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM1 批量加密，密钥不能为空，且长度必须为16");
@@ -2113,7 +2113,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm1HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm1HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
 
         if (plainList == null || plainList.size() == 0) {
@@ -2155,7 +2155,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param iv        初始向量
      * @param plainList 明文列表
      */
-    public synchronized List<byte[]> sm1InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm1InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2204,7 +2204,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm1ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm1ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (null == key || key.length == 0) {
             logger.error("SM1 批量加密，外部密钥不能为空");
@@ -2253,7 +2253,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public synchronized List<byte[]> sm1HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm1HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (null == iv || iv.length == 0) {
             logger.error("SM1 批量加密，iv不能为空");
@@ -2300,7 +2300,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm4InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm4InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 批量解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2337,7 +2337,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm4ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm4ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 批量解密，密钥不能为空");
@@ -2375,7 +2375,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm4HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm4HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (cipherList == null || cipherList.size() == 0) {
             logger.error("SM4 批量解密，解密数据不能为空");
@@ -2408,7 +2408,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param iv         初始向量
      * @param cipherList 密文列表
      */
-    public synchronized List<byte[]> sm4InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm4InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 批量解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2450,7 +2450,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm4ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm4ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM4 批量解密，密钥长度必须为16");
@@ -2492,7 +2492,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm4HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm4HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length != 16) {
@@ -2530,7 +2530,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm1InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm1InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2567,7 +2567,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm1ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm1ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM1 批量解密，密钥长度必须为16");
@@ -2604,7 +2604,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm1HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm1HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
 
         if (cipherList == null || cipherList.size() == 0) {
@@ -2639,7 +2639,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm1InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm1InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2681,7 +2681,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm1ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm1ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
 
         //参数检查
         if (key == null || key.length != 16) {
@@ -2724,7 +2724,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public synchronized List<byte[]> sm1HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm1HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length != 16) {
@@ -2766,7 +2766,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data     计算数据
      * @return MAC
      */
-    public synchronized byte[] sm4InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
+    public byte[] sm4InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 计算MAC，密钥索引必须大于等于0");
@@ -2792,7 +2792,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data 计算数据
      * @return MAC
      */
-    public synchronized byte[] sm4ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
+    public byte[] sm4ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM4 计算MAC，密钥长度必须为16");
@@ -2818,7 +2818,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data      计算数据
      * @return MAC
      */
-    public synchronized byte[] sm4HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
+    public byte[] sm4HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length != 16) {
@@ -2841,7 +2841,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data     计算数据
      * @return MAC
      */
-    public synchronized byte[] sm1InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
+    public byte[] sm1InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 计算MAC，密钥索引必须大于等于0");
@@ -2867,7 +2867,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data 计算数据
      * @return MAC
      */
-    public synchronized byte[] sm1ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
+    public byte[] sm1ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM1 计算MAC，密钥长度必须为16");
@@ -2893,7 +2893,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data      计算数据
      * @return MAC
      */
-    public synchronized byte[] sm1HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
+    public byte[] sm1HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length != 16) {
@@ -2914,7 +2914,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param key  密钥
      * @param data 计算数据
      */
-    public synchronized byte[] sm3Hmac(byte[] key, byte[] data) throws AFCryptoException {
+    public byte[] sm3Hmac(byte[] key, byte[] data) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM3-HMAC，密钥不能为空");
@@ -2975,7 +2975,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      *
      * @return Hash
      */
-    public synchronized byte[] sm3HashFinal() throws AFCryptoException {
+    public byte[] sm3HashFinal() throws AFCryptoException {
         return cmd.hashFinal();
     }
 
@@ -3022,7 +3022,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param fileName 文件名
      * @param fileSize 文件大小
      */
-    public synchronized void createFile(String fileName, int fileSize) throws AFCryptoException {
+    public void createFile(String fileName, int fileSize) throws AFCryptoException {
         //参数检查
         if (fileName == null || fileName.length() == 0) {
             logger.error("创建文件，文件名不能为空");
@@ -3067,7 +3067,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param offset   偏移量
      * @param data     写入数据
      */
-    public synchronized void writeFile(String fileName, int offset, byte[] data) throws AFCryptoException {
+    public void writeFile(String fileName, int offset, byte[] data) throws AFCryptoException {
         //参数检查
         if (fileName == null || fileName.length() == 0) {
             logger.error("写入文件，文件名不能为空");
@@ -3089,7 +3089,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      *
      * @param fileName 文件名
      */
-    public synchronized void deleteFile(String fileName) throws AFCryptoException {
+    public void deleteFile(String fileName) throws AFCryptoException {
         //参数检查
         if (fileName == null || fileName.length() == 0) {
             logger.error("删除文件，文件名不能为空");
