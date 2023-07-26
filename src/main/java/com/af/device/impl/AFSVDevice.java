@@ -298,7 +298,7 @@ public class AFSVDevice implements IAFSVDevice {
      * 获取随机数异常
      */
     @Override
-    public byte[] getRandom(int length) throws AFCryptoException {
+   public synchronized byte[] getRandom(int length) throws AFCryptoException {
         int RAN_MAX_LEN = 4096;
         byte[] output = new byte[length];
         byte[] buff;
@@ -331,7 +331,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param index 索引
      * @return SM2签名公钥 ASN1编码 DER
      */
-    public byte[] getSM2SignPublicKey(int index) throws AFCryptoException {
+   public synchronized byte[] getSM2SignPublicKey(int index) throws AFCryptoException {
         //参数检查
         if (index <= 0) {
             logger.error("index 需要大于0");
@@ -348,7 +348,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param index 索引
      * @return SM2加密公钥 ASN1编码 DER
      */
-    public byte[] getSM2EncryptPublicKey(int index) throws AFCryptoException {
+   public synchronized byte[] getSM2EncryptPublicKey(int index) throws AFCryptoException {
         //参数检查
         if (index <= 0) {
             logger.error("index 需要大于0");
@@ -365,7 +365,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param index ：密钥索引
      * @return RSA签名公钥 ASN1编码 DER
      */
-    public byte[] getRSASignPublicKey(int index) throws AFCryptoException {
+   public synchronized byte[] getRSASignPublicKey(int index) throws AFCryptoException {
         byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_RSA_SIGN);
         return bytesToASN1RSAPubKey(bytes);
 
@@ -377,7 +377,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param index ： 密钥索引
      * @return RSA加密公钥 ASN1编码 DER
      */
-    public byte[] getRSAEncPublicKey(int index) throws AFCryptoException {
+   public synchronized byte[] getRSAEncPublicKey(int index) throws AFCryptoException {
         //参数检查
         if (index <= 0) {
             logger.error("index 需要大于0");
@@ -508,7 +508,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData   待签名数据
      * @return 签名值 Base64 编码
      */
-    public byte[] rsaSignature(int keyIndex, byte[] inData) throws AFCryptoException {
+   public synchronized byte[] rsaSignature(int keyIndex, byte[] inData) throws AFCryptoException {
         //region//======>参数检查 日志打印
         logger.info("SV-RSA签名, keyIndex: {}, inDataLen: {}", keyIndex, null == inData ? 0 : inData.length);
         if (keyIndex <= 0) {
@@ -544,7 +544,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData     待签名数据
      * @return Base64编码的签名数据
      */
-    public byte[] rsaSignature(byte[] privateKey, byte[] inData) throws AFCryptoException {
+   public synchronized byte[] rsaSignature(byte[] privateKey, byte[] inData) throws AFCryptoException {
         logger.info("SV-RSA签名, privateKeyLen: {}, inDataLen: {}", null == privateKey ? 0 : privateKey.length, null == inData ? 0 : inData.length);
         // 参数检查
         if (privateKey == null || privateKey.length == 0) {
@@ -578,7 +578,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param filePath 文件路径
      * @return 签名值 Base64 编码
      */
-    public byte[] rsaSignFile(int keyIndex, byte[] filePath) throws AFCryptoException {
+   public synchronized byte[] rsaSignFile(int keyIndex, byte[] filePath) throws AFCryptoException {
         logger.info("SV-RSA文件签名, keyIndex: {}, fileName: {}", keyIndex, null == filePath ? "" : filePath);
         //参数检查
         if (keyIndex <= 0) {
@@ -602,7 +602,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param filePath   文件名
      * @return Base64编码的签名数据
      */
-    public byte[] rsaSignFile(byte[] privateKey, byte[] filePath) throws AFCryptoException {
+   public synchronized byte[] rsaSignFile(byte[] privateKey, byte[] filePath) throws AFCryptoException {
         // 参数检查
         if (privateKey == null || privateKey.length == 0) {
             logger.error("外部私钥为空");
@@ -819,7 +819,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data     待加密数据
      * @return Base64编码的加密数据
      */
-    public byte[] rsaEncrypt(int keyIndex, byte[] data) throws AFCryptoException {
+   public synchronized byte[] rsaEncrypt(int keyIndex, byte[] data) throws AFCryptoException {
         logger.info("SV-RSA加密-内部公钥");
         //region//======>参数检查
         if (keyIndex <= 0) {
@@ -849,7 +849,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data      待加密数据
      * @return Base64编码的加密数据
      */
-    public byte[] rsaEncrypt(byte[] publicKey, byte[] data) throws AFCryptoException {
+   public synchronized byte[] rsaEncrypt(byte[] publicKey, byte[] data) throws AFCryptoException {
         logger.info("SV-RSA加密-外部公钥");
         //region//======>参数检查
         if (publicKey == null || publicKey.length == 0) {
@@ -879,7 +879,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data            待加密数据
      * @return Base64编码的加密数据
      */
-    public byte[] rsaEncryptByCertificate(byte[] certificatePath, byte[] data) throws AFCryptoException {
+   public synchronized byte[] rsaEncryptByCertificate(byte[] certificatePath, byte[] data) throws AFCryptoException {
         logger.info("SV-RSA加密-证书公钥");
         //region//======>参数检查
         if (certificatePath == null || certificatePath.length == 0) {
@@ -907,7 +907,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param encData  Base64编码的加密数据
      * @return 解密数据 Base64编码
      */
-    public byte[] rsaDecrypt(int keyIndex, byte[] encData) throws AFCryptoException {
+   public synchronized byte[] rsaDecrypt(int keyIndex, byte[] encData) throws AFCryptoException {
         logger.info("SV-RSA解密-内部私钥");
         //region//======>参数检查
         if (keyIndex <= 0) {
@@ -938,7 +938,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param encData    Base64编码的加密数据
      * @return 解密数据 Base64编码
      */
-    public byte[] rsaDecrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
+   public synchronized byte[] rsaDecrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
         logger.info("SV-RSA解密-外部私钥");
         //region//======>参数检查
         if (privateKey == null || privateKey.length == 0) {
@@ -972,7 +972,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data  待签名数据
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    public byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm2Signature(int index, byte[] data) throws AFCryptoException {
         //region//======>参数检查
         logger.info("SV-SM2签名-内部密钥");
         if (index <= 0) {
@@ -1013,7 +1013,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data       待签名数据
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    public byte[] sm2Signature(byte[] privateKey, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm2Signature(byte[] privateKey, byte[] data) throws AFCryptoException {
         //region//======>参数检查
         logger.info("SV-SM2签名-外部密钥");
         if (privateKey == null || privateKey.length == 0) {
@@ -1049,7 +1049,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param privateKey 私钥 ASN1结构 Base64编码
      * @param data       待签名数据
      */
-    public byte[] sm2SignatureByPrivateKey(byte[] privateKey, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm2SignatureByPrivateKey(byte[] privateKey, byte[] data) throws AFCryptoException {
         logger.info("SM2-签名-外部私钥");
         if (privateKey == null || privateKey.length == 0) {
             logger.error("SM2-签名-外部私钥,私钥为空");
@@ -1093,7 +1093,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param base64Certificate 证书  Base64编码
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    public byte[] sm2SignatureByCertificate(byte[] privateKey, byte[] data, byte[] base64Certificate) throws AFCryptoException {
+   public synchronized byte[] sm2SignatureByCertificate(byte[] privateKey, byte[] data, byte[] base64Certificate) throws AFCryptoException {
         logger.info("SV-SM2签名-外部证书");
         //region//======>参数检查
         if (privateKey == null || privateKey.length == 0) {
@@ -1142,7 +1142,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param filePath 待签名文件路径
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    public byte[] sm2SignFile(int index, byte[] filePath) throws AFCryptoException {
+   public synchronized byte[] sm2SignFile(int index, byte[] filePath) throws AFCryptoException {
         //region//======>参数检查 日志打印
         if (index < 0) {
             logger.error("SV_Device 内部密钥文件签名,待签名的签名服务器内部密钥索引小于0");
@@ -1169,7 +1169,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param filePath   待签名文件路径
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    public byte[] sm2SignFile(byte[] privateKey, byte[] filePath) throws AFCryptoException {
+   public synchronized byte[] sm2SignFile(byte[] privateKey, byte[] filePath) throws AFCryptoException {
         //region//======>参数检查 日志打印
         if (privateKey == null || privateKey.length == 0) {
             logger.error("SV_Device 外部密钥文件签名,私钥为空");
@@ -1195,7 +1195,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param filePath   待签名文件路径
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    public byte[] sm2SignFileByPrivateKey(byte[] privateKey, byte[] filePath) throws AFCryptoException {
+   public synchronized byte[] sm2SignFileByPrivateKey(byte[] privateKey, byte[] filePath) throws AFCryptoException {
         //region//======>参数检查 日志打印
         if (filePath == null || filePath.length == 0) {
             logger.error("SV_Device 外部私钥文件签名,待签名的文件名称为空");
@@ -1222,7 +1222,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param base64Certificate 证书 Base64编码 用于获取公钥,并做SM3杂凑
      * @return 签名数据 Base64编码 ASN1 DER结构
      */
-    public byte[] sm2SignFileByCertificate(byte[] privateKey, byte[] filePath, byte[] base64Certificate) throws AFCryptoException {
+   public synchronized byte[] sm2SignFileByCertificate(byte[] privateKey, byte[] filePath, byte[] base64Certificate) throws AFCryptoException {
         //region//======>参数检查 日志打印
         if (filePath == null || filePath.length == 0) {
             logger.error("SV_Device 外部证书文件签名,待签名的文件名称为空");
@@ -1570,7 +1570,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData   待加密数据
      * @return 加密后的数据 base64编码的 ASN1 DER编码
      */
-    public byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException {
+   public synchronized byte[] sm2Encrypt(int keyIndex, byte[] inData) throws AFCryptoException {
         //region//======>参数检查 日志打印
         if (keyIndex < 0) {
             logger.error("SM2内部密钥加密失败,密钥索引非法");
@@ -1607,7 +1607,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData    待加密数据
      * @return 加密后的数据 base64编码的 ASN1 DER编码
      */
-    public byte[] sm2Encrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
+   public synchronized byte[] sm2Encrypt(byte[] publicKey, byte[] inData) throws AFCryptoException {
         //region//======>参数检查 日志打印
         if (publicKey == null || publicKey.length == 0) {
             logger.error("SM2外部公钥加密失败,公钥数据为空");
@@ -1645,7 +1645,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param inData 待加密数据
      * @return 加密后的数据 base64编码的 ASN1 DER编码
      */
-    public byte[] sm2EncryptByCertificate(byte[] cert, byte[] inData) throws AFCryptoException {
+   public synchronized byte[] sm2EncryptByCertificate(byte[] cert, byte[] inData) throws AFCryptoException {
         //region//======>参数检查 日志打印
         logger.info("使用证书进行SM2加密");
         if (cert == null || cert.length == 0) {
@@ -1685,7 +1685,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param encData  待解密数据 base64编码的 ASN1 DER编码
      * @return 解密后的数据 base64编码
      */
-    public byte[] sm2Decrypt(int keyIndex, byte[] encData) throws AFCryptoException {
+   public synchronized byte[] sm2Decrypt(int keyIndex, byte[] encData) throws AFCryptoException {
         //region//======>参数检查 日志打印
         if (encData == null || encData.length == 0) {
             logger.error("SM2内部密钥解密失败,待解密数据为空");
@@ -1714,7 +1714,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param encData    待解密数据 base64编码的 ASN1 DER编码
      * @return 解密后的数据 base64编码
      */
-    public byte[] sm2Decrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
+   public synchronized byte[] sm2Decrypt(byte[] privateKey, byte[] encData) throws AFCryptoException {
         //region//======>参数检查 日志打印
         if (encData == null || encData.length == 0) {
             logger.error("SM2外部密钥解密失败,待解密数据为空");
@@ -1747,7 +1747,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param plain    原始数据
      * @return 加密数据
      */
-    public byte[] sm4InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm4InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1778,7 +1778,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param plain 原始数据
      * @return 加密数据
      */
-    public byte[] sm4ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm4ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 加密，密钥信息不能为空");
@@ -1807,7 +1807,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 ECB 密钥句柄加密
      */
-    public byte[] sm4HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm4HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
         //参数检查
         if (plain == null || plain.length == 0) {
             logger.error("SM4 加密，加密数据不能为空");
@@ -1834,7 +1834,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param plain    原始数据
      * @return 加密数据
      */
-    public byte[] sm4InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm4InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1872,7 +1872,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param plain 原始数据
      * @return 加密数据
      */
-    public byte[] sm4ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm4ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 加密，密钥信息不能为空");
@@ -1909,7 +1909,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 CBC 密钥句柄加密
      */
-    public byte[] sm4HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm4HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
         if (iv == null || iv.length == 0) {
             logger.error("SM4 加密，初始向量不能为空");
@@ -1938,7 +1938,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 内部加密 ECB
      */
-    public byte[] sm1InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm1InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -1963,7 +1963,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 外部加密 ECB
      */
-    public byte[] sm1ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm1ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM1 加密，密钥信息不能为空");
@@ -1992,7 +1992,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 密钥句柄加密 ECB
      */
-    public byte[] sm1HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm1HandleEncryptECB(int keyHandle, byte[] plain) throws AFCryptoException {
         //参数检查
         if (plain == null || plain.length == 0) {
             logger.error("SM1 加密，加密数据不能为空");
@@ -2013,7 +2013,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 内部加密 CBC
      */
-    public byte[] sm1InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm1InternalEncryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length == 0) {
@@ -2043,7 +2043,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 外部加密 CBC
      */
-    public byte[] sm1ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm1ExternalEncryptCBC(byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM1 加密，密钥信息不能为空");
@@ -2080,7 +2080,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 密钥句柄加密 CBC
      */
-    public byte[] sm1HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm1HandleEncryptCBC(int keyHandle, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length == 0) {
@@ -2113,7 +2113,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 内部密钥 解密 ECB
      */
-    public byte[] sm4InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm4InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2139,7 +2139,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 外部密钥 解密 ECB
      */
-    public byte[] sm4ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm4ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 解密，密钥信息不能为空");
@@ -2167,7 +2167,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 密钥句柄 解密 ECB
      */
-    public byte[] sm4HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm4HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
         //参数检查
 
         if (cipher == null || cipher.length == 0) {
@@ -2188,7 +2188,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 内部密钥 解密 CBC
      */
-    public byte[] sm4InternalDecryptCBC(int keyIndex, byte[] iv, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm4InternalDecryptCBC(int keyIndex, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2220,7 +2220,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 外部密钥 解密 CBC
      */
-    public byte[] sm4ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm4ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 解密，密钥信息不能为空");
@@ -2256,7 +2256,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 密钥句柄 解密 CBC
      */
-    public byte[] sm4HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm4HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length == 0) {
@@ -2285,7 +2285,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 内部解密 ECB
      */
-    public byte[] sm1InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm1InternalDecryptECB(int keyIndex, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2309,7 +2309,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 外部解密 ECB
      */
-    public byte[] sm1ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm1ExternalDecryptECB(byte[] key, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM1 解密，密钥信息不能为空");
@@ -2337,7 +2337,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 密钥句柄 解密 ECB
      */
-    public byte[] sm1HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm1HandleDecryptECB(int keyHandle, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (cipher == null || cipher.length == 0) {
             logger.error("SM1 解密，加密数据不能为空");
@@ -2357,7 +2357,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 内部解密 CBC
      */
-    public byte[] sm1InternalDecryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
+   public synchronized byte[] sm1InternalDecryptCBC(int keyIndex, byte[] iv, byte[] plain) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2390,7 +2390,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 外部解密 CBC
      */
-    public byte[] sm1ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm1ExternalDecryptCBC(byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM1 解密，密钥信息不能为空");
@@ -2426,7 +2426,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 密钥句柄 解密 CBC
      */
-    public byte[] sm1HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
+   public synchronized byte[] sm1HandleDecryptCBC(int keyHandle, byte[] iv, byte[] cipher) throws AFCryptoException {
         //参数检查
         if (iv == null || iv.length == 0) {
             logger.error("SM1 解密，初始向量不能为空");
@@ -2457,7 +2457,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 内部批量加密 ECB
      */
-    public List<byte[]> sm4InternalBatchEncryptECB(int keyIndex, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4InternalBatchEncryptECB(int keyIndex, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 批量加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2499,7 +2499,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4外部批量加密 ECB
      */
-    public List<byte[]> sm4ExternalBatchEncryptECB(byte[] keyIndex, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4ExternalBatchEncryptECB(byte[] keyIndex, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (keyIndex == null || keyIndex.length == 0) {
             logger.error("SM4 批量加密，索引不能为空");
@@ -2538,7 +2538,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 密钥句柄批量加密 ECB
      */
-    public List<byte[]> sm4HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
 
         if (plainList == null || plainList.size() == 0) {
@@ -2576,7 +2576,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 内部批量加密 CBC
      */
-    public List<byte[]> sm4InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 批量加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2620,7 +2620,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 外部批量加密 CBC
      */
-    public List<byte[]> sm4ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM4 批量加密，key不能为空，且长度必须为16");
@@ -2664,7 +2664,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 密钥句柄批量加密 CBC
      */
-    public List<byte[]> sm4HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
 
         //参数检查
         if (iv == null || iv.length != 16) {
@@ -2705,7 +2705,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 内部批量加密 ECB
      */
-    public List<byte[]> sm1InternalBatchEncryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1InternalBatchEncryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2745,7 +2745,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 外部批量加密 ECB
      */
-    public List<byte[]> sm1ExternalBatchEncryptECB(byte[] key, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1ExternalBatchEncryptECB(byte[] key, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM1 批量加密，密钥不能为空，且长度必须为16");
@@ -2786,7 +2786,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 密钥句柄批量加密 ECB
      */
-    public List<byte[]> sm1HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
 
         if (plainList == null || plainList.size() == 0) {
@@ -2824,7 +2824,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 内部密钥批量加密 CBC
      */
-    public List<byte[]> sm1InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2868,7 +2868,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 外部密钥批量加密 CBC
      */
-    public List<byte[]> sm1ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (null == key || key.length == 0) {
             logger.error("SM1 批量加密，外部密钥不能为空");
@@ -2912,7 +2912,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 密钥句柄批量加密 CBC
      */
-    public List<byte[]> sm1HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
         if (null == iv || iv.length == 0) {
             logger.error("SM1 批量加密，iv不能为空");
@@ -2955,7 +2955,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 内部批量解密 ECB
      */
-    public List<byte[]> sm4InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 批量解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2988,7 +2988,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 外部批量解密 ECB
      */
-    public List<byte[]> sm4ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 批量解密，密钥不能为空");
@@ -3023,7 +3023,7 @@ public class AFSVDevice implements IAFSVDevice {
      * SM4 密钥句柄批量解密 ECB
      */
 
-    public List<byte[]> sm4HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (cipherList == null || cipherList.size() == 0) {
             logger.error("SM4 批量解密，解密数据不能为空");
@@ -3052,7 +3052,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 内部批量解密 CBC
      */
-    public List<byte[]> sm4InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 批量解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -3089,7 +3089,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 外部密钥批量解密 CBC
      */
-    public List<byte[]> sm4ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM4 批量解密，密钥长度必须为16");
@@ -3126,7 +3126,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 密钥句柄批量解密 CBC
      */
-    public List<byte[]> sm4HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm4HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length != 16) {
@@ -3160,7 +3160,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 内部密钥批量解密 ECB
      */
-    public List<byte[]> sm1InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1InternalBatchDecryptECB(int keyIndex, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -3193,7 +3193,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 外部密钥批量解密 ECB
      */
-    public List<byte[]> sm1ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1ExternalBatchDecryptECB(byte[] key, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM1 批量解密，密钥长度必须为16");
@@ -3226,7 +3226,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 密钥句柄批量解密 ECB
      */
-    public List<byte[]> sm1HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
 
         if (cipherList == null || cipherList.size() == 0) {
@@ -3256,7 +3256,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 内部密钥批量解密 CBC
      */
-    public List<byte[]> sm1InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -3293,7 +3293,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 外部密钥批量解密 CBC
      */
-    public List<byte[]> sm1ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
 
         //参数检查
         if (key == null || key.length != 16) {
@@ -3331,7 +3331,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 密钥句柄批量解密 CBC
      */
-    public List<byte[]> sm1HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public synchronized List<byte[]> sm1HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length != 16) {
@@ -3368,7 +3368,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 计算MAC 内部密钥
      */
-    public byte[] sm4InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm4InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 计算MAC，密钥索引必须大于等于0");
@@ -3391,7 +3391,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 计算MAC 外部密钥
      */
-    public byte[] sm4ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm4ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM4 计算MAC，密钥长度必须为16");
@@ -3412,7 +3412,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM4 计算MAC 密钥句柄
      */
-    public byte[] sm4HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm4HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length != 16) {
@@ -3430,7 +3430,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 计算MAC 内部密钥
      */
-    public byte[] sm1InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm1InternalMac(int keyIndex, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 计算MAC，密钥索引必须大于等于0");
@@ -3451,7 +3451,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 计算MAC 外部密钥
      */
-    public byte[] sm1ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm1ExternalMac(byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM1 计算MAC，密钥长度必须为16");
@@ -3472,7 +3472,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM1 计算MAC 密钥句柄
      */
-    public byte[] sm1HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm1HandleMac(int keyHandle, byte[] iv, byte[] data) throws AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length != 16) {
@@ -3490,7 +3490,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM3-HMAC
      */
-    public byte[] sm3Hmac(byte[] key, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm3Hmac(byte[] key, byte[] data) throws AFCryptoException {
         //参数检查
         if (key == null || key.length == 0) {
             logger.error("SM3-HMAC，密钥不能为空");
@@ -3549,7 +3549,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * Hash doFinal
      */
-    public byte[] sm3HashFinal() throws AFCryptoException {
+   public synchronized byte[] sm3HashFinal() throws AFCryptoException {
         return cmd.hashFinal();
     }
 
@@ -3557,7 +3557,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM3 Hash
      */
-    public byte[] sm3Hash(byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm3Hash(byte[] data) throws AFCryptoException {
         //init
         sm3HashInit();
         //update
@@ -3570,7 +3570,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM3 Hash 带公钥
      */
-    public byte[] sm3HashWithPubKey(byte[] publicKey, byte[] userId, byte[] data) throws AFCryptoException {
+   public synchronized byte[] sm3HashWithPubKey(byte[] publicKey, byte[] userId, byte[] data) throws AFCryptoException {
         //init
         sm3HashInitWithPubKey(publicKey, userId);
         //update
@@ -3626,7 +3626,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @return ：Base64编码的证书文件
      */
 
-    public byte[] getCertByAltName(byte[] altName, int certIndex) throws AFCryptoException {
+   public synchronized byte[] getCertByAltName(byte[] altName, int certIndex) throws AFCryptoException {
         logger.info("根据别名获取单个证书");
         byte[] certData = cmd.getCertListByAltName(0x02, certIndex, altName).getCertData();
         return BytesOperate.base64EncodeData(certData);
@@ -3679,7 +3679,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @return ：用户获取到的证书信息内容
      */
 
-    public byte[] getCertInfo(byte[] base64Certificate, int certInfoType) throws AFCryptoException {
+   public synchronized byte[] getCertInfo(byte[] base64Certificate, int certInfoType) throws AFCryptoException {
         byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
         return cmd.getCertInfo(derCert, certInfoType);
     }
@@ -3693,7 +3693,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @return ：用户获取到的证书信息内容
      */
 
-    public byte[] getCertInfoByOid(byte[] base64Certificate, byte[] certInfoOid) throws AFCryptoException {
+   public synchronized byte[] getCertInfoByOid(byte[] base64Certificate, byte[] certInfoOid) throws AFCryptoException {
         byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
         return cmd.getCertInfoByOid(derCert, certInfoOid);
     }
@@ -3706,7 +3706,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @return ：Base64编码的服务器证书
      */
 
-    public byte[] getServerCert() throws AFCryptoException {
+   public synchronized byte[] getServerCert() throws AFCryptoException {
         byte[] cert;
         cert = cmd.getServerCertByUsage(ConstantNumber.SGD_SERVER_CERT_SIGN);
         if (null == cert) {
@@ -3724,7 +3724,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param usage 证书用途 1：加密证书 | 2：签名证书
      * @return ：Base64编码的服务器证书
      */
-    public byte[] getServerCertByUsage(int usage) throws AFCryptoException {
+   public synchronized byte[] getServerCertByUsage(int usage) throws AFCryptoException {
         byte[] cert;
         cert = cmd.getServerCertByUsage(usage);
         if (null == cert) {
@@ -3746,7 +3746,7 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     //根据证书的 DN 信息获取 CA 证书
-    public byte[] getCaCertByDn(byte[] dn) throws AFCryptoException {
+   public synchronized byte[] getCaCertByDn(byte[] dn) throws AFCryptoException {
         return BytesOperate.base64EncodeCert(cmd.getCaCertByDn(dn));
     }
 
@@ -3757,7 +3757,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @return : Base64编码的证书
      */
 
-    public byte[] getSignCertByPolicyName(String policyName) throws AFCryptoException {
+   public synchronized byte[] getSignCertByPolicyName(String policyName) throws AFCryptoException {
         return BytesOperate.base64EncodeCert(cmd.getCertByPolicyName(policyName.getBytes(), ConstantNumber.SGD_SERVER_CERT_SIGN));
     }
 
@@ -3767,7 +3767,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param policyName : 实体名称
      * @return : Base64编码的证书
      */
-    public byte[] getEncCertByPolicyName(String policyName) throws AFCryptoException {
+   public synchronized byte[] getEncCertByPolicyName(String policyName) throws AFCryptoException {
         return BytesOperate.base64EncodeCert(cmd.getCertByPolicyName(policyName.getBytes(), ConstantNumber.SGD_SERVER_CERT_ENC));
     }
 
@@ -3778,7 +3778,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param base64Certificate : Base64编码的证书
      * @return : OCSP地址
      */
-    public byte[] getOcspUrl(byte[] base64Certificate) throws AFCryptoException {
+   public synchronized byte[] getOcspUrl(byte[] base64Certificate) throws AFCryptoException {
         InputStream inStream = new ByteArrayInputStream(BytesOperate.base64DecodeCert(new String(base64Certificate)));
         ASN1InputStream asn1InputStream;
         ASN1Sequence seq;
@@ -3811,7 +3811,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data              : 待签名数据
      * @return : 签名编码信息数据（DER 编码）  Base64编码
      */
-    public byte[] encodeSignedDataForSM2(byte[] priKey, byte[] base64Certificate, byte[] data) throws AFCryptoException {
+   public synchronized byte[] encodeSignedDataForSM2(byte[] priKey, byte[] base64Certificate, byte[] data) throws AFCryptoException {
         //region ======>参数检查
         if (null == priKey || priKey.length == 0) {
             throw new AFCryptoException("私钥不能为空");
@@ -3841,7 +3841,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data              原文
      * @return 签名编码信息数据（DER 编码）  Base64编码
      */
-    public byte[] encodeSignedDataForSM2(boolean ifCarryText, byte[] privateKey, byte[] signerCertificate, byte[] data) throws AFCryptoException {
+   public synchronized byte[] encodeSignedDataForSM2(boolean ifCarryText, byte[] privateKey, byte[] signerCertificate, byte[] data) throws AFCryptoException {
         try {
             // 解析私钥
             SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey).to512();
@@ -3889,7 +3889,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * PKCS7 带签名信息的数字信封编码
      */
-    public byte[] encodeEnvelopedDataForSM2(byte[] priKey, byte[] symKey, byte[] signCert, byte[] encCert, byte[] data) throws AFCryptoException {
+   public synchronized byte[] encodeEnvelopedDataForSM2(byte[] priKey, byte[] symKey, byte[] signCert, byte[] encCert, byte[] data) throws AFCryptoException {
         //region ======>参数检查
         if (null == priKey || priKey.length == 0) {
             throw new AFCryptoException("私钥不能为空");
@@ -4324,7 +4324,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param priKey SM2私钥 Base64编码的 ASN1 DER格式
      * @return SM2公钥 Base64编码的 ASN1 DER格式
      */
-    public byte[] getSM2PubKeyFromPriKey(byte[] priKey) throws AFCryptoException {
+   public synchronized byte[] getSM2PubKeyFromPriKey(byte[] priKey) throws AFCryptoException {
         logger.info("根据SM2私钥计算SM2公钥");
 //        // 导入BC提供的SM2算法实现
 //        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
