@@ -1,6 +1,5 @@
 package com.af.nettyNew;
 
-import com.af.constant.SpecialRequestsType;
 import com.af.netty.handler.MyDecoder;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -15,12 +14,10 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -109,31 +106,16 @@ public class NettyChannelPool {
 //     */
 //    private Map<ChannelId, Channel> channels = new ConcurrentHashMap<>();
 
-    /**
-     * channel 用于需要同一个通道计算的情况
-     */
-    private List<Channel> channels = new CopyOnWriteArrayList<>();
-
 
     //endregion
 
-    public NettyChannelPool(int channelCount) {
-        this.channelCount = channelCount;
-        this.channelQueue = new ConcurrentLinkedQueue<>();
-        this.locks = new Object[channelCount];
-        for (int i = 0; i < channelCount; i++) {
-            this.locks[i] = new Object();
-        }
-    }
 
     public NettyChannelPool(NettyClientChannels clientChannels) {
-        this.channelCount = channelCount;
         this.channelQueue = new ConcurrentLinkedQueue<>();
         this.locks = new Object[channelCount];
         for (int i = 0; i < channelCount; i++) {
             this.locks[i] = new Object();
         }
-        this.clientChannels = clientChannels;
 
     }
 
@@ -143,23 +125,35 @@ public class NettyChannelPool {
         for (int i = 0; i < channelCount; i++) {
             this.locks[i] = new Object();
         }
-
     }
 
+
+
     /**
-     * 同步获取netty channel
-     * 从队列中获取
+     * 获取通道
      */
     public Channel syncGetChannel() throws InterruptedException {
         Channel channel = channelQueue.poll();
         //如果通道池中没有通道 则等待
         if (channel == null) {
             synchronized (this) {
-                this.wait();
+                channel = channelQueue.poll();
+                if (channel == null) {
+                    this.wait();
+                }
             }
             channel = channelQueue.poll();
         }
         return channel;
+    }
+    /**
+     * 放回通道
+     */
+    public void putChannel(Channel channel) {
+        channelQueue.offer(channel);
+        synchronized (this) {
+            this.notify();
+        }
     }
 
     /**
@@ -221,17 +215,8 @@ public class NettyChannelPool {
                 logger.error("初始化通道池失败", e);
             }
         }
-
-        try {
-            //遍历SpecialRequestsType 枚举
-            for (SpecialRequestsType specialRequestsType : SpecialRequestsType.values()) {
-                channels.add(connectToServer());
-            }
-        } catch (InterruptedException e) {
-            logger.error("初始化通道池失败", e);
-        }
-
         //队列输出channelId
+        logger.info("初始化通道池成功,共有通道数量:{}", channelQueue.size());
         channelQueue.forEach(channel -> logger.info("channelId:{}", channel.id()));
     }
 
@@ -272,10 +257,5 @@ public class NettyChannelPool {
         bootstrap.config().group().shutdownGracefully();
     }
 
-    public void putChannel(Channel channel) {
-        channelQueue.offer(channel);
-        synchronized (this) {
-            this.notify();
-        }
-    }
+
 }

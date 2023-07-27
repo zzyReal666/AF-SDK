@@ -33,6 +33,7 @@ class AFHsmDeviceTest {
         device = new AFHsmDevice.Builder("192.168.10.40", 8008, "abcd1234")
                 .responseTimeOut(10000)
                 .connectTimeOut(10000)
+                .channelCount(16)
                 .build();
 
 
@@ -41,6 +42,10 @@ class AFHsmDeviceTest {
         //获取私钥访问权限
         device.getPrivateKeyAccessRight(1, 4, "12345678");
     }
+
+
+
+
 
     @AfterAll
     static void tearDown() throws Exception {
