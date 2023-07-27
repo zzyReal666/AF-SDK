@@ -56,7 +56,7 @@ jar {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
             {
-                exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+                exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA' ,'logback.xml'
             }
 
 }

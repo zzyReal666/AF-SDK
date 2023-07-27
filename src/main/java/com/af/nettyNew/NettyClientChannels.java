@@ -32,16 +32,16 @@ public class NettyClientChannels implements NettyClient {
     private int taskNo;
 
     //region//建造者模式
-    private NettyClientChannels(String host, int port, String password, int taskNo) {
-        nettyChannelPool.setHost(host);
-        nettyChannelPool.setPort(port);
-        nettyChannelPool.setPassword(password);
-        this.taskNo = taskNo;
-        //连接
-        connect();
-        //登录
-        login();
-    }
+//    private NettyClientChannels(String host, int port, String password, int taskNo) {
+//        nettyChannelPool.setHost(host);
+//        nettyChannelPool.setPort(port);
+//        nettyChannelPool.setPassword(password);
+//        this.taskNo = taskNo;
+//        //连接
+//        connect();
+//        //登录
+//        login();
+//    }
 
 
     /**
@@ -167,13 +167,13 @@ public class NettyClientChannels implements NettyClient {
                 //接收数据
                 callbackService.wait(nettyChannelPool.getResponseTimeout());
             }
-            byte[] result = callbackService.result;
-            //放回通道
-            nettyChannelPool.putChannel(channel);
-            return result;
+            return callbackService.result;
         } catch (InterruptedException e) {
             logger.error("发送数据失败");
             throw new RuntimeException(e);
+        }finally {
+            //放回通道
+            nettyChannelPool.putChannel(channel);
         }
     }
 

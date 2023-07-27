@@ -128,7 +128,6 @@ public class NettyChannelPool {
     }
 
 
-
     /**
      * 获取通道
      */
@@ -140,12 +139,15 @@ public class NettyChannelPool {
                 channel = channelQueue.poll();
                 if (channel == null) {
                     this.wait();
+                } else {
+                    return channel;
                 }
             }
             channel = channelQueue.poll();
         }
         return channel;
     }
+
     /**
      * 放回通道
      */
