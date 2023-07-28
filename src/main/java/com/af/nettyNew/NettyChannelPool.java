@@ -132,18 +132,18 @@ public class NettyChannelPool {
      * 获取通道
      */
     public Channel syncGetChannel() throws InterruptedException {
+        //队首拿出一个通道
         Channel channel = channelQueue.poll();
-        //如果通道池中没有通道 则等待
-        if (channel == null) {
+        //如果通道池中没有通道 当前线程进入同步代码块等待
+        while (channel == null) {
             synchronized (this) {
+                // 再次判断，防止在等待期间有其他线程放回通道
                 channel = channelQueue.poll();
                 if (channel == null) {
+                    //todo 是否设置超时时间
                     this.wait();
-                } else {
-                    return channel;
                 }
             }
-            channel = channelQueue.poll();
         }
         return channel;
     }
@@ -152,10 +152,13 @@ public class NettyChannelPool {
      * 放回通道
      */
     public void putChannel(Channel channel) {
-        channelQueue.offer(channel);
-        synchronized (this) {
-            this.notify();
+        if (channel != null) {
+            channelQueue.offer(channel);
+            synchronized (this) {
+                this.notify();
+            }
         }
+
     }
 
     /**
@@ -227,14 +230,10 @@ public class NettyChannelPool {
      */
     private void setBootStrap() {
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-        bootstrap.group(eventLoopGroup)
-                .channel(NioSocketChannel.class)
-                .option(ChannelOption.SO_RCVBUF, bufferSize)
-                .option(ChannelOption.TCP_NODELAY, true)  //不写缓存
+        bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_RCVBUF, bufferSize).option(ChannelOption.TCP_NODELAY, true)  //不写缓存
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 7000)  //连接超时时间
                 .option(ChannelOption.SO_KEEPALIVE, true) //保持连接
-                .handler(new LoggingHandler(LogLevel.INFO))
-                .handler(new ChannelInitializer<SocketChannel>() {
+                .handler(new LoggingHandler(LogLevel.INFO)).handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();

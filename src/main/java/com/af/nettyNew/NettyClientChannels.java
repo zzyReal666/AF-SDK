@@ -32,17 +32,6 @@ public class NettyClientChannels implements NettyClient {
     private int taskNo;
 
     //region//建造者模式
-//    private NettyClientChannels(String host, int port, String password, int taskNo) {
-//        nettyChannelPool.setHost(host);
-//        nettyChannelPool.setPort(port);
-//        nettyChannelPool.setPassword(password);
-//        this.taskNo = taskNo;
-//        //连接
-//        connect();
-//        //登录
-//        login();
-//    }
-
 
     /**
      * 建造者模式
