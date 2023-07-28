@@ -134,7 +134,7 @@ public class NettyChannelPool {
     public Channel syncGetChannel() throws InterruptedException {
         //队首拿出一个通道
         Channel channel = channelQueue.poll();
-        //如果通道池中没有通道 当前线程进入同步代码块等待
+        //如果队列为空，等待
         while (channel == null) {
             synchronized (this) {
                 // 再次判断，防止在等待期间有其他线程放回通道

@@ -56,8 +56,8 @@ public class ResponseMessage {
         this.isEncrypt = isEncrypt;
         //判空
         if (data == null || data.length < ResponseHeader.HEADER_LENGTH) {
-            logger.error("响应数据为空或长度小于响应头长度");
-            throw new IllegalArgumentException("响应数据为空或长度小于响应头长度");
+            logger.error("请求超时");
+            throw new IllegalArgumentException("请求超时");
         }
         if (data.length == ResponseHeader.HEADER_LENGTH) {
             this.header = new ResponseHeader(data);

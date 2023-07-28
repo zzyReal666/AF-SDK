@@ -77,6 +77,8 @@ public class AFHsmDevice implements IAFHsmDevice {
 
         //region//======>构造方法
         public Builder(String host, int port, String passwd) {
+            //host 去除空格
+            host = host.replaceAll(" ", "");
             this.host = host;
             this.port = port;
             this.passwd = passwd;
@@ -163,14 +165,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
         //region//======>build
         public AFHsmDevice build() {
-            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
-                    .timeout(connectTimeOut)
-                    .responseTimeout(responseTimeOut)
-                    .retryCount(retryCount)
-                    .retryInterval(retryInterval)
-                    .bufferSize(bufferSize)
-                    .channelCount(channelCount)
-                    .build();
+            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo()).timeout(connectTimeOut).responseTimeout(responseTimeOut).retryCount(retryCount).retryInterval(retryInterval).bufferSize(bufferSize).channelCount(channelCount).build();
             AFHsmDevice hsmDevice = InstanceHolder.instance;
             if (isAgKey) {
                 hsmDevice.setAgKey();
@@ -1760,18 +1755,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
 
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
 
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, plainList);
@@ -1783,9 +1774,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -1805,17 +1794,13 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 0, 0, keyIndex, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -1826,9 +1811,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -1846,18 +1829,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
 
         }
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -1868,9 +1847,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -1896,17 +1873,13 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -1917,9 +1890,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -1945,17 +1916,13 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -1966,9 +1933,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -1991,17 +1956,13 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -2012,9 +1973,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -2035,17 +1994,13 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_ECB, 1, keyIndex, null, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -2056,9 +2011,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -2079,18 +2032,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
 
         }
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_ECB, 0, 0, key, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -2101,9 +2050,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -2121,18 +2068,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
 
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_ECB, 2, keyHandle, null, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -2143,9 +2086,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -2170,17 +2111,13 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_CBC, 1, keyIndex, null, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -2191,9 +2128,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -2219,17 +2154,13 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_CBC, 0, 0, key, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -2240,9 +2171,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
 
     /**
@@ -2264,17 +2193,13 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = plainList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量加密，加密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //padding
-        plainList = plainList.stream()
-                .map(AFHsmDevice::padding)
-                .collect(Collectors.toList());
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
         byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM1_CBC, 2, keyHandle, null, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
@@ -2285,9 +2210,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count)
-                .mapToObj(i -> buf.readOneData())
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
     }
     //endregion
 
@@ -2311,9 +2234,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2349,9 +2270,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2382,9 +2301,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2423,9 +2340,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2465,9 +2380,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2504,9 +2417,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2541,9 +2452,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2578,9 +2487,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2612,9 +2519,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2654,9 +2559,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2697,9 +2600,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2736,9 +2637,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
         //list 总长度<2M
-        int totalLength = cipherList.stream()
-                .mapToInt(bytes -> bytes.length)
-                .sum();
+        int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM1 批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
             throw new AFCryptoException("SM1 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
@@ -2986,14 +2885,14 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data 计算数据
      * @return Hash
      */
-    public synchronized byte[] sm3Hash(byte[] data) throws AFCryptoException {
-        //init
-        sm3HashInit();
-        //update
-        sm3HashUpdate(data);
-        //doFinal
-        return sm3HashFinal();
-
+    public byte[] sm3Hash(byte[] data) throws AFCryptoException {
+        //region//======>参数检查
+        if (data == null || data.length == 0) {
+            logger.error("SM3 Hash，计算数据不能为空");
+            throw new AFCryptoException("SM3 Hash，计算数据不能为空");
+        }
+        //endregion
+        return cmd.hash(null, null, data);
     }
 
     /**
@@ -3004,13 +2903,22 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data      计算数据
      * @return Hash
      */
-    public synchronized byte[] sm3HashWithPubKey(SM2PublicKey publicKey, byte[] userId, byte[] data) throws AFCryptoException {
-        //init
-        sm3HashInitWithPubKey(publicKey, userId);
-        //update
-        sm3HashUpdate(data);
-        //doFinal
-        return sm3HashFinal();
+    public  byte[] sm3HashWithPubKey(SM2PublicKey publicKey, byte[] userId, byte[] data) throws AFCryptoException {
+        //region//======>参数检查
+        if (publicKey == null) {
+            logger.error("SM3 Hash(带公钥)，公钥不能为空");
+            throw new AFCryptoException("SM3 Hash(带公钥)，公钥不能为空");
+        }
+        if (userId == null || userId.length == 0) {
+            logger.error("SM3 Hash(带公钥)，用户ID不能为空");
+            throw new AFCryptoException("SM3 Hash(带公钥)，用户ID不能为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM3 Hash(带公钥)，计算数据不能为空");
+            throw new AFCryptoException("SM3 Hash(带公钥)，计算数据不能为空");
+        }
+        //endregion
+        return cmd.hash(publicKey.encode(), userId, data);
     }
     //endregion
 
@@ -3279,15 +3187,13 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return 明文list, 每个明文都是cutting后的
      */
     private static List<byte[]> getCollect(BytesBuffer buf, int count) {
-        return IntStream.range(0, count)
-                .mapToObj(i -> {
-                    try {
-                        return cutting(buf.readOneData());
-                    } catch (AFCryptoException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .collect(Collectors.toList());
+        return IntStream.range(0, count).mapToObj(i -> {
+            try {
+                return cutting(buf.readOneData());
+            } catch (AFCryptoException e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toList());
     }
 //    private static byte[] cutting(byte[] data) {
 //        int paddingNumber = Byte.toUnsignedInt(data[data.length - 1]);

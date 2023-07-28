@@ -443,7 +443,7 @@ public class AFHSMCmd extends AFCmd {
      * 3、加密信息
      */
     public byte[] generateSessionKey(Algorithm algorithm, int keyIndex, int sessionKeyLength, byte[] publicKey) throws AFCryptoException {
-        logger.info("HSM-CMD-生成会话密钥, keyType: {}, keyIndex: {}, keyLength: {},publicKeyLength:{}", algorithm, keyIndex, sessionKeyLength,null == publicKey ? 0 : publicKey.length);
+        logger.info("HSM-CMD-生成会话密钥, keyType: {}, keyIndex: {}, keyLength: {},publicKeyLength:{}", algorithm, keyIndex, sessionKeyLength, null == publicKey ? 0 : publicKey.length);
         byte[] param = new BytesBuffer()
                 .append(algorithm.getValue())
                 .append(keyIndex)
@@ -560,16 +560,10 @@ public class AFHSMCmd extends AFCmd {
                 .append(keyData)
                 .toBytes();
         RequestMessage req = new RequestMessage(CMDCode.CMD_IMPORTKEYWITHKEK, param, agKey);
-        ResponseMessage res = null;
-        for (int i = 0; i < count; i++) {
-            res = client.send(req);
-            if (res.getHeader().getErrorCode() != 0) {
-                logger.error("HSM-CMD-导入会话密钥密文（使用对称密钥）,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
-                throw new AFCryptoException("HSM-CMD-导入会话密钥密文（使用对称密钥）,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
-            }
-        }
-        if (res == null) {
-            throw new AFCryptoException("HSM-CMD-导入会话密钥密文（使用对称密钥）,错误码:9999,错误信息:响应为空");
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("HSM-CMD-导入会话密钥密文（使用对称密钥）,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("HSM-CMD-导入会话密钥密文（使用对称密钥）,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
         return res.getData();
     }
@@ -1167,6 +1161,32 @@ public class AFHSMCmd extends AFCmd {
         }
         return res.getDataBuffer().readOneData();
     }
+
+    /**
+     * HASH 计算  单包计算
+     * @param key SM2密钥  如果不带密钥则传null
+     * @param userId 用户ID
+     * @param data 数据
+     */
+    public byte[] hash(byte[] key,byte[] userId,  byte[] data) throws AFCryptoException {
+        logger.info("HSM-CMD-HASH, keyLen:{}, userIdLen:{}, dataLen:{}", null == key ? 0 : key.length, null == userId ? 0 : userId.length, data.length);
+        BytesBuffer buffer = new BytesBuffer()
+                .append(null == key ? 0 : key.length)
+                .append(key)
+                .append(null == userId ? 0 : userId.length)
+                .append(userId)
+                .append(data.length)
+                .append(data);
+        byte[] param = buffer.toBytes();
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_HASH, param, agKey);
+        ResponseMessage res = client.send(requestMessage);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("HSM-CMD-HASH失败, keyLen:{}, userIdLen:{}, dataLen:{}, 错误码:{},错误信息:{}", null == key ? 0 : key.length, null == userId ? 0 : userId.length, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("HSM-CMD-HASH失败, keyLen:" + (null == key ? 0 : key.length) + ", userIdLen:" + (null == userId ? 0 : userId.length) + ", dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
+    }
+
 
     /**
      * 创建文件操作

@@ -49,6 +49,8 @@ public enum CMDCode {
     public static final int CMD_HASHINIT = 0x00500011;  //HASH init
     public static final int CMD_HASHUPDATE = 0x00500012; //HASH update
     public static final int CMD_HASHFINAL = 0x00500013;  //HASH final
+    public static final int CMD_HASH = 0x00500014;   //HASH 单包计算
+
 
 
     public static final int CMD_EXPORT_KEY = 0x00400005;

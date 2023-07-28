@@ -30,8 +30,8 @@ class AFHsmDeviceTest {
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
 //        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8008, "abcd1234");
-        device = new AFHsmDevice.Builder("192.168.10.40", 8008, "abcd1234")
-                .responseTimeOut(10000)
+        device = new AFHsmDevice.Builder("47.103.213.215", 28015 , "abcd1234")
+                .responseTimeOut(100000)
                 .connectTimeOut(10000)
                 .channelCount(16)
                 .build();
@@ -172,7 +172,7 @@ class AFHsmDeviceTest {
 
     }
 
-    //生成协商数据 生成协商数据及密钥 生成协商密钥 success todo 未验证  single
+    //生成协商数据 生成协商数据及密钥 生成协商密钥 success
     @Test
     void testGenerateAgreementData() throws Exception {
         AgreementData agreementData = new AgreementData();
@@ -564,8 +564,15 @@ class AFHsmDeviceTest {
         byte[] bytes = device.sm3HashFinal();
         System.out.println("sm3 hash 分步结果:" + HexUtil.encodeHexStr(bytes));
 
-        byte[] bytes2 = device.sm3Hash(data);
+
+        //将data-data 拼接
+        byte[] data1 = new byte[data.length * 2];
+        System.arraycopy(data, 0, data1, 0, data.length);
+        System.arraycopy(data, 0, data1, data.length, data.length);
+
+        byte[] bytes2 = device.sm3Hash(data1);
         System.out.println("sm3 hash 一步结果:" + HexUtil.encodeHexStr(bytes2));
+        assert Arrays.equals(bytes, bytes2);
 
 
         //带公钥
@@ -580,7 +587,6 @@ class AFHsmDeviceTest {
 
         //update
         device.sm3HashUpdate(data);
-        device.sm3HashUpdate(data);
 
         //final
         byte[] bytes1 = device.sm3HashFinal();
@@ -588,6 +594,7 @@ class AFHsmDeviceTest {
 
         byte[] bytes3 = device.sm3HashWithPubKey(pubKey, userId, data);
         System.out.println("sm3 hash 带公钥 一步结果:" +HexUtil.encodeHexStr(bytes3));
+        assert Arrays.equals(bytes1, bytes3);
 
 
     }
