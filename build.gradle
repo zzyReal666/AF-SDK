@@ -61,10 +61,6 @@ jar {
 
 }
 
-
-
-
-
 //自动生成文档
 tasks.register('generateDocs', Exec) {
     workingDir project.rootDir
@@ -85,4 +81,9 @@ tasks.named('build') {
     // 添加自定义的构建逻辑
     dependsOn 'generateDocs'
 
+}
+
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
 }
