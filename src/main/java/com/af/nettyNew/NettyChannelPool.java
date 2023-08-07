@@ -8,7 +8,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.Attribute;
 import lombok.Getter;
 import lombok.Setter;
@@ -214,7 +213,7 @@ public class NettyChannelPool {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast(new MyDecoder());
                         pipeline.addLast(new NettyHandler(NettyChannelPool.this));
-                        pipeline.addLast(new IdleStateHandler(0, 4, 0, TimeUnit.SECONDS));
+//                        pipeline.addLast(new IdleStateHandler(0, 4, 0, TimeUnit.SECONDS));
                     }
                 });
     }
