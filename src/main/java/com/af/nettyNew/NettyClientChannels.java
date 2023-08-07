@@ -2,6 +2,7 @@ package com.af.nettyNew;
 
 import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
+import com.af.constant.CMDCode;
 import com.af.constant.SpecialRequestsType;
 import com.af.netty.NettyClient;
 import com.af.utils.BytesBuffer;
@@ -27,12 +28,14 @@ public class NettyClientChannels implements NettyClient {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyClientChannels.class);
 
-    public NettyChannelPool nettyChannelPool ;
+    public NettyChannelPool nettyChannelPool;
 
     private int taskNo;
 
-    //region//建造者模式
+    private byte[] heartBeat;
 
+
+    //region//建造者模式
     /**
      * 建造者模式
      */
@@ -45,7 +48,9 @@ public class NettyClientChannels implements NettyClient {
             instance.nettyChannelPool.setPort(port);
             instance.nettyChannelPool.setPassword(password);
             instance.taskNo = taskNo;
-
+            byte[] param = new BytesBuffer().append(0).toBytes();
+            RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_HEARTBEAT, param, null);
+            instance.heartBeat = requestMessage.encode();
         }
 
         public Builder timeout(int timeout) {
@@ -81,6 +86,7 @@ public class NettyClientChannels implements NettyClient {
         public NettyClientChannels build() {
             instance.connect();
             instance.login();
+            instance.nettyChannelPool.setClientChannels(instance);
             return instance;
         }
 
@@ -127,6 +133,7 @@ public class NettyClientChannels implements NettyClient {
         Channel channel;
         try {
             channel = nettyChannelPool.syncGetChannel();
+            logger.info("获取通道成功,channelId:{}", channel.id());
         } catch (InterruptedException e) {
             logger.error("获取通道失败");
             throw new RuntimeException(e);
@@ -138,8 +145,9 @@ public class NettyClientChannels implements NettyClient {
 
     /**
      * 发送数据 接收响应
-     * @param msg 消息
-     * @param seq 序列号
+     *
+     * @param msg     消息
+     * @param seq     序列号
      * @param channel 通道
      * @return 响应
      */
@@ -160,7 +168,7 @@ public class NettyClientChannels implements NettyClient {
         } catch (InterruptedException e) {
             logger.error("发送数据失败");
             throw new RuntimeException(e);
-        }finally {
+        } finally {
             //放回通道
             nettyChannelPool.putChannel(channel);
         }
@@ -177,13 +185,11 @@ public class NettyClientChannels implements NettyClient {
     /**
      * 登录
      */
-    private void login() {
+    public void login() {
         byte[] psw = nettyChannelPool.getPassword().getBytes();
         byte[] param = new BytesBuffer().append(psw).toBytes();
         ResponseMessage responseMessage = null;
-        for (int i = 0; i < nettyChannelPool.getChannelCount(); i++) {
-            responseMessage = send(new RequestMessage(0x00000000, param, null));
-        }
+        responseMessage = send(new RequestMessage(0x00000000, param, null));
         if (null == responseMessage || responseMessage.getHeader().getErrorCode() != 0x00000000) {
             logger.error("登录失败");
             throw new RuntimeException("登录失败");

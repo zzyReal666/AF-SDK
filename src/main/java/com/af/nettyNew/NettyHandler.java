@@ -1,10 +1,12 @@
 package com.af.nettyNew;
 
 import com.af.utils.BytesOperate;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -21,12 +23,6 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
         this.nettyChannelPool = nettyChannelPool;
     }
 
-    public static byte[] response;
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-//        logger.info("与服务器建立连接,连接地址:{},通道ID:{}", ctx.channel().remoteAddress(), ctx.channel().id());
-    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -34,11 +30,15 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
         int seq = BytesOperate.bytes2int(receive, 4);
         NettyClientChannels.CallbackService callbackService = ChannelUtils.<NettyClientChannels.CallbackService>removeCallback(ctx.channel(), seq);
         callbackService.receiveMessage(receive);
-//        response = (byte[]) msg;
-//        //通知客户端，响应已经接收完毕
-//        synchronized (nettyChannelPool.getClientChannels()) {
-//            nettyChannelPool.getClientChannels().notifyAll();
-//        }
+    }
+
+
+    /**
+     * 心跳
+     */
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        ctx.writeAndFlush(Unpooled.wrappedBuffer(nettyChannelPool.getClientChannels().getHeartBeat()));
     }
 
     /**
@@ -48,8 +48,7 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("与服务器断开连接,连接地址:{},通道ID:{}", ctx.channel().remoteAddress(), ctx.channel().id());
         if (nettyChannelPool.isAvailable()) {
-            logger.info("开始重连服务器");
-            nettyChannelPool.initChannels();
+            nettyChannelPool.reconnect(ctx.channel());
         }
     }
 }

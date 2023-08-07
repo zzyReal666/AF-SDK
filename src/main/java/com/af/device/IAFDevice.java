@@ -124,14 +124,6 @@ public interface IAFDevice {
     default void close(NettyClient client) {
         RequestMessage req = new RequestMessage(CMDCode.CMD_CLOSE).setIsEncrypt(false);
         ResponseMessage send = null;
-//        if (client instanceof NettyClientChannels) {
-//            int channelCount = ((NettyClientChannels) client).getNettyChannelPool().getChannelCount();
-//            for (int i = 0; i < channelCount; i++) {
-//                send = client.send(req);
-//            }
-//        } else if (client instanceof AFNettyClient) {
-//            send = client.send(req);
-//        }
         send = client.send(req);
         if (send == null) {
             throw new DeviceException("关闭连接失败，响应为空");
@@ -141,7 +133,6 @@ public interface IAFDevice {
         }
         //关闭连接
         client.close();
-
     }
 
     //心跳

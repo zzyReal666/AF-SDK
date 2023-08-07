@@ -8,6 +8,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.Attribute;
 import lombok.Getter;
 import lombok.Setter;
@@ -42,7 +43,6 @@ public class NettyChannelPool {
      * 端口
      */
     private int port;
-
 
     /**
      * 密码
@@ -94,20 +94,13 @@ public class NettyChannelPool {
      */
     private final Object[] locks;
 
-
     /**
      * bootstrap
      */
     private Bootstrap bootstrap = new Bootstrap();
-
-
-//    /**
-//     * channels  用于需要同一个通道计算的情况
-//     */
-//    private Map<ChannelId, Channel> channels = new ConcurrentHashMap<>();
-
-
     //endregion
+
+
 
 
     public NettyChannelPool(NettyClientChannels clientChannels) {
@@ -140,14 +133,12 @@ public class NettyChannelPool {
                 // 再次判断，防止在等待期间有其他线程放回通道
                 channel = channelQueue.poll();
                 if (channel == null) {
-                    //todo 是否设置超时时间
                     this.wait();
                 }
             }
         }
         return channel;
     }
-
     /**
      * 放回通道
      */
@@ -158,24 +149,22 @@ public class NettyChannelPool {
                 this.notify();
             }
         }
-
     }
-
     /**
      * 连接到服务端  此方法只能获取到一个channel
      *
      * @return channel
      */
-    private synchronized Channel connectToServer() throws InterruptedException {
-
+    public synchronized Channel connectToServer() throws InterruptedException {
         if (retryCount <= 0) {
+            retryCount = 3;
             throw new RuntimeException("重试3次失败，连接服务端失败");
         }
         //连接服务端 添加监听器 重试机制
         ChannelFuture channelFuture = bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
                 logger.error("连接服务端失败，正在重试,剩余重试次数:{}", retryCount--);
-                future.channel().eventLoop().schedule(this::connectToServer, timeout, TimeUnit.MILLISECONDS);
+                future.channel().eventLoop().schedule(this::connectToServer, retryInterval, TimeUnit.MILLISECONDS);
             }
         });
         Channel channel = channelFuture.sync().channel();
@@ -194,18 +183,6 @@ public class NettyChannelPool {
         initChannels();
     }
 
-//    private void initListChannels() {
-//        for (int i = 0; i < channelCount; i++) {
-//            try {
-//                Channel channel = connectToServer();
-//                channels.put(channel.id(), channel);
-//                //初始化需要同一个通道计算的情况
-//            } catch (InterruptedException e) {
-//                logger.error("初始化通道池失败", e);
-//            }
-//        }
-//    }
-
     /**
      * 初始化通道池
      */
@@ -215,7 +192,6 @@ public class NettyChannelPool {
             try {
                 Channel channel = connectToServer();
                 channelQueue.offer(channel);
-                //初始化需要同一个通道计算的情况
             } catch (InterruptedException e) {
                 logger.error("初始化通道池失败", e);
             }
@@ -224,7 +200,6 @@ public class NettyChannelPool {
         logger.info("初始化通道池成功,共有通道数量:{}", channelQueue.size());
         channelQueue.forEach(channel -> logger.info("channelId:{}", channel.id()));
     }
-
     /**
      * 设置bootstrap
      */
@@ -238,11 +213,11 @@ public class NettyChannelPool {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast(new MyDecoder());
-                        ch.pipeline().addLast(new NettyHandler(NettyChannelPool.this));
+                        pipeline.addLast(new NettyHandler(NettyChannelPool.this));
+                        pipeline.addLast(new IdleStateHandler(0, 4, 0, TimeUnit.SECONDS));
                     }
                 });
     }
-
     /**
      * 关闭通道池
      */
@@ -257,6 +232,13 @@ public class NettyChannelPool {
         //netty 释放资源
         bootstrap.config().group().shutdownGracefully();
     }
-
-
+    public void reconnect(Channel channel) {
+        try {
+            Channel newChannel = connectToServer();
+            channelQueue.offer(newChannel);
+            channel.close();
+        } catch (InterruptedException e) {
+            logger.error("重连失败", e);
+        }
+    }
 }

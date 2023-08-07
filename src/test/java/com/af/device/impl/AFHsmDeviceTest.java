@@ -29,8 +29,7 @@ class AFHsmDeviceTest {
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-//        device = AFDeviceFactory.getAFHsmDevice("192.168.10.40", 8008, "abcd1234");
-        device = new AFHsmDevice.Builder("47.103.213.215", 28015 , "abcd1234")
+        device = new AFHsmDevice.Builder("192.168.10.40", 8008 , "abcd1234")
                 .responseTimeOut(100000)
                 .connectTimeOut(10000)
                 .channelCount(16)
@@ -44,9 +43,6 @@ class AFHsmDeviceTest {
     }
 
 
-
-
-
     @AfterAll
     static void tearDown() throws Exception {
         logger.info("发送关闭连接请求");
@@ -54,6 +50,15 @@ class AFHsmDeviceTest {
         logger.info("服务端已经关闭连接");
     }
 
+
+    @Test
+    void testReConnect()throws Exception {
+        int i = 0;
+        while (true) {
+            byte[] random = device.getRandom(5);
+            System.out.println("第"+ i++ +"次获取随机数:" + HexUtil.encodeHexStr(random));
+        }
+    }
 
     /**
      * 密钥协商  success

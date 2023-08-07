@@ -115,6 +115,8 @@ public enum CMDCode {
 
     //2023 05 31 根据协议新增
 
+    public static final int CMD_HEARTBEAT = 0x00500001;
+
     public static final int EXPORT_PUBLIC_KEY = 0x00040001;     //导出公钥
 
 
