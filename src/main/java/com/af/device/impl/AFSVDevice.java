@@ -2463,7 +2463,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM4 批量加密，索引不能小于0,当前索引：{}", keyIndex);
             throw new AFCryptoException("SM4 批量加密，索引不能小于0,当前索引：" + keyIndex);
         }
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
@@ -2505,7 +2505,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM4 批量加密，索引不能为空");
             throw new AFCryptoException("SM4 批量加密，索引不能为空");
         }
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
@@ -2541,7 +2541,7 @@ public class AFSVDevice implements IAFSVDevice {
     public List<byte[]> sm4HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
 
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
@@ -2586,7 +2586,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM4 批量加密，iv不能为空，且长度必须为16");
             throw new AFCryptoException("SM4 批量加密，iv不能为空，且长度必须为16");
         }
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
@@ -2630,7 +2630,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM4 批量加密，iv不能为空，且长度必须为16");
             throw new AFCryptoException("SM4 批量加密，iv不能为空，且长度必须为16");
         }
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
@@ -2671,7 +2671,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM4 批量加密，iv不能为空，且长度必须为16");
             throw new AFCryptoException("SM4 批量加密，iv不能为空，且长度必须为16");
         }
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
@@ -2711,7 +2711,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM1 批量加密，索引不能小于0,当前索引：{}", keyIndex);
             throw new AFCryptoException("SM1 批量加密，索引不能小于0,当前索引：" + keyIndex);
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
@@ -2751,7 +2751,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM1 批量加密，密钥不能为空，且长度必须为16");
             throw new AFCryptoException("SM1 批量加密，密钥不能为空，且长度必须为16");
         }
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
@@ -2789,7 +2789,7 @@ public class AFSVDevice implements IAFSVDevice {
     public List<byte[]> sm1HandleBatchEncryptECB(int keyHandle, List<byte[]> plainList) throws AFCryptoException {
         //参数检查
 
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
@@ -2834,7 +2834,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM1 批量加密，iv不能为空，且长度必须为16");
             throw new AFCryptoException("SM1 批量加密，iv不能为空，且长度必须为16");
         }
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
@@ -2878,7 +2878,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM1 批量加密，iv不能为空");
             throw new AFCryptoException("SM1 批量加密，iv不能为空");
         }
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
@@ -2918,7 +2918,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM1 批量加密，iv不能为空");
             throw new AFCryptoException("SM1 批量加密，iv不能为空");
         }
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
@@ -2961,7 +2961,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM4 批量解密，索引不能小于0,当前索引：{}", keyIndex);
             throw new AFCryptoException("SM4 批量解密，索引不能小于0,当前索引：" + keyIndex);
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
@@ -2995,7 +2995,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("SM4 批量解密，密钥不能为空");
         }
 
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
@@ -3025,7 +3025,7 @@ public class AFSVDevice implements IAFSVDevice {
 
     public List<byte[]> sm4HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
@@ -3062,7 +3062,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM4 批量解密，iv长度必须为16");
             throw new AFCryptoException("SM4 批量解密，iv长度必须为16");
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
@@ -3099,7 +3099,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM4 批量解密，iv长度必须为16");
             throw new AFCryptoException("SM4 批量解密，iv长度必须为16");
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
@@ -3133,7 +3133,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM4 批量解密，iv长度必须为16");
             throw new AFCryptoException("SM4 批量解密，iv长度必须为16");
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
@@ -3166,7 +3166,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM1 批量解密，索引不能小于0,当前索引：{}", keyIndex);
             throw new AFCryptoException("SM1 批量解密，索引不能小于0,当前索引：" + keyIndex);
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
@@ -3199,7 +3199,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM1 批量解密，密钥长度必须为16");
             throw new AFCryptoException("SM1 批量解密，密钥长度必须为16");
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
@@ -3229,7 +3229,7 @@ public class AFSVDevice implements IAFSVDevice {
     public List<byte[]> sm1HandleBatchDecryptECB(int keyHandle, List<byte[]> cipherList) throws AFCryptoException {
         //参数检查
 
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
@@ -3266,7 +3266,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM1 批量解密，iv长度必须为16");
             throw new AFCryptoException("SM1 批量解密，iv长度必须为16");
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
@@ -3304,7 +3304,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM1 批量解密，iv长度必须为16");
             throw new AFCryptoException("SM1 批量解密，iv长度必须为16");
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
@@ -3338,7 +3338,7 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM1 批量解密，iv长度必须为16");
             throw new AFCryptoException("SM1 批量解密，iv长度必须为16");
         }
-        if (cipherList == null || cipherList.size() == 0) {
+        if (cipherList == null || cipherList.isEmpty()) {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
