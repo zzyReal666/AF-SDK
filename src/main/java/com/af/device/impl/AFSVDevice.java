@@ -5,6 +5,9 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.HexUtil;
 import cn.hutool.crypto.digest.SM3;
+import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.af.constant.Algorithm;
 import com.af.constant.CertParseInfoType;
 import com.af.constant.ConstantNumber;
@@ -63,9 +66,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -315,10 +316,20 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * 获取私钥访问权限
      *
-     * @param index 私钥索引
+     * @param index   索引
+     * @param keyType 密钥类型 3:SM2 4:RSA
+     * @param psw     私钥授权码
      */
-
     public void getPrivateAccess(int index, int keyType, String psw) throws AFCryptoException {
+        //region//======>参数检查
+        if (index < 0 || index > 0xFFFF) {
+            logger.error("密钥索引不合法,索引范围为0-65535,当前索引为:{}", index);
+            throw new AFCryptoException("密钥索引不合法");
+        }
+        if (keyType != 3 && keyType != 4) {
+            logger.error("keyType 只能为3或4");
+            throw new AFCryptoException("keyType 只能为3(SM2)或4(RSA)");
+        }
         cmd.getPrivateAccess(index, keyType, psw);
     }
     //endregion
@@ -3944,6 +3955,87 @@ public class AFSVDevice implements IAFSVDevice {
     }
     //endregion
 
+    //region//======>P10 CSR 证书请求与导入
+
+    /**
+     * http 登录 获取token
+     */
+    public String login(String url, String username, String password) throws AFCryptoException {
+        JSONObject params = new JSONObject();
+        params.set("username", username);
+        params.set("password", password);
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+
+        try {
+            String body = HttpUtil
+                    .createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(headers)
+                    .body(params.toString(), "application/json")
+                    .execute()
+                    .body();
+            JSONObject jsonObject = JSONUtil.parseObj(body);
+            return jsonObject.getStr("token");
+        } catch (Exception e) {
+            throw new AFCryptoException(e);
+        }
+    }
+
+
+    /**
+     * 发送一个http请求 获取一个CSR请求文件
+     */
+    public String getCSR(String url, String csr) throws AFCryptoException {
+
+        JSONObject params = new JSONObject();
+        params.set("csr", csr);
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+
+        try {
+            String body = HttpUtil
+                    .createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(headers)
+                    .body(params.toString(), "application/json")
+                    .execute()
+                    .body();
+            JSONObject jsonObject = JSONUtil.parseObj(body);
+            return jsonObject.getStr("csr");
+        } catch (Exception e) {
+            throw new AFCryptoException(e);
+        }
+    }
+
+    /**
+     * http 请求 导入证书
+     */
+    public String importCert(String url, String cert) throws AFCryptoException {
+        JSONObject params = new JSONObject();
+        params.set("cert", cert);
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+
+        try {
+            String body = HttpUtil
+                    .createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(headers)
+                    .body(params.toString(), "application/json")
+                    .execute()
+                    .body();
+            JSONObject jsonObject = JSONUtil.parseObj(body);
+            return jsonObject.getStr("cert");
+        } catch (Exception e) {
+            throw new AFCryptoException(e);
+        }
+    }
+    //endregion
+
     //region 工具方法
 
     /**
@@ -4383,4 +4475,5 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     //endregion
+
 }

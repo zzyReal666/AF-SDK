@@ -188,6 +188,7 @@ public class AFSVCmd {
      *
      * @param index   索引
      * @param keyType 密钥类型 3:SM2 4:RSA
+     * @param psw     私钥授权码
      */
     public void getPrivateAccess(int index, int keyType,String psw) throws AFCryptoException { //success
         logger.info("SV-CMD 获取私钥访问权限, index: {}, keyType: {}", index, keyType);

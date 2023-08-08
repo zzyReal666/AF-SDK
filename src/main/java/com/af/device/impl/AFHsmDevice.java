@@ -227,8 +227,6 @@ public class AFHsmDevice implements IAFHsmDevice {
 
         return cmd.getRandom(length);
     }
-
-
     /**
      * 获取私钥访问权限
      *
@@ -248,7 +246,6 @@ public class AFHsmDevice implements IAFHsmDevice {
         }
         cmd.getPrivateAccess(keyIndex, keyType, passwd);
     }
-
     //endregion
 
     // region ======================================================导出公钥======================================================

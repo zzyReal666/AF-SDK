@@ -34,8 +34,11 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.20'           // lombok
     annotationProcessor 'org.projectlombok:lombok:1.18.20'   // lombok
     implementation 'io.netty:netty-all:4.1.91.Final'         // netty
-    implementation group: 'cn.hutool', name: 'hutool-core', version: '5.8.18' // hutool
-    implementation group: 'cn.hutool', name: 'hutool-crypto', version: '5.8.18' // hutool
+    implementation group: 'cn.hutool', name: 'hutool-core', version: '5.8.18' // hutool-core
+    implementation group: 'cn.hutool', name: 'hutool-crypto', version: '5.8.18' // hutool-crypto
+    implementation("cn.hutool:hutool-http:5.8.18")  // hutool-http
+    implementation("cn.hutool:hutool-json:5.8.18")  // hutool-json
+
     // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.70'
 
