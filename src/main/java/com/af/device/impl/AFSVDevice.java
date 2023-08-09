@@ -29,10 +29,7 @@ import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.sm2.SM2Cipher;
 import com.af.struct.impl.sm2.SM2Signature;
-import com.af.struct.signAndVerify.AFPkcs7DecodeData;
-import com.af.struct.signAndVerify.AFSM2DecodeSignedData;
-import com.af.struct.signAndVerify.AFSvCryptoInstance;
-import com.af.struct.signAndVerify.CertAltNameTrustList;
+import com.af.struct.signAndVerify.*;
 import com.af.struct.signAndVerify.RSA.RSAKeyPairStructure;
 import com.af.struct.signAndVerify.RSA.RSAPrivateKeyStructure;
 import com.af.struct.signAndVerify.RSA.RSAPublicKeyStructure;
@@ -3955,85 +3952,363 @@ public class AFSVDevice implements IAFSVDevice {
     }
     //endregion
 
-    //region//======>P10 CSR 证书请求与导入
+//    //region//======>P10 CSR 证书请求与导入
+//
+//    /**
+//     * 获取证书请求
+//     */
+//    public String  getCSR(CsrRequest csrRequest) throws AFCryptoException {
+//        String tokenUrl = "https://192.168.10.40/admin/login/";
+//        String username = "admin";
+//        String password = "af123456";
+//        String token = httpLogin(tokenUrl, username, password);
+//
+//        String url = "https://192.168.10.40/admin/cert/certRequest";
+//
+//
+//        return "";
+//
+//    }
+//
+//    /**
+//     * http 登录
+//     *
+//     * @param url      服务器地址
+//     * @param username 用户名
+//     * @param password 密码
+//     * @return token
+//     */
+//    public String httpLogin(String url, String username, String password) throws AFCryptoException {
+//        JSONObject params = new JSONObject();
+//        params.set("userId", username);
+//        params.set("userPassword", HexUtil.encodeHexStr(sm3.digest(password.getBytes())));
+//
+//        Map<String, String> headers = new HashMap<>();
+//        headers.put("Content-Type", "application/json");
+//
+//        try {
+//            String body = HttpUtil
+//                    .createPost(url)
+//                    .setConnectionTimeout(5 * 1000)
+//                    .addHeaders(headers)
+//                    .body(params.toString())
+//                    .execute()
+//                    .body();
+//            JSONObject jsonObject = JSONUtil.parseObj(body);
+//            JSONObject result = jsonObject.getJSONObject("result");
+//
+//            return result.getStr("accessToken");
+//        } catch (Exception e) {
+//            throw new AFCryptoException(e);
+//        }
+//    }
+//
+//    /**
+//     * http 请求 获取CSR文件名
+//     *
+//     * @param url 服务器地址
+//     * @param csr csr请求
+//     * @return csr文件名 根据此文件名去下载对应文件
+//     */
+//    public String getCSRFileName(String url, CsrRequest csr, String token) throws AFCryptoException {
+//        String params = JSONUtil.toJsonStr(csr);
+//
+//        Map<String, String> headers = new HashMap<>();
+//        headers.put("Content-Type", "application/json");
+//        headers.put("Authorization",  token);
+//
+//        try {
+//            String body = HttpUtil
+//                    .createPost(url)
+//                    .setConnectionTimeout(5 * 1000)
+//                    .addHeaders(headers)
+//                    .body(params, "application/json")
+//                    .execute()
+//                    .body();
+//            JSONObject jsonObject = JSONUtil.parseObj(body);
+//            JSONObject result = jsonObject.getJSONObject("result");
+//
+//            return result.getStr("fileName");
+//        } catch (Exception e) {
+//            throw new AFCryptoException(e);
+//        }
+//    }
+//
+//    /**
+//     * http 下载CSR文件
+//     *
+//     * @param url      服务器地址
+//     * @param fileName csr文件名
+//     * @return 证书
+//     */
+//    public String downloadCSRFile(String url, String fileName, String token) throws AFCryptoException {
+//        Map<String, String> headers = new HashMap<>();
+//        headers.put("Content-Type", "application/json");
+//        headers.put("Authorization",  token);
+//
+//        try {
+//            String body = HttpUtil
+//                    .createGet(url + fileName)
+//                    .setConnectionTimeout(5 * 1000)
+//                    .addHeaders(headers)
+//                    .execute()
+//                    .body();
+//
+//            return body;
+//        } catch (Exception e) {
+//            throw new AFCryptoException(e);
+//        }
+//    }
+//
+//    /**
+//     * http 请求 导入证书
+//     */
+//    public String importCert(String url, String cert) throws AFCryptoException {
+//        JSONObject params = new JSONObject();
+//        params.set("cert", cert);
+//
+//        Map<String, String> headers = new HashMap<>();
+//        headers.put("Content-Type", "application/json");
+//
+//        try {
+//            String body = HttpUtil
+//                    .createPost(url)
+//                    .setConnectionTimeout(5 * 1000)
+//                    .addHeaders(headers)
+//                    .body(params.toString(), "application/json")
+//                    .execute()
+//                    .body();
+//            JSONObject jsonObject = JSONUtil.parseObj(body);
+//            return jsonObject.getStr("cert");
+//        } catch (Exception e) {
+//            throw new AFCryptoException(e);
+//        }
+//    }
+//    //endregion
+
+    //region//======>P10 Http 证书请求与导入
 
     /**
-     * http 登录 获取token
+     * 根据密钥索引产生证书请求
      */
-    public String login(String url, String username, String password) throws AFCryptoException {
+    public String getCSRByIndex(int keyIndex, CsrRequest csrRequest) throws AFCryptoException {
+        //获取服务器地址
+        String ip = "";
+        if (client instanceof NettyClientChannels) {
+            ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
+        }
+        //设置请求头
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+        //设置请求参数
         JSONObject params = new JSONObject();
-        params.set("username", username);
-        params.set("password", password);
+        params.set("keyIndex", keyIndex);
+        params.set("dn", csrRequest.toDn());
+        String url = "https://" + ip + "/mngapi/asymm/generate";
+        //发送请求
+        int retry = 3;
+        while (true) {
+            try {
+                String body = HttpUtil.createPost(url)
+                        .setConnectionTimeout(5 * 1000)
+                        .addHeaders(header)
+                        .body(params.toString())
+                        .execute()
+                        .body();
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Content-Type", "application/json");
+                JSONObject jsonObject = JSONUtil.parseObj(body);
+                logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
 
-        try {
-            String body = HttpUtil
-                    .createPost(url)
-                    .setConnectionTimeout(5 * 1000)
-                    .addHeaders(headers)
-                    .body(params.toString(), "application/json")
-                    .execute()
-                    .body();
-            JSONObject jsonObject = JSONUtil.parseObj(body);
-            return jsonObject.getStr("token");
-        } catch (Exception e) {
-            throw new AFCryptoException(e);
+                int status = jsonObject.getInt("status");
+                if (status == 200) {
+                    return jsonObject.getJSONObject("result").getStr("csr");
+                } else {
+                    if (retry-- > 0) {
+                        continue;
+                    }
+                    throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
+                }
+            } catch (Exception e) {
+                logger.error("SV-Dev Error: " + e.getMessage());
+                if (retry-- > 0) {
+                    continue;
+                }
+                throw new AFCryptoException(e);
+            }
+        }
+
+
+    }
+
+    /**
+     * 根据密钥索引导入证书
+     *
+     * @param keyIndex  密钥索引
+     * @param signCert  签名证书
+     * @param encCert   加密证书
+     * @param encPriKey 加密密钥
+     */
+    public void importCertByIndex(int keyIndex, String signCert, String encCert, String encPriKey) throws AFCryptoException {
+        String ip = "";
+        if (client instanceof NettyClientChannels) {
+            ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
+        }
+
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+
+        JSONObject params = new JSONObject();
+        params.set("keyIndex", keyIndex);
+        params.set("signCert", signCert);
+        params.set("encCert", encCert);
+        params.set("encPriKey", encPriKey);
+        String url = "https://" + ip + "/mngapi/asymm/importCert";
+        int retry = 3; // 最大重试次数
+        while (true) {
+            try {
+                String body = HttpUtil.createPost(url)
+                        .setConnectionTimeout(5 * 1000)
+                        .addHeaders(header)
+                        .body(params.toString())
+                        .execute()
+                        .body();
+
+                JSONObject jsonObject = JSONUtil.parseObj(body);
+                logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
+
+                int status = jsonObject.getInt("status");
+                if (status == 200) {
+                    return;
+                } else {
+                    if (retry-- > 0) {
+                        continue;
+                    }
+                    throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
+                }
+            } catch (Exception e) {
+                // 处理异常情况
+                logger.error("SV-Dev Error: " + e.getMessage());
+                if (retry-- > 0) {
+                    continue;
+                }
+                throw new AFCryptoException(e);
+            }
+        }
+    }
+
+    /**
+     * 根据密钥索引获取证书
+     *
+     * @param keyIndex 密钥索引
+     * @return Map<String, String> 证书Map key:证书类型( encCert|signCert ) value:如果存在则为证书内容，否则为null
+     */
+    public Map<String, String> getCertByIndex(int keyIndex) throws AFCryptoException {
+        // 获取服务器地址
+        String ip = "";
+        if (client instanceof NettyClientChannels) {
+            ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
+        }
+        // 设置请求头
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+        // 设置请求参数
+        JSONObject params = new JSONObject();
+        params.set("keyIndex", keyIndex);
+        String url = "https://" + ip + "/mngapi/asymm/getCert";
+        // 最大重试次数
+        int retry = 3;
+        // 发送请求
+        while (true) {
+            try {
+                String body = HttpUtil.createPost(url)
+                        .setConnectionTimeout(5 * 1000)
+                        .addHeaders(header)
+                        .body(params.toString())
+                        .execute()
+                        .body();
+
+                JSONObject jsonObject = JSONUtil.parseObj(body);
+                logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
+
+                int status = jsonObject.getInt("status");
+                if (status == 200) {
+                    String encCert = jsonObject.getJSONObject("result").getStr("encCert");
+                    String signCert = jsonObject.getJSONObject("result").getStr("signCert");
+                    Map<String, String> map = new HashMap<>();
+                    map.put("encCert", encCert);
+                    map.put("signCert", signCert);
+                    return map;
+                } else {
+                    if (retry-- > 0) {
+                        continue;
+                    }
+                    throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
+                }
+            } catch (Exception e) {
+                logger.error("SV-Dev Error: " + e.getMessage());
+                if (retry-- > 0) {
+                    continue;
+                }
+                throw new AFCryptoException(e);
+            }
         }
     }
 
 
     /**
-     * 发送一个http请求 获取一个CSR请求文件
+     * 删除密钥
+     *
+     * @param keyIndex 密钥索引
      */
-    public String getCSR(String url, String csr) throws AFCryptoException {
+    public void deleteKey(int keyIndex) throws AFCryptoException {
 
+        // 获取服务器地址
+        String ip = "";
+        if (client instanceof NettyClientChannels) {
+            ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
+        }
+        // 设置请求头
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+        // 设置请求参数
         JSONObject params = new JSONObject();
-        params.set("csr", csr);
+        params.set("keyIndex", keyIndex);
+        String url = "https://" + ip + "/mngapi/asymm/delete";
+        // 发送请求
+        int retry = 3;
+        while (true) {
+            try {
+                String body = HttpUtil.createPost(url)
+                        .setConnectionTimeout(5 * 1000)
+                        .addHeaders(header)
+                        .body(params.toString())
+                        .execute()
+                        .body();
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Content-Type", "application/json");
+                JSONObject jsonObject = JSONUtil.parseObj(body);
+                logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
 
-        try {
-            String body = HttpUtil
-                    .createPost(url)
-                    .setConnectionTimeout(5 * 1000)
-                    .addHeaders(headers)
-                    .body(params.toString(), "application/json")
-                    .execute()
-                    .body();
-            JSONObject jsonObject = JSONUtil.parseObj(body);
-            return jsonObject.getStr("csr");
-        } catch (Exception e) {
-            throw new AFCryptoException(e);
+                int status = jsonObject.getInt("status");
+                if (status == 200) {
+                    logger.info("SV-Dev,删除密钥成功,密钥索引:{}", keyIndex);
+                    return;
+                } else {
+                    if (retry-- > 0) {
+                        continue;
+                    }
+                    throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
+                }
+            } catch (Exception e) {
+                logger.error("SV-Dev Error: " + e.getMessage());
+                if (retry-- > 0) {
+                    continue;
+                }
+                throw new AFCryptoException(e);
+            }
         }
     }
 
-    /**
-     * http 请求 导入证书
-     */
-    public String importCert(String url, String cert) throws AFCryptoException {
-        JSONObject params = new JSONObject();
-        params.set("cert", cert);
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Content-Type", "application/json");
-
-        try {
-            String body = HttpUtil
-                    .createPost(url)
-                    .setConnectionTimeout(5 * 1000)
-                    .addHeaders(headers)
-                    .body(params.toString(), "application/json")
-                    .execute()
-                    .body();
-            JSONObject jsonObject = JSONUtil.parseObj(body);
-            return jsonObject.getStr("cert");
-        } catch (Exception e) {
-            throw new AFCryptoException(e);
-        }
-    }
     //endregion
 
     //region 工具方法

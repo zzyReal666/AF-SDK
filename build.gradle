@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.af'
-version = '2.0-SNAPSHOT'
+version = '2.1-SNAPSHOT'
 
 
 repositories {
@@ -59,7 +59,7 @@ jar {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
             {
-                exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA' ,'logback.xml'
+                exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA' ,'logback.xml','org/bouncycastle/**'
             }
 
 }

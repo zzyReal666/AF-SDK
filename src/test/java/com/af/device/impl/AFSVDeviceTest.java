@@ -9,6 +9,7 @@ import com.af.device.DeviceInfo;
 import com.af.struct.signAndVerify.AFPkcs7DecodeData;
 import com.af.struct.signAndVerify.AFSvCryptoInstance;
 import com.af.struct.signAndVerify.CertAltNameTrustList;
+import com.af.struct.signAndVerify.CsrRequest;
 import com.af.struct.signAndVerify.RSA.RSAKeyPairStructure;
 import com.af.struct.signAndVerify.sm2.SM2KeyPairStructure;
 import com.af.struct.signAndVerify.sm2.SM2PrivateKeyStructure;
@@ -23,11 +24,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 
 class AFSVDeviceTest {
-
     //region //初始化数据
 
     //日志
@@ -165,9 +166,9 @@ class AFSVDeviceTest {
         System.out.println("生成公钥:" + HexUtil.encodeHexStr(sm2SignPublicKey));
 
 
-        //计算公钥
-        byte[] sm2PubKeyFromPriKey = device.getSM2PubKeyFromPriKey(sm2SignPrivateKey);
-        System.out.println("计算出的公钥:" + HexUtil.encodeHexStr(sm2PubKeyFromPriKey));
+//        //计算公钥
+//        byte[] sm2PubKeyFromPriKey = device.getSM2PubKeyFromPriKey(sm2SignPrivateKey);
+//        System.out.println("计算出的公钥:" + HexUtil.encodeHexStr(sm2PubKeyFromPriKey));
 
 
     }
@@ -398,10 +399,7 @@ class AFSVDeviceTest {
     //SM4 ECB success
     @Test
     void testSm4ECBIn() throws Exception {
-        //key
-        byte[] key = BytesOperate.base64DecodeData(device.getRandom(16));
-        //iv
-        byte[] iv = BytesOperate.base64DecodeData(device.getRandom(16));
+
 
         //SM4 ECB 内部
         byte[] encodeData = device.sm4InternalEncryptECB(1, data);
@@ -409,13 +407,7 @@ class AFSVDeviceTest {
         assert Arrays.equals(data, decodeData);
 
 
-//        //SM4 ECB 密钥句柄
-//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
-//        byte[] bytes = device.sm4HandleEncryptECB(key1.getId(), data);
-//        byte[] bytes1 = device.sm4HandleDecryptECB(key1.getId(), bytes);
-//        //释放
-//        device.releaseSessionKey(key1.getId());
-//        assert Arrays.equals(data, bytes1);
+
 
 
     }
@@ -762,7 +754,6 @@ class AFSVDeviceTest {
 
     //endregion
 
-
     //region //SV独有
 
     // 根据别名获取 CA 证书个数 success
@@ -1006,5 +997,67 @@ class AFSVDeviceTest {
 
     //endregion
 
+    //region//======>http Request
+
+    //根据密钥索引产生证书请求
+    @Test
+    void testGetCSRByIndex() throws Exception {
+        String ip = "192.168.10.40";
+        CsrRequest csrRequest = new CsrRequest();
+        String csrByIndex = device.getCSRByIndex(9, csrRequest);
+        System.out.println("CSR:" + csrByIndex);
+    }
+
+    //根据密钥索引导入证书
+    @Test
+    void testImportCertByIndex() throws Exception {
+        String signCert = "-----BEGIN CERTIFICATE-----\n" +
+                "MIICaDCCAg2gAwIBAgIJAOWoGwJCnbx6MAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
+                "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
+                "DTIzMDgwOTA3MTMxMloXDTI0MDgwODA3MTMxMlowfDELMAkGA1UEBgwCY24xCzAJ\n" +
+                "BgNVBAgMAnNkMQswCQYDVQQHDAJqbjENMAsGA1UECgwEc3phZjENMAsGA1UECwwE\n" +
+                "c3phZjENMAsGA1UEAwwEenp5MjEmMCQGCSqGSIb3DQEJARYXenp5cGVyc29uYWxs\n" +
+                "eUBnbWFpbC5jb20wWTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAATKJiGYDg3ANIn2\n" +
+                "vf34oLrMdKpXLMBIY84b3R45r+0dC4ibwhAm2f44GZDBuBeUpZrRj5ZRE5nnqauU\n" +
+                "0y4TCvMVo4GMMIGJMAwGA1UdEwEB/wQCMAAwCwYDVR0PBAQDAgeAMCwGCWCGSAGG\n" +
+                "+EIBDQQfFh1HTUNlcnQub3JnIFNpZ25lZCBDZXJ0aWZpY2F0ZTAdBgNVHQ4EFgQU\n" +
+                "jXRDFg9Au/0mLIhRUgcaOIq9I14wHwYDVR0jBBgwFoAUf1peOwCEWSoPmL6hDm85\n" +
+                "lUMQTQcwCgYIKoEcz1UBg3UDSQAwRgIhAJjsxxG6SSqWJ10ccJpwqzv2OHrsOiIu\n" +
+                "xSPpsUk+RAo3AiEA+YD7w8HT768cmbqb6K+/6rqXE8r8rwnfVLMiCuwUszs=\n" +
+                "-----END CERTIFICATE-----\n";
+        String encCert = "-----BEGIN CERTIFICATE-----\n" +
+                "MIICaDCCAg2gAwIBAgIJAOWoGwJCnbx7MAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
+                "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
+                "DTIzMDgwOTA3MTM0MVoXDTI0MDgwODA3MTM0MVowfDELMAkGA1UEBgwCY24xCzAJ\n" +
+                "BgNVBAgMAnNkMQswCQYDVQQHDAJqbjENMAsGA1UECgwEc3phZjENMAsGA1UECwwE\n" +
+                "c3phZjENMAsGA1UEAwwEenp5MjEmMCQGCSqGSIb3DQEJARYXenp5cGVyc29uYWxs\n" +
+                "eUBnbWFpbC5jb20wWTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAATKJiGYDg3ANIn2\n" +
+                "vf34oLrMdKpXLMBIY84b3R45r+0dC4ibwhAm2f44GZDBuBeUpZrRj5ZRE5nnqauU\n" +
+                "0y4TCvMVo4GMMIGJMAwGA1UdEwEB/wQCMAAwCwYDVR0PBAQDAgM4MCwGCWCGSAGG\n" +
+                "+EIBDQQfFh1HTUNlcnQub3JnIFNpZ25lZCBDZXJ0aWZpY2F0ZTAdBgNVHQ4EFgQU\n" +
+                "jXRDFg9Au/0mLIhRUgcaOIq9I14wHwYDVR0jBBgwFoAUf1peOwCEWSoPmL6hDm85\n" +
+                "lUMQTQcwCgYIKoEcz1UBg3UDSQAwRgIhAKfZdwRcM1gGkEgY2OnkAxeuQ9M+MVm7\n" +
+                "mWak6T7YrNTLAiEA0V9zPtjiy46A7nucBWt59l8HN34Jm4bolI707Jofh5M=\n" +
+                "-----END CERTIFICATE-----\n";
+
+        device.importCertByIndex(6, "", encCert, "");
+    }
+
+    //根据密钥索引获取证书
+    @Test
+    void testGetCertByIndex() throws Exception {
+        Map<String, String> certMap = device.getCertByIndex(72);
+        System.out.println("cert:" + certMap);
+    }
+
+    //删除密钥
+    @Test
+    void testDeleteKey() throws Exception {
+        String ip = "192.168.10.40";
+        device.deleteKey(11);
+    }
+    //endregion
 
 }

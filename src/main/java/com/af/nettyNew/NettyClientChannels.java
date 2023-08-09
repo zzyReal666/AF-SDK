@@ -133,7 +133,6 @@ public class NettyClientChannels implements NettyClient {
         Channel channel;
         try {
             channel = nettyChannelPool.syncGetChannel();
-            logger.info("获取通道成功,channelId:{}", channel.id());
         } catch (InterruptedException e) {
             logger.error("获取通道失败");
             throw new RuntimeException(e);
