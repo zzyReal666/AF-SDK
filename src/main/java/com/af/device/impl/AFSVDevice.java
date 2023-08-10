@@ -3952,139 +3952,7 @@ public class AFSVDevice implements IAFSVDevice {
     }
     //endregion
 
-//    //region//======>P10 CSR 证书请求与导入
-//
-//    /**
-//     * 获取证书请求
-//     */
-//    public String  getCSR(CsrRequest csrRequest) throws AFCryptoException {
-//        String tokenUrl = "https://192.168.10.40/admin/login/";
-//        String username = "admin";
-//        String password = "af123456";
-//        String token = httpLogin(tokenUrl, username, password);
-//
-//        String url = "https://192.168.10.40/admin/cert/certRequest";
-//
-//
-//        return "";
-//
-//    }
-//
-//    /**
-//     * http 登录
-//     *
-//     * @param url      服务器地址
-//     * @param username 用户名
-//     * @param password 密码
-//     * @return token
-//     */
-//    public String httpLogin(String url, String username, String password) throws AFCryptoException {
-//        JSONObject params = new JSONObject();
-//        params.set("userId", username);
-//        params.set("userPassword", HexUtil.encodeHexStr(sm3.digest(password.getBytes())));
-//
-//        Map<String, String> headers = new HashMap<>();
-//        headers.put("Content-Type", "application/json");
-//
-//        try {
-//            String body = HttpUtil
-//                    .createPost(url)
-//                    .setConnectionTimeout(5 * 1000)
-//                    .addHeaders(headers)
-//                    .body(params.toString())
-//                    .execute()
-//                    .body();
-//            JSONObject jsonObject = JSONUtil.parseObj(body);
-//            JSONObject result = jsonObject.getJSONObject("result");
-//
-//            return result.getStr("accessToken");
-//        } catch (Exception e) {
-//            throw new AFCryptoException(e);
-//        }
-//    }
-//
-//    /**
-//     * http 请求 获取CSR文件名
-//     *
-//     * @param url 服务器地址
-//     * @param csr csr请求
-//     * @return csr文件名 根据此文件名去下载对应文件
-//     */
-//    public String getCSRFileName(String url, CsrRequest csr, String token) throws AFCryptoException {
-//        String params = JSONUtil.toJsonStr(csr);
-//
-//        Map<String, String> headers = new HashMap<>();
-//        headers.put("Content-Type", "application/json");
-//        headers.put("Authorization",  token);
-//
-//        try {
-//            String body = HttpUtil
-//                    .createPost(url)
-//                    .setConnectionTimeout(5 * 1000)
-//                    .addHeaders(headers)
-//                    .body(params, "application/json")
-//                    .execute()
-//                    .body();
-//            JSONObject jsonObject = JSONUtil.parseObj(body);
-//            JSONObject result = jsonObject.getJSONObject("result");
-//
-//            return result.getStr("fileName");
-//        } catch (Exception e) {
-//            throw new AFCryptoException(e);
-//        }
-//    }
-//
-//    /**
-//     * http 下载CSR文件
-//     *
-//     * @param url      服务器地址
-//     * @param fileName csr文件名
-//     * @return 证书
-//     */
-//    public String downloadCSRFile(String url, String fileName, String token) throws AFCryptoException {
-//        Map<String, String> headers = new HashMap<>();
-//        headers.put("Content-Type", "application/json");
-//        headers.put("Authorization",  token);
-//
-//        try {
-//            String body = HttpUtil
-//                    .createGet(url + fileName)
-//                    .setConnectionTimeout(5 * 1000)
-//                    .addHeaders(headers)
-//                    .execute()
-//                    .body();
-//
-//            return body;
-//        } catch (Exception e) {
-//            throw new AFCryptoException(e);
-//        }
-//    }
-//
-//    /**
-//     * http 请求 导入证书
-//     */
-//    public String importCert(String url, String cert) throws AFCryptoException {
-//        JSONObject params = new JSONObject();
-//        params.set("cert", cert);
-//
-//        Map<String, String> headers = new HashMap<>();
-//        headers.put("Content-Type", "application/json");
-//
-//        try {
-//            String body = HttpUtil
-//                    .createPost(url)
-//                    .setConnectionTimeout(5 * 1000)
-//                    .addHeaders(headers)
-//                    .body(params.toString(), "application/json")
-//                    .execute()
-//                    .body();
-//            JSONObject jsonObject = JSONUtil.parseObj(body);
-//            return jsonObject.getStr("cert");
-//        } catch (Exception e) {
-//            throw new AFCryptoException(e);
-//        }
-//    }
-//    //endregion
+
 
     //region//======>P10 Http 证书请求与导入
 
@@ -4163,7 +4031,7 @@ public class AFSVDevice implements IAFSVDevice {
         params.set("encCert", encCert);
         params.set("encPriKey", encPriKey);
         String url = "https://" + ip + "/mngapi/asymm/importCert";
-        int retry = 3; // 最大重试次数
+        int retry = 3;
         while (true) {
             try {
                 String body = HttpUtil.createPost(url)

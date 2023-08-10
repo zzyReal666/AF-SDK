@@ -1002,9 +1002,8 @@ class AFSVDeviceTest {
     //根据密钥索引产生证书请求
     @Test
     void testGetCSRByIndex() throws Exception {
-        String ip = "192.168.10.40";
-        CsrRequest csrRequest = new CsrRequest();
-        String csrByIndex = device.getCSRByIndex(9, csrRequest);
+        CsrRequest csrRequest = new CsrRequest("cn","sd","jn","szaf","szaf","zzyzzy","zzypersonally@gmail.com");
+        String csrByIndex = device.getCSRByIndex(5, csrRequest);
         System.out.println("CSR:" + csrByIndex);
     }
 
@@ -1012,43 +1011,43 @@ class AFSVDeviceTest {
     @Test
     void testImportCertByIndex() throws Exception {
         String signCert = "-----BEGIN CERTIFICATE-----\n" +
-                "MIICaDCCAg2gAwIBAgIJAOWoGwJCnbx6MAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "MIICaTCCAg+gAwIBAgIJAOWoGwJCnbyeMAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
                 "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
                 "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
-                "DTIzMDgwOTA3MTMxMloXDTI0MDgwODA3MTMxMlowfDELMAkGA1UEBgwCY24xCzAJ\n" +
+                "DTIzMDgxMDAyMTMxNloXDTI0MDgwOTAyMTMxNlowfjELMAkGA1UEBgwCY24xCzAJ\n" +
                 "BgNVBAgMAnNkMQswCQYDVQQHDAJqbjENMAsGA1UECgwEc3phZjENMAsGA1UECwwE\n" +
-                "c3phZjENMAsGA1UEAwwEenp5MjEmMCQGCSqGSIb3DQEJARYXenp5cGVyc29uYWxs\n" +
-                "eUBnbWFpbC5jb20wWTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAATKJiGYDg3ANIn2\n" +
-                "vf34oLrMdKpXLMBIY84b3R45r+0dC4ibwhAm2f44GZDBuBeUpZrRj5ZRE5nnqauU\n" +
-                "0y4TCvMVo4GMMIGJMAwGA1UdEwEB/wQCMAAwCwYDVR0PBAQDAgeAMCwGCWCGSAGG\n" +
-                "+EIBDQQfFh1HTUNlcnQub3JnIFNpZ25lZCBDZXJ0aWZpY2F0ZTAdBgNVHQ4EFgQU\n" +
-                "jXRDFg9Au/0mLIhRUgcaOIq9I14wHwYDVR0jBBgwFoAUf1peOwCEWSoPmL6hDm85\n" +
-                "lUMQTQcwCgYIKoEcz1UBg3UDSQAwRgIhAJjsxxG6SSqWJ10ccJpwqzv2OHrsOiIu\n" +
-                "xSPpsUk+RAo3AiEA+YD7w8HT768cmbqb6K+/6rqXE8r8rwnfVLMiCuwUszs=\n" +
+                "c3phZjEPMA0GA1UEAwwGenp5enp5MSYwJAYJKoZIhvcNAQkBFhd6enlwZXJzb25h\n" +
+                "bGx5QGdtYWlsLmNvbTBZMBMGByqGSM49AgEGCCqBHM9VAYItA0IABFnJi3j9037G\n" +
+                "Uxh4a/aqjMVJSm+9gqu8tJfhMyO/Z/XgJoxOmtdYo5sTfmn5cYTcph9TYmR1WMJK\n" +
+                "tciJNtGVFUCjgYwwgYkwDAYDVR0TAQH/BAIwADALBgNVHQ8EBAMCB4AwLAYJYIZI\n" +
+                "AYb4QgENBB8WHUdNQ2VydC5vcmcgU2lnbmVkIENlcnRpZmljYXRlMB0GA1UdDgQW\n" +
+                "BBTbe8z0NG5ELdYy6WzB+F+Fz3cN7DAfBgNVHSMEGDAWgBR/Wl47AIRZKg+YvqEO\n" +
+                "bzmVQxBNBzAKBggqgRzPVQGDdQNIADBFAiEAmKWGD38peNb1D30cUG4GC16Ndu7e\n" +
+                "AM1EODQ8/RWMDgMCIEcEPhKYUTDaYKByyDZZEjTqToK2hRZ4N+8OmOjqPFBl\n" +
                 "-----END CERTIFICATE-----\n";
         String encCert = "-----BEGIN CERTIFICATE-----\n" +
-                "MIICaDCCAg2gAwIBAgIJAOWoGwJCnbx7MAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "MIICaTCCAg+gAwIBAgIJAOWoGwJCnbyhMAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
                 "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
                 "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
-                "DTIzMDgwOTA3MTM0MVoXDTI0MDgwODA3MTM0MVowfDELMAkGA1UEBgwCY24xCzAJ\n" +
+                "DTIzMDgxMDAyMTg1NloXDTI0MDgwOTAyMTg1NlowfjELMAkGA1UEBgwCY24xCzAJ\n" +
                 "BgNVBAgMAnNkMQswCQYDVQQHDAJqbjENMAsGA1UECgwEc3phZjENMAsGA1UECwwE\n" +
-                "c3phZjENMAsGA1UEAwwEenp5MjEmMCQGCSqGSIb3DQEJARYXenp5cGVyc29uYWxs\n" +
-                "eUBnbWFpbC5jb20wWTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAATKJiGYDg3ANIn2\n" +
-                "vf34oLrMdKpXLMBIY84b3R45r+0dC4ibwhAm2f44GZDBuBeUpZrRj5ZRE5nnqauU\n" +
-                "0y4TCvMVo4GMMIGJMAwGA1UdEwEB/wQCMAAwCwYDVR0PBAQDAgM4MCwGCWCGSAGG\n" +
-                "+EIBDQQfFh1HTUNlcnQub3JnIFNpZ25lZCBDZXJ0aWZpY2F0ZTAdBgNVHQ4EFgQU\n" +
-                "jXRDFg9Au/0mLIhRUgcaOIq9I14wHwYDVR0jBBgwFoAUf1peOwCEWSoPmL6hDm85\n" +
-                "lUMQTQcwCgYIKoEcz1UBg3UDSQAwRgIhAKfZdwRcM1gGkEgY2OnkAxeuQ9M+MVm7\n" +
-                "mWak6T7YrNTLAiEA0V9zPtjiy46A7nucBWt59l8HN34Jm4bolI707Jofh5M=\n" +
+                "c3phZjEPMA0GA1UEAwwGenp5enp5MSYwJAYJKoZIhvcNAQkBFhd6enlwZXJzb25h\n" +
+                "bGx5QGdtYWlsLmNvbTBZMBMGByqGSM49AgEGCCqBHM9VAYItA0IABFnJi3j9037G\n" +
+                "Uxh4a/aqjMVJSm+9gqu8tJfhMyO/Z/XgJoxOmtdYo5sTfmn5cYTcph9TYmR1WMJK\n" +
+                "tciJNtGVFUCjgYwwgYkwDAYDVR0TAQH/BAIwADALBgNVHQ8EBAMCAzgwLAYJYIZI\n" +
+                "AYb4QgENBB8WHUdNQ2VydC5vcmcgU2lnbmVkIENlcnRpZmljYXRlMB0GA1UdDgQW\n" +
+                "BBTbe8z0NG5ELdYy6WzB+F+Fz3cN7DAfBgNVHSMEGDAWgBR/Wl47AIRZKg+YvqEO\n" +
+                "bzmVQxBNBzAKBggqgRzPVQGDdQNIADBFAiAgjzK2bRqTkUyZsGGj4iEpPzXzMBFL\n" +
+                "ctcmZl11l7CiMwIhAPZDs2/UdIXbv9i4tbKNqzuQ7HFR5Y8QvkC2HmFrxVW8\n" +
                 "-----END CERTIFICATE-----\n";
 
-        device.importCertByIndex(6, "", encCert, "");
+        device.importCertByIndex(5, signCert, encCert, "");
     }
 
     //根据密钥索引获取证书
     @Test
     void testGetCertByIndex() throws Exception {
-        Map<String, String> certMap = device.getCertByIndex(72);
+        Map<String, String> certMap = device.getCertByIndex(5);
         System.out.println("cert:" + certMap);
     }
 
@@ -1056,7 +1055,7 @@ class AFSVDeviceTest {
     @Test
     void testDeleteKey() throws Exception {
         String ip = "192.168.10.40";
-        device.deleteKey(11);
+        device.deleteKey(5);
     }
     //endregion
 

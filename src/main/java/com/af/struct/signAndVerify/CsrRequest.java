@@ -1,9 +1,9 @@
 package com.af.struct.signAndVerify;
 
 import com.af.exception.AFCryptoException;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -13,7 +13,6 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
 public class CsrRequest {
 
@@ -54,33 +53,32 @@ public class CsrRequest {
 
 
     public String toDn() throws AFCryptoException {
+        //region//======>参数校验
+        if (uiDnc == null || uiDnc.isEmpty()) {
+            throw new AFCryptoException("国家不能为空");
+        }
+        if (uiDns == null || uiDns.isEmpty()) {
+            throw new AFCryptoException("省不能为空");
+        }
+        if (uiDnl == null || uiDnl.isEmpty()) {
+            throw new AFCryptoException("市不能为空");
+        }
+        if (uiDno == null || uiDno.isEmpty()) {
+            throw new AFCryptoException("组织不能为空");
+        }
+        if (uiDnou == null || uiDnou.isEmpty()) {
+            throw new AFCryptoException("单位不能为空");
+        }
         if (uiDnCn == null || uiDnCn.isEmpty()) {
             throw new AFCryptoException("证书使用者信息不能为空");
         }
-        StringBuilder dn = new StringBuilder();
-        if (uiDnc != null && !uiDnc.isEmpty()) {
-            dn.append("C=").append(uiDnc).append(",");
+        if (uiDnEmail == null || uiDnEmail.isEmpty()) {
+            throw new AFCryptoException("邮箱不能为空");
         }
-        if (uiDns != null && !uiDns.isEmpty()) {
-            dn.append("S=").append(uiDns).append(",");
-        }
-        if (uiDnl != null && !uiDnl.isEmpty()) {
-            dn.append("L=").append(uiDnl).append(",");
-        }
-        if (uiDno != null && !uiDno.isEmpty()) {
-            dn.append("O=").append(uiDno).append(",");
-        }
-        if (uiDnou != null && !uiDnou.isEmpty()) {
-            dn.append("OU=").append(uiDnou).append(",");
-        }
-        dn.append("CN=").append(uiDnCn).append(",");
-        if (uiDnEmail != null && !uiDnEmail.isEmpty()) {
-            dn.append("EMAILADDRESS=").append(uiDnEmail).append(",");
-        }
-        if (dn.length() > 0) {
-            dn.deleteCharAt(dn.length() - 1);
-        }
-        return dn.toString();
+        //endregion
+
+        //CN=abc.com,C=CN,OU=abc,S=s,L=s,O=s,Email=s@s.cn
+       return "CN="+uiDnCn+",C="+uiDnc+",OU="+uiDnou+",S="+uiDns+",L="+uiDnl+",O="+uiDno+",Email="+uiDnEmail;
 
     }
 
