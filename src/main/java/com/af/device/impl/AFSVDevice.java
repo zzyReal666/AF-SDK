@@ -3958,6 +3958,9 @@ public class AFSVDevice implements IAFSVDevice {
 
     /**
      * 根据密钥索引产生证书请求
+     * @param keyIndex 密钥索引
+     * @param csrRequest 证书请求信息 {@link CsrRequest}
+     * @return CSR文件 Base64编码
      */
     public String getCSRByIndex(int keyIndex, CsrRequest csrRequest) throws AFCryptoException {
         //获取服务器地址

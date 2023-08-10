@@ -20,32 +20,26 @@ public class CsrRequest {
      * 国家
      */
     private String uiDnc;
-
     /**
      * 省
      */
     private String uiDns;
-
     /**
      * 市
      */
     private String uiDnl;
-
     /**
      * 组织
      */
     private String uiDno;
-
     /**
      * 单位
      */
     private String uiDnou;
-
     /**
      * 证书使用者信息
      */
     private String uiDnCn;
-
     /**
      * 邮箱
      */

@@ -35,7 +35,7 @@ class AFSVDeviceTest {
     static Logger logger = Logger.getLogger("AFSVDeviceTest");
 
     //    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8008, "abcd1234");
-    static AFSVDevice device = new AFSVDevice.Builder("192.168.10.40", 8008, "abcd1234")
+    static AFSVDevice device = new AFSVDevice.Builder("192.168.8.15", 8008, "abcd1234")
             .isAgKey(true)
             .responseTimeOut(100000)
             .build();
@@ -1010,44 +1010,30 @@ class AFSVDeviceTest {
     //根据密钥索引导入证书
     @Test
     void testImportCertByIndex() throws Exception {
-        String signCert = "-----BEGIN CERTIFICATE-----\n" +
-                "MIICaTCCAg+gAwIBAgIJAOWoGwJCnbyeMAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
-                "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
-                "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
-                "DTIzMDgxMDAyMTMxNloXDTI0MDgwOTAyMTMxNlowfjELMAkGA1UEBgwCY24xCzAJ\n" +
-                "BgNVBAgMAnNkMQswCQYDVQQHDAJqbjENMAsGA1UECgwEc3phZjENMAsGA1UECwwE\n" +
-                "c3phZjEPMA0GA1UEAwwGenp5enp5MSYwJAYJKoZIhvcNAQkBFhd6enlwZXJzb25h\n" +
-                "bGx5QGdtYWlsLmNvbTBZMBMGByqGSM49AgEGCCqBHM9VAYItA0IABFnJi3j9037G\n" +
-                "Uxh4a/aqjMVJSm+9gqu8tJfhMyO/Z/XgJoxOmtdYo5sTfmn5cYTcph9TYmR1WMJK\n" +
-                "tciJNtGVFUCjgYwwgYkwDAYDVR0TAQH/BAIwADALBgNVHQ8EBAMCB4AwLAYJYIZI\n" +
-                "AYb4QgENBB8WHUdNQ2VydC5vcmcgU2lnbmVkIENlcnRpZmljYXRlMB0GA1UdDgQW\n" +
-                "BBTbe8z0NG5ELdYy6WzB+F+Fz3cN7DAfBgNVHSMEGDAWgBR/Wl47AIRZKg+YvqEO\n" +
-                "bzmVQxBNBzAKBggqgRzPVQGDdQNIADBFAiEAmKWGD38peNb1D30cUG4GC16Ndu7e\n" +
-                "AM1EODQ8/RWMDgMCIEcEPhKYUTDaYKByyDZZEjTqToK2hRZ4N+8OmOjqPFBl\n" +
-                "-----END CERTIFICATE-----\n";
+        String signCert = "";
         String encCert = "-----BEGIN CERTIFICATE-----\n" +
-                "MIICaTCCAg+gAwIBAgIJAOWoGwJCnbyhMAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "MIICaTCCAg+gAwIBAgIJAOWoGwJCnbykMAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
                 "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
                 "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
-                "DTIzMDgxMDAyMTg1NloXDTI0MDgwOTAyMTg1NlowfjELMAkGA1UEBgwCY24xCzAJ\n" +
+                "DTIzMDgxMDAzMDgyM1oXDTI0MDgwOTAzMDgyM1owfjELMAkGA1UEBgwCY24xCzAJ\n" +
                 "BgNVBAgMAnNkMQswCQYDVQQHDAJqbjENMAsGA1UECgwEc3phZjENMAsGA1UECwwE\n" +
                 "c3phZjEPMA0GA1UEAwwGenp5enp5MSYwJAYJKoZIhvcNAQkBFhd6enlwZXJzb25h\n" +
-                "bGx5QGdtYWlsLmNvbTBZMBMGByqGSM49AgEGCCqBHM9VAYItA0IABFnJi3j9037G\n" +
-                "Uxh4a/aqjMVJSm+9gqu8tJfhMyO/Z/XgJoxOmtdYo5sTfmn5cYTcph9TYmR1WMJK\n" +
-                "tciJNtGVFUCjgYwwgYkwDAYDVR0TAQH/BAIwADALBgNVHQ8EBAMCAzgwLAYJYIZI\n" +
+                "bGx5QGdtYWlsLmNvbTBZMBMGByqGSM49AgEGCCqBHM9VAYItA0IABGhpcSqzCpKY\n" +
+                "YIExO5u7cSFBhsyHSpvWsFhtCQWVjisNWvC9KFZjSC51W6AnifjPTupwXg49JNlI\n" +
+                "m+JdhSTsS3GjgYwwgYkwDAYDVR0TAQH/BAIwADALBgNVHQ8EBAMCAzgwLAYJYIZI\n" +
                 "AYb4QgENBB8WHUdNQ2VydC5vcmcgU2lnbmVkIENlcnRpZmljYXRlMB0GA1UdDgQW\n" +
-                "BBTbe8z0NG5ELdYy6WzB+F+Fz3cN7DAfBgNVHSMEGDAWgBR/Wl47AIRZKg+YvqEO\n" +
-                "bzmVQxBNBzAKBggqgRzPVQGDdQNIADBFAiAgjzK2bRqTkUyZsGGj4iEpPzXzMBFL\n" +
-                "ctcmZl11l7CiMwIhAPZDs2/UdIXbv9i4tbKNqzuQ7HFR5Y8QvkC2HmFrxVW8\n" +
+                "BBSSLmmv/DFjGb77JqWP4nxu+QWQTDAfBgNVHSMEGDAWgBR/Wl47AIRZKg+YvqEO\n" +
+                "bzmVQxBNBzAKBggqgRzPVQGDdQNIADBFAiEA++GNOmwUB03eWm4+WN6VcBROjEQS\n" +
+                "GdovriqunFQAYooCICDZDulC8T8x/P46fHda12AfNdnxGUixtghvZiIhPp8W\n" +
                 "-----END CERTIFICATE-----\n";
 
-        device.importCertByIndex(5, signCert, encCert, "");
+        device.importCertByIndex(111, signCert, encCert, "");
     }
 
     //根据密钥索引获取证书
     @Test
     void testGetCertByIndex() throws Exception {
-        Map<String, String> certMap = device.getCertByIndex(5);
+        Map<String, String> certMap = device.getCertByIndex(72);
         System.out.println("cert:" + certMap);
     }
 
