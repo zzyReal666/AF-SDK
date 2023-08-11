@@ -404,6 +404,7 @@ public class AFSVDevice implements IAFSVDevice {
      * 生成密钥对 SM2
      *
      * @param keyType 密钥类型 0:签名密钥对 1:加密密钥对 2:密钥交换密钥对 3:默认密钥对
+     * @return  SM2密钥对 {@link SM2KeyPairStructure}
      */
 
     public SM2KeyPairStructure generateSM2KeyPair(int keyType) throws AFCryptoException {
@@ -3524,7 +3525,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * Hash init 带公钥
      *
-     * @param publicKey 公钥  Base64编码 符合ASN.1格式DER编码
+     * @param publicKey 公钥  公钥由ASN.1结构先DER编码(标准)然后Base64编码(方便识别对比)
      * @param userId    用户ID
      */
     public void sm3HashInitWithPubKey(byte[] publicKey, byte[] userId) throws AFCryptoException {
@@ -3565,26 +3566,36 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM3 Hash
      */
-    public synchronized byte[] sm3Hash(byte[] data) throws AFCryptoException {
-        //init
-        sm3HashInit();
-        //update
-        sm3HashUpdate(data);
-        //doFinal
-        return sm3HashFinal();
+    public  byte[] sm3Hash(byte[] data) throws AFCryptoException {
+        //region//======>参数检查
+        if (data == null || data.length == 0) {
+            logger.error("SM3 Hash，计算数据不能为空");
+            throw new AFCryptoException("SM3 Hash，计算数据不能为空");
+        }
+        //endregion
+        return cmd.hash(null, null, data);
 
     }
 
     /**
      * SM3 Hash 带公钥
      */
-    public synchronized byte[] sm3HashWithPubKey(byte[] publicKey, byte[] userId, byte[] data) throws AFCryptoException {
-        //init
-        sm3HashInitWithPubKey(publicKey, userId);
-        //update
-        sm3HashUpdate(data);
-        //doFinal
-        return sm3HashFinal();
+    public  byte[] sm3HashWithPubKey(byte[] publicKey, byte[] userId, byte[] data) throws AFCryptoException {
+        //region//======>参数检查
+        if (publicKey == null) {
+            logger.error("SM3 Hash(带公钥)，公钥不能为空");
+            throw new AFCryptoException("SM3 Hash(带公钥)，公钥不能为空");
+        }
+        if (userId == null || userId.length == 0) {
+            logger.error("SM3 Hash(带公钥)，用户ID不能为空");
+            throw new AFCryptoException("SM3 Hash(带公钥)，用户ID不能为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM3 Hash(带公钥)，计算数据不能为空");
+            throw new AFCryptoException("SM3 Hash(带公钥)，计算数据不能为空");
+        }
+        //endregion
+        return cmd.hash(publicKey, userId, data);
     }
     //endregion
 
@@ -3594,11 +3605,12 @@ public class AFSVDevice implements IAFSVDevice {
      * 获取内部对称密钥句柄
      */
     public int getSymKeyHandle(int keyIndex) throws AFCryptoException {
-        //参数检查
+        //region//======>参数检查
         if (keyIndex < 0) {
             logger.error("获取内部对称密钥句柄，密钥索引必须大于等于0");
             throw new AFCryptoException("获取内部对称密钥句柄，密钥索引必须大于等于0");
         }
+        //endregion
         return cmd.getSymKeyHandle(keyIndex);
     }
 
@@ -3951,8 +3963,6 @@ public class AFSVDevice implements IAFSVDevice {
         return result;
     }
     //endregion
-
-
 
     //region//======>P10 Http 证书请求与导入
 

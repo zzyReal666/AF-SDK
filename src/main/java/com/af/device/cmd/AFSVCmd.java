@@ -778,6 +778,32 @@ public class AFSVCmd {
         return res.getDataBuffer().readOneData();
     }
 
+
+    /**
+     * HASH 计算  单包计算
+     * @param key SM2密钥  如果不带密钥则传null
+     * @param userId 用户ID
+     * @param data 数据
+     */
+    public byte[] hash(byte[] key,byte[] userId,  byte[] data) throws AFCryptoException {
+        logger.info("SV-CMD-HASH, keyLen:{}, userIdLen:{}, dataLen:{}", null == key ? 0 : key.length, null == userId ? 0 : userId.length, data.length);
+        BytesBuffer buffer = new BytesBuffer()
+                .append(null == key ? 0 : key.length)
+                .append(key)
+                .append(null == userId ? 0 : userId.length)
+                .append(userId)
+                .append(data.length)
+                .append(data);
+        byte[] param = buffer.toBytes();
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_HASH, param, agKey);
+        ResponseMessage res = client.send(requestMessage);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-CMD-HASH失败, keyLen:{}, userIdLen:{}, dataLen:{}, 错误码:{},错误信息:{}", null == key ? 0 : key.length, null == userId ? 0 : userId.length, data.length, res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            throw new AFCryptoException("SV-CMD-HASH失败, keyLen:" + (null == key ? 0 : key.length) + ", userIdLen:" + (null == userId ? 0 : userId.length) + ", dataLen:" + data.length + ", 错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
+        }
+        return res.getDataBuffer().readOneData();
+    }
+
     //endregion
 
     //region// 获取内部对称密钥句柄

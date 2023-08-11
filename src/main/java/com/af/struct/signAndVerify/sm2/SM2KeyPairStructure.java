@@ -4,7 +4,7 @@ import lombok.*;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
- * @description
+ * @description  sm2密钥对结构体 ASN1编码
  * @since 2023/6/9 10:32
  */
 @Getter

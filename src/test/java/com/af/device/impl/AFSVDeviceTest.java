@@ -35,7 +35,7 @@ class AFSVDeviceTest {
     static Logger logger = Logger.getLogger("AFSVDeviceTest");
 
     //    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8008, "abcd1234");
-    static AFSVDevice device = new AFSVDevice.Builder("192.168.8.15", 8008, "abcd1234")
+    static AFSVDevice device = new AFSVDevice.Builder("192.168.10.40", 8008, "abcd1234")
             .isAgKey(true)
             .responseTimeOut(100000)
             .build();
@@ -721,7 +721,6 @@ class AFSVDeviceTest {
         byte[] bytes2 = device.sm3Hash(data);
         System.out.println("sm3 hash 一步结果:" + new String(bytes2));
 
-
         //生成Sm2密钥对
         SM2KeyPairStructure sm2KeyPairStructure = device.generateSM2KeyPair(1);
         //公钥
@@ -1011,23 +1010,19 @@ class AFSVDeviceTest {
     @Test
     void testImportCertByIndex() throws Exception {
         String signCert = "";
-        String encCert = "-----BEGIN CERTIFICATE-----\n" +
-                "MIICaTCCAg+gAwIBAgIJAOWoGwJCnbykMAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
-                "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
-                "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
-                "DTIzMDgxMDAzMDgyM1oXDTI0MDgwOTAzMDgyM1owfjELMAkGA1UEBgwCY24xCzAJ\n" +
-                "BgNVBAgMAnNkMQswCQYDVQQHDAJqbjENMAsGA1UECgwEc3phZjENMAsGA1UECwwE\n" +
-                "c3phZjEPMA0GA1UEAwwGenp5enp5MSYwJAYJKoZIhvcNAQkBFhd6enlwZXJzb25h\n" +
-                "bGx5QGdtYWlsLmNvbTBZMBMGByqGSM49AgEGCCqBHM9VAYItA0IABGhpcSqzCpKY\n" +
-                "YIExO5u7cSFBhsyHSpvWsFhtCQWVjisNWvC9KFZjSC51W6AnifjPTupwXg49JNlI\n" +
-                "m+JdhSTsS3GjgYwwgYkwDAYDVR0TAQH/BAIwADALBgNVHQ8EBAMCAzgwLAYJYIZI\n" +
-                "AYb4QgENBB8WHUdNQ2VydC5vcmcgU2lnbmVkIENlcnRpZmljYXRlMB0GA1UdDgQW\n" +
-                "BBSSLmmv/DFjGb77JqWP4nxu+QWQTDAfBgNVHSMEGDAWgBR/Wl47AIRZKg+YvqEO\n" +
-                "bzmVQxBNBzAKBggqgRzPVQGDdQNIADBFAiEA++GNOmwUB03eWm4+WN6VcBROjEQS\n" +
-                "GdovriqunFQAYooCICDZDulC8T8x/P46fHda12AfNdnxGUixtghvZiIhPp8W\n" +
-                "-----END CERTIFICATE-----\n";
+        String encCert = "";
+        String encPriKey = "ASN1 OID: sm2p256v1\n" +
+                "NIST CURVE: SM2\n" +
+                "-----BEGIN EC PARAMETERS-----\n" +
+                "BggqgRzPVQGCLQ==\n" +
+                "-----END EC PARAMETERS-----\n" +
+                "-----BEGIN EC PRIVATE KEY-----\n" +
+                "MHcCAQEEIFiOcrAbW6QaNFkxc9SwnN752VgFIOo/P+GM3tb9MFYCoAoGCCqBHM9V\n" +
+                "AYItoUQDQgAEroMjoAzrsXWXx/bBfxuhduTTQ5Kq23ue3il5/dJtyWwoLoY4CTt0\n" +
+                "u+QPIchoyvn+FkIhqcVE+UJOBiqyVbpCpg==\n" +
+                "-----END EC PRIVATE KEY-----";
 
-        device.importCertByIndex(111, signCert, encCert, "");
+        device.importCertByIndex(12, signCert, encCert, encPriKey);
     }
 
     //根据密钥索引获取证书
