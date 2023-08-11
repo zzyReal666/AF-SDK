@@ -178,7 +178,6 @@ public class AFSVDevice implements IAFSVDevice {
          * 连接超时时间 单位毫秒
          */
         private int connectTimeOut = 5000;
-
         /**
          * 响应超时时间 单位毫秒
          */

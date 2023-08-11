@@ -6,10 +6,7 @@ import cn.hutool.core.util.HexUtil;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.device.DeviceInfo;
-import com.af.struct.signAndVerify.AFPkcs7DecodeData;
-import com.af.struct.signAndVerify.AFSvCryptoInstance;
-import com.af.struct.signAndVerify.CertAltNameTrustList;
-import com.af.struct.signAndVerify.CsrRequest;
+import com.af.struct.signAndVerify.*;
 import com.af.struct.signAndVerify.RSA.RSAKeyPairStructure;
 import com.af.struct.signAndVerify.sm2.SM2KeyPairStructure;
 import com.af.struct.signAndVerify.sm2.SM2PrivateKeyStructure;
@@ -927,12 +924,11 @@ class AFSVDeviceTest {
         System.out.println("第二次签名信息编码,带原文" + new String(bytes1));
 
 
-//        //签名信息解码
-//        AFSM2DecodeSignedData afsm2DecodeSignedData = device.decodeSignedDataForSM2(bytes);
-//        System.out.println("第一次签名信息解码,不带原文"+afsm2DecodeSignedData);
-//        AFSM2DecodeSignedData afsm2DecodeSignedData1 = device.decodeSignedDataForSM2(bytes1);
-//        System.out.println("第二次签名信息解码,带原文"+afsm2DecodeSignedData1);
-//
+        //签名信息解码
+        AFSM2DecodeSignedData afsm2DecodeSignedData = device.decodeSignedDataForSM2(bytes);
+        System.out.println("第一次签名信息解码,不带原文"+afsm2DecodeSignedData);
+        AFSM2DecodeSignedData afsm2DecodeSignedData1 = device.decodeSignedDataForSM2(bytes1);
+        System.out.println("第二次签名信息解码,带原文"+afsm2DecodeSignedData1);
 
         //签名信息验证
         boolean b = device.verifySignedDataForSM2(bytes, data);
@@ -980,7 +976,7 @@ class AFSVDeviceTest {
     private byte[] getPriKey() {
         byte[] bytes = FileUtil.readBytes(userCertPrivateKeyPath);
         byte[] decode = Base64.decode(bytes);
-        //删除前132字节
+        //删除前132个字节
         //Base64编码
         return Arrays.copyOfRange(decode, 132, decode.length);
     }

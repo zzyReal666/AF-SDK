@@ -10,7 +10,6 @@ import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.device.DeviceInfo;
 import com.af.exception.AFCryptoException;
 import com.af.netty.NettyClient;
-import com.af.nettyNew.NettyClientChannels;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.signAndVerify.AFSM2DecodeSignedData;
@@ -190,7 +189,7 @@ public class AFSVCmd {
      * @param keyType 密钥类型 3:SM2 4:RSA
      * @param psw     私钥授权码
      */
-    public void getPrivateAccess(int index, int keyType,String psw) throws AFCryptoException { //success
+    public void getPrivateAccess(int index, int keyType, String psw) throws AFCryptoException { //success
         logger.info("SV-CMD 获取私钥访问权限, index: {}, keyType: {}", index, keyType);
         byte[] param = new BytesBuffer()
                 .append(index)
@@ -199,13 +198,10 @@ public class AFSVCmd {
                 .append(psw.getBytes(StandardCharsets.UTF_8))
                 .toBytes();
         RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_GETPRIVATEKEYACCESSRIGHT, param, agKey);
-        int count = client instanceof NettyClientChannels ? ((NettyClientChannels) client).getNettyChannelPool().getChannelCount() : 1;
-        for (int i = 0; i < count; i++) {
-            ResponseMessage responseMessage = client.send(requestMessage);
-            if (responseMessage.getHeader().getErrorCode() != 0) {
-                logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
-                throw new AFCryptoException("获取私钥访问权限失败");
-            }
+        ResponseMessage responseMessage = client.send(requestMessage);
+        if (responseMessage.getHeader().getErrorCode() != 0) {
+            logger.error("获取私钥访问权限失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
+            throw new AFCryptoException("获取私钥访问权限失败");
         }
 
     }
@@ -781,11 +777,12 @@ public class AFSVCmd {
 
     /**
      * HASH 计算  单包计算
-     * @param key SM2密钥  如果不带密钥则传null
+     *
+     * @param key    SM2密钥  如果不带密钥则传null
      * @param userId 用户ID
-     * @param data 数据
+     * @param data   数据
      */
-    public byte[] hash(byte[] key,byte[] userId,  byte[] data) throws AFCryptoException {
+    public byte[] hash(byte[] key, byte[] userId, byte[] data) throws AFCryptoException {
         logger.info("SV-CMD-HASH, keyLen:{}, userIdLen:{}, dataLen:{}", null == key ? 0 : key.length, null == userId ? 0 : userId.length, data.length);
         BytesBuffer buffer = new BytesBuffer()
                 .append(null == key ? 0 : key.length)
@@ -1122,7 +1119,7 @@ public class AFSVCmd {
         return res.getDataBuffer().readOneData();
     }
 
-     /**
+    /**
      * PKCS7 签名信息解码
      * <p>解码签名数据</p>
      * <p>解码基于SM2算法的签名数据</p>
