@@ -1031,7 +1031,6 @@ class AFSVDeviceTest {
     //删除密钥
     @Test
     void testDeleteKey() throws Exception {
-        String ip = "192.168.10.40";
         device.deleteKey(5);
     }
     //endregion

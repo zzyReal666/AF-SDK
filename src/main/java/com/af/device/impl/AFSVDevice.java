@@ -403,7 +403,7 @@ public class AFSVDevice implements IAFSVDevice {
      * 生成密钥对 SM2
      *
      * @param keyType 密钥类型 0:签名密钥对 1:加密密钥对 2:密钥交换密钥对 3:默认密钥对
-     * @return  SM2密钥对 {@link SM2KeyPairStructure}
+     * @return SM2密钥对 {@link SM2KeyPairStructure}
      */
 
     public SM2KeyPairStructure generateSM2KeyPair(int keyType) throws AFCryptoException {
@@ -3593,6 +3593,11 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("SM3 Hash(带公钥)，计算数据不能为空");
             throw new AFCryptoException("SM3 Hash(带公钥)，计算数据不能为空");
         }
+        //data 不能大于2M
+        if (data.length > 2 * 1024 * 1024) {
+            logger.error("SM3 Hash(带公钥)，计算数据不能大于2M");
+            throw new AFCryptoException("SM3 Hash(带公钥)，计算数据不能大于2M");
+        }
         //endregion
         return cmd.hash(publicKey, userId, data);
     }
@@ -3967,7 +3972,8 @@ public class AFSVDevice implements IAFSVDevice {
 
     /**
      * 根据密钥索引产生证书请求
-     * @param keyIndex 密钥索引
+     *
+     * @param keyIndex   密钥索引
      * @param csrRequest 证书请求信息 {@link CsrRequest}
      * @return CSR文件 Base64编码
      */
@@ -3988,32 +3994,27 @@ public class AFSVDevice implements IAFSVDevice {
         //发送请求
         int retry = 3;
         while (true) {
+            String body = HttpUtil.createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(header)
+                    .body(params.toString())
+                    .execute()
+                    .body();
+            JSONObject jsonObject = null;
             try {
-                String body = HttpUtil.createPost(url)
-                        .setConnectionTimeout(5 * 1000)
-                        .addHeaders(header)
-                        .body(params.toString())
-                        .execute()
-                        .body();
-
-                JSONObject jsonObject = JSONUtil.parseObj(body);
-                logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
-
-                int status = jsonObject.getInt("status");
-                if (status == 200) {
-                    return jsonObject.getJSONObject("result").getStr("csr");
-                } else {
-                    if (retry-- > 0) {
-                        continue;
-                    }
-                    throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
-                }
+                jsonObject = JSONUtil.parseObj(body);
             } catch (Exception e) {
-                logger.error("SV-Dev Error: " + e.getMessage());
+                throw new AFCryptoException("SV-Dev Error: " + "解析服务器响应失败");
+            }
+            logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
+            int status = jsonObject.getInt("status");
+            if (status == 200) {
+                return jsonObject.getJSONObject("result").getStr("csr");
+            } else {
                 if (retry-- > 0) {
                     continue;
                 }
-                throw new AFCryptoException(e);
+                throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
             }
         }
 
@@ -4045,33 +4046,28 @@ public class AFSVDevice implements IAFSVDevice {
         String url = "https://" + ip + "/mngapi/asymm/importCert";
         int retry = 3;
         while (true) {
+            String body = HttpUtil.createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(header)
+                    .body(params.toString())
+                    .execute()
+                    .body();
+            JSONObject jsonObject = null;
             try {
-                String body = HttpUtil.createPost(url)
-                        .setConnectionTimeout(5 * 1000)
-                        .addHeaders(header)
-                        .body(params.toString())
-                        .execute()
-                        .body();
-
-                JSONObject jsonObject = JSONUtil.parseObj(body);
-                logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
-
-                int status = jsonObject.getInt("status");
-                if (status == 200) {
-                    return;
-                } else {
-                    if (retry-- > 0) {
-                        continue;
-                    }
-                    throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
-                }
+                jsonObject = JSONUtil.parseObj(body);
             } catch (Exception e) {
-                // 处理异常情况
-                logger.error("SV-Dev Error: " + e.getMessage());
+                throw new AFCryptoException("SV-Dev Error: " + "解析服务器响应失败");
+            }
+            logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
+
+            int status = jsonObject.getInt("status");
+            if (status == 200) {
+                return;
+            } else {
                 if (retry-- > 0) {
                     continue;
                 }
-                throw new AFCryptoException(e);
+                throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
             }
         }
     }
@@ -4099,37 +4095,33 @@ public class AFSVDevice implements IAFSVDevice {
         int retry = 3;
         // 发送请求
         while (true) {
+            String body = HttpUtil.createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(header)
+                    .body(params.toString())
+                    .execute()
+                    .body();
+            JSONObject jsonObject = null;
             try {
-                String body = HttpUtil.createPost(url)
-                        .setConnectionTimeout(5 * 1000)
-                        .addHeaders(header)
-                        .body(params.toString())
-                        .execute()
-                        .body();
-
-                JSONObject jsonObject = JSONUtil.parseObj(body);
-                logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
-
-                int status = jsonObject.getInt("status");
-                if (status == 200) {
-                    String encCert = jsonObject.getJSONObject("result").getStr("encCert");
-                    String signCert = jsonObject.getJSONObject("result").getStr("signCert");
-                    Map<String, String> map = new HashMap<>();
-                    map.put("encCert", encCert);
-                    map.put("signCert", signCert);
-                    return map;
-                } else {
-                    if (retry-- > 0) {
-                        continue;
-                    }
-                    throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
-                }
+                jsonObject = JSONUtil.parseObj(body);
             } catch (Exception e) {
-                logger.error("SV-Dev Error: " + e.getMessage());
+                throw new AFCryptoException("SV-Dev Error: " + "解析服务器响应失败");
+            }
+            logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
+
+            int status = jsonObject.getInt("status");
+            if (status == 200) {
+                String encCert = jsonObject.getJSONObject("result").getStr("encCert");
+                String signCert = jsonObject.getJSONObject("result").getStr("signCert");
+                Map<String, String> map = new HashMap<>();
+                map.put("encCert", encCert);
+                map.put("signCert", signCert);
+                return map;
+            } else {
                 if (retry-- > 0) {
                     continue;
                 }
-                throw new AFCryptoException(e);
+                throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
             }
         }
     }
@@ -4157,33 +4149,29 @@ public class AFSVDevice implements IAFSVDevice {
         // 发送请求
         int retry = 3;
         while (true) {
+            String body = HttpUtil.createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(header)
+                    .body(params.toString())
+                    .execute()
+                    .body();
+            JSONObject jsonObject = null;
             try {
-                String body = HttpUtil.createPost(url)
-                        .setConnectionTimeout(5 * 1000)
-                        .addHeaders(header)
-                        .body(params.toString())
-                        .execute()
-                        .body();
-
-                JSONObject jsonObject = JSONUtil.parseObj(body);
-                logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
-
-                int status = jsonObject.getInt("status");
-                if (status == 200) {
-                    logger.info("SV-Dev,删除密钥成功,密钥索引:{}", keyIndex);
-                    return;
-                } else {
-                    if (retry-- > 0) {
-                        continue;
-                    }
-                    throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
-                }
+                jsonObject = JSONUtil.parseObj(body);
             } catch (Exception e) {
-                logger.error("SV-Dev Error: " + e.getMessage());
+                throw new AFCryptoException("SV-Dev Error: " + "解析服务器响应失败");
+            }
+            logger.info("SV-Dev Response: " + jsonObject.toStringPretty());
+
+            int status = jsonObject.getInt("status");
+            if (status == 200) {
+                logger.info("SV-Dev,删除密钥成功,密钥索引:{}", keyIndex);
+                return;
+            } else {
                 if (retry-- > 0) {
                     continue;
                 }
-                throw new AFCryptoException(e);
+                throw new AFCryptoException("SV-Dev Error: " + jsonObject.getStr("message"));
             }
         }
     }
