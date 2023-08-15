@@ -9,6 +9,7 @@ import com.af.crypto.key.symmetricKey.SessionKey;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.agreementData.AgreementData;
+import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -510,38 +511,42 @@ class AFHsmDeviceTest {
     }
 
     //MAC计算   singleChannel
-//    @Test
-//    void testMac() throws Exception {
-//        //key
-//        byte[] key = device.getRandom(16);
-//        //iv
-//        byte[] iv = device.getRandom(16);
-//
-//        //SM4 内部
-//        byte[] mac = device.sm4InternalMac(1, iv, data);
-//
-//        //SM4 外部
-//        byte[] mac1 = device.sm4ExternalMac(key, iv, data);
-//
+    @Test
+    void testMac() throws Exception {
+        //key
+        byte[] key = device.getRandom(16);
+        //iv
+        byte[] iv = device.getRandom(16);
+
+        //SM4 内部
+        byte[] mac = device.sm4InternalMac(1, iv, data);
+        System.out.println("SM4 内部 mac: " + Hex.toHexString(mac));
+
+        //SM4 外部
+        byte[] mac1 = device.sm4ExternalMac(key, iv, data);
+        System.out.println("SM4 外部 mac: " + Hex.toHexString(mac1));
+
 //        //SM4 密钥句柄
 //        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
 //        byte[] mac2 = device.sm4HandleMac(key1.getId(), iv, data);
 //        //释放密钥句柄
 //        device.releaseSessionKey(key1.getId());
-//
-//        //SM1 内部
-//        byte[] mac3 = device.sm1InternalMac(1, iv, data);
-//
-//        //SM1 外部
-//        byte[] mac4 = device.sm1ExternalMac(key, iv, data);
-//
+
+        //SM1 内部
+        byte[] mac3 = device.sm1InternalMac(1, iv, data);
+        System.out.println("SM1 内部 mac: " + Hex.toHexString(mac3));
+
+        //SM1 外部
+        byte[] mac4 = device.sm1ExternalMac(key, iv, data);
+        System.out.println("SM1 外部 mac: " + Hex.toHexString(mac4));
+
 //        //SM1 密钥句柄
 //        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
 //        byte[] mac5 = device.sm1HandleMac(key2.getId(), iv, data);
 //        //释放密钥句柄
 //        device.releaseSessionKey(key2.getId());
-//
-//    }
+
+    }
 
     //SM3-HMAC
     @Test

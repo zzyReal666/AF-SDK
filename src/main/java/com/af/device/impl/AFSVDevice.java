@@ -203,6 +203,11 @@ public class AFSVDevice implements IAFSVDevice {
          */
         private int channelCount = 10;
 
+        /**
+         * http端口
+         */
+        private static int managementPort = 443;
+
         //endregion
 
         //region//======>设置参数
@@ -238,6 +243,11 @@ public class AFSVDevice implements IAFSVDevice {
 
         public Builder channelCount(int channelCount) {
             this.channelCount = channelCount;
+            return this;
+        }
+
+        public Builder managementPort(int managementPort) {
+            Builder.managementPort = managementPort;
             return this;
         }
 
@@ -3565,7 +3575,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM3 Hash
      */
-    public  byte[] sm3Hash(byte[] data) throws AFCryptoException {
+    public byte[] sm3Hash(byte[] data) throws AFCryptoException {
         //region//======>参数检查
         if (data == null || data.length == 0) {
             logger.error("SM3 Hash，计算数据不能为空");
@@ -3579,7 +3589,7 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * SM3 Hash 带公钥
      */
-    public  byte[] sm3HashWithPubKey(byte[] publicKey, byte[] userId, byte[] data) throws AFCryptoException {
+    public byte[] sm3HashWithPubKey(byte[] publicKey, byte[] userId, byte[] data) throws AFCryptoException {
         //region//======>参数检查
         if (publicKey == null) {
             logger.error("SM3 Hash(带公钥)，公钥不能为空");
@@ -3978,8 +3988,9 @@ public class AFSVDevice implements IAFSVDevice {
      * @return CSR文件 Base64编码
      */
     public String getCSRByIndex(int keyIndex, CsrRequest csrRequest) throws AFCryptoException {
-        //获取服务器地址
+        // 获取服务器地址和端口
         String ip = "";
+        int port = AFSVDevice.Builder.managementPort;
         if (client instanceof NettyClientChannels) {
             ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
         }
@@ -3990,7 +4001,7 @@ public class AFSVDevice implements IAFSVDevice {
         JSONObject params = new JSONObject();
         params.set("keyIndex", keyIndex);
         params.set("dn", csrRequest.toDn());
-        String url = "https://" + ip + "/mngapi/asymm/generate";
+        String url = "https://" + ip + ":" + port + "/mngapi/asymm/generate";
         //发送请求
         int retry = 3;
         while (true) {
@@ -4030,7 +4041,9 @@ public class AFSVDevice implements IAFSVDevice {
      * @param encPriKey 加密密钥
      */
     public void importCertByIndex(int keyIndex, String signCert, String encCert, String encPriKey) throws AFCryptoException {
+        // 获取服务器地址和端口
         String ip = "";
+        int port = AFSVDevice.Builder.managementPort;
         if (client instanceof NettyClientChannels) {
             ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
         }
@@ -4043,7 +4056,7 @@ public class AFSVDevice implements IAFSVDevice {
         params.set("signCert", signCert);
         params.set("encCert", encCert);
         params.set("encPriKey", encPriKey);
-        String url = "https://" + ip + "/mngapi/asymm/importCert";
+        String url = "https://" + ip + ":" + port + "/mngapi/asymm/importCert";
         int retry = 3;
         while (true) {
             String body = HttpUtil.createPost(url)
@@ -4079,8 +4092,9 @@ public class AFSVDevice implements IAFSVDevice {
      * @return Map<String, String> 证书Map key:证书类型( encCert|signCert ) value:如果存在则为证书内容，否则为null
      */
     public Map<String, String> getCertByIndex(int keyIndex) throws AFCryptoException {
-        // 获取服务器地址
+        // 获取服务器地址和端口
         String ip = "";
+        int port = AFSVDevice.Builder.managementPort;
         if (client instanceof NettyClientChannels) {
             ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
         }
@@ -4090,7 +4104,7 @@ public class AFSVDevice implements IAFSVDevice {
         // 设置请求参数
         JSONObject params = new JSONObject();
         params.set("keyIndex", keyIndex);
-        String url = "https://" + ip + "/mngapi/asymm/getCert";
+        String url = "https://" + ip + ":" + port + "/mngapi/asymm/getCert";
         // 最大重试次数
         int retry = 3;
         // 发送请求
@@ -4134,8 +4148,9 @@ public class AFSVDevice implements IAFSVDevice {
      */
     public void deleteKey(int keyIndex) throws AFCryptoException {
 
-        // 获取服务器地址
+        // 获取服务器地址和端口
         String ip = "";
+        int port = AFSVDevice.Builder.managementPort;
         if (client instanceof NettyClientChannels) {
             ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
         }
@@ -4145,7 +4160,7 @@ public class AFSVDevice implements IAFSVDevice {
         // 设置请求参数
         JSONObject params = new JSONObject();
         params.set("keyIndex", keyIndex);
-        String url = "https://" + ip + "/mngapi/asymm/delete";
+        String url = "https://" + ip + ":" + port + "/mngapi/asymm/delete";
         // 发送请求
         int retry = 3;
         while (true) {
@@ -4616,7 +4631,6 @@ public class AFSVDevice implements IAFSVDevice {
         }
         return sm2Cipher;
     }
-
     //endregion
 
 }

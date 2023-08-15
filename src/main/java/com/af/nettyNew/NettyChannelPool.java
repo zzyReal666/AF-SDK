@@ -97,6 +97,7 @@ public class NettyChannelPool {
      * bootstrap
      */
     private Bootstrap bootstrap = new Bootstrap();
+
     //endregion
 
 
@@ -179,6 +180,7 @@ public class NettyChannelPool {
      */
     public void init() {
         setBootStrap();
+        logger.error(timeout + "");
         initChannels();
     }
 
@@ -208,7 +210,7 @@ public class NettyChannelPool {
                 .channel(NioSocketChannel.class)
                 .option(ChannelOption.SO_RCVBUF, bufferSize).
                 option(ChannelOption.TCP_NODELAY, true)  //不写缓存
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 7000)  //连接超时时间
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout)  //连接超时时间
                 .option(ChannelOption.SO_KEEPALIVE, true) //保持连接
                 .handler(new LoggingHandler(LogLevel.INFO)).handler(new ChannelInitializer<SocketChannel>() {
                     @Override

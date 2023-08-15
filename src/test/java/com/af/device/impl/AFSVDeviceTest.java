@@ -32,10 +32,13 @@ class AFSVDeviceTest {
     static Logger logger = Logger.getLogger("AFSVDeviceTest");
 
     //    static AFSVDevice device = AFDeviceFactory.getAFSVDevice("192.168.10.40", 8008, "abcd1234");
-    static AFSVDevice device = new AFSVDevice.Builder("192.168.10.40", 8008, "abcd1234")
-            .isAgKey(true)
-            .responseTimeOut(100000)
+    static AFSVDevice device = new AFSVDevice.Builder("47.103.213.215", 28015, "abcd1234")
+            .isAgKey(false)
+            .responseTimeOut(10000)
+            .connectTimeOut(100000)
+            .managementPort(28443)
             .build();
+
 
     //    static byte[] data = "1234567890abcde".getBytes();
     //大数据
@@ -1005,26 +1008,31 @@ class AFSVDeviceTest {
     //根据密钥索引导入证书
     @Test
     void testImportCertByIndex() throws Exception {
-        String signCert = "";
+        String signCert = "-----BEGIN CERTIFICATE-----\n" +
+                "MIICaDCCAg+gAwIBAgIJAOWoGwJCnb1tMAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
+                "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
+                "DTIzMDgxNTAyMjA1M1oXDTI0MDgxNDAyMjA1M1owfjELMAkGA1UEBgwCY24xCzAJ\n" +
+                "BgNVBAgMAnNkMQswCQYDVQQHDAJqbjENMAsGA1UECgwEc3phZjENMAsGA1UECwwE\n" +
+                "c3phZjEPMA0GA1UEAwwGenp5enp5MSYwJAYJKoZIhvcNAQkBFhd6enlwZXJzb25h\n" +
+                "bGx5QGdtYWlsLmNvbTBZMBMGByqGSM49AgEGCCqBHM9VAYItA0IABGJ2MzrbqDcI\n" +
+                "eCq8pslihUoaBkRxKgZOFYpsJrRMobXsEt2UJm9edCrlVh0WW0QVypZyIfjrcm+O\n" +
+                "GEoDGVi9AdOjgYwwgYkwDAYDVR0TAQH/BAIwADALBgNVHQ8EBAMCBsAwLAYJYIZI\n" +
+                "AYb4QgENBB8WHUdNQ2VydC5vcmcgU2lnbmVkIENlcnRpZmljYXRlMB0GA1UdDgQW\n" +
+                "BBT6Nvj4g2PtYe7lAsN7I9ZbjpRQnjAfBgNVHSMEGDAWgBR/Wl47AIRZKg+YvqEO\n" +
+                "bzmVQxBNBzAKBggqgRzPVQGDdQNHADBEAiA8w82kjmSOo8RP01X60TI1R7Nu5j8M\n" +
+                "zLib3ZryuAHFpQIgAXaO7qvAQ9qhosVpvlbhx4+c8SSUuR+ZjKY1Ubethx4=\n" +
+                "-----END CERTIFICATE-----\n";
         String encCert = "";
-        String encPriKey = "ASN1 OID: sm2p256v1\n" +
-                "NIST CURVE: SM2\n" +
-                "-----BEGIN EC PARAMETERS-----\n" +
-                "BggqgRzPVQGCLQ==\n" +
-                "-----END EC PARAMETERS-----\n" +
-                "-----BEGIN EC PRIVATE KEY-----\n" +
-                "MHcCAQEEIFiOcrAbW6QaNFkxc9SwnN752VgFIOo/P+GM3tb9MFYCoAoGCCqBHM9V\n" +
-                "AYItoUQDQgAEroMjoAzrsXWXx/bBfxuhduTTQ5Kq23ue3il5/dJtyWwoLoY4CTt0\n" +
-                "u+QPIchoyvn+FkIhqcVE+UJOBiqyVbpCpg==\n" +
-                "-----END EC PRIVATE KEY-----";
+        String encPriKey = "";
 
-        device.importCertByIndex(12, signCert, encCert, encPriKey);
+        device.importCertByIndex(5, signCert, encCert, encPriKey);
     }
 
     //根据密钥索引获取证书
     @Test
     void testGetCertByIndex() throws Exception {
-        Map<String, String> certMap = device.getCertByIndex(72);
+        Map<String, String> certMap = device.getCertByIndex(5);
         System.out.println("cert:" + certMap);
     }
 
