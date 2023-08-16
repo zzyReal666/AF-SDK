@@ -180,7 +180,6 @@ public class NettyChannelPool {
      */
     public void init() {
         setBootStrap();
-        logger.error(timeout + "");
         initChannels();
     }
 

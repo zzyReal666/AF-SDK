@@ -32,6 +32,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -1747,10 +1748,19 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量加密，索引不能小于0,当前索引：{}", keyIndex);
             throw new AFCryptoException("SM4 批量加密，索引不能小于0,当前索引：" + keyIndex);
         }
-        if (plainList == null || plainList.size() == 0) {
+        if (plainList == null || plainList.isEmpty()) {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
+
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -1771,7 +1781,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -1791,6 +1806,16 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
+
+        //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
             logger.error("SM4 批量加密，加密数据总长度不能超过2M,当前长度：{}", totalLength);
@@ -1808,7 +1833,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -1825,6 +1855,16 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
+
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
+
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -1844,7 +1884,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -1869,6 +1914,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -1887,7 +1940,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -1912,6 +1970,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -1930,7 +1996,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -1952,6 +2023,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM4 批量加密，加密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -1970,7 +2049,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -1990,6 +2074,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2008,7 +2100,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2028,6 +2125,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2047,7 +2152,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2064,6 +2174,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2083,7 +2201,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2107,6 +2230,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2125,7 +2256,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2150,6 +2286,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2168,7 +2312,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2189,6 +2338,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量加密，加密数据不能为空");
             throw new AFCryptoException("SM1 批量加密，加密数据不能为空");
         }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2207,7 +2364,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM1 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
         }
         //循环读取放入list
-        return IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
     //endregion
 
@@ -2230,6 +2392,16 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
+
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
+
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2245,7 +2417,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2266,6 +2443,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2281,7 +2466,13 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
+
     }
 
     /**
@@ -2297,6 +2488,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2312,7 +2511,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2336,6 +2540,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2351,7 +2563,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2376,6 +2593,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2391,7 +2616,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2413,6 +2643,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM4 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2428,7 +2666,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM4 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2448,6 +2691,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2463,7 +2714,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2483,6 +2739,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2498,7 +2762,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2515,6 +2784,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2530,7 +2807,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2555,6 +2837,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2570,7 +2860,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2596,6 +2891,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2611,7 +2914,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
 
     /**
@@ -2633,6 +2941,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据不能为空");
             throw new AFCryptoException("SM1 批量解密，解密数据不能为空");
         }
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < cipherList.size(); i++) {
+            if (cipherList.get(i) == null || cipherList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        cipherList = cipherList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         //list 总长度<2M
         int totalLength = cipherList.stream().mapToInt(bytes -> bytes.length).sum();
         if (totalLength > 2 * 1024 * 1024) {
@@ -2648,7 +2964,12 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM1 批量解密，解密数据个数不匹配，期望个数：{}，实际个数：{}", cipherList.size(), count);
             throw new AFCryptoException("SM1 批量解密，解密数据个数不匹配，期望个数：" + cipherList.size() + "，实际个数：" + count);
         }
-        return getCollect(buf, count);
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
     }
     //endregion
 

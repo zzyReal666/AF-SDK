@@ -393,8 +393,22 @@ class AFHsmDeviceTest {
 
         List<byte[]> list = new ArrayList<>();
         list.add(data);
+        list.add(null);
+        list.add(null);
+        list.add(null);
+        list.add(null);
         list.add(data);
         list.add(data);
+        list.add(data);
+        list.add(data);
+        list.add(data);
+        list.add(data);
+        list.add(null);
+        list.add(null);
+        list.add(null);
+        list.add(null);
+        list.add(data);
+        System.out.println(list.size());
 
         //SM4 ECB 内部
         List<byte[]> encodeList = device.sm4InternalBatchEncryptECB(1, list);
