@@ -395,24 +395,33 @@ class AFHsmDeviceTest {
         list.add(data);
         list.add(null);
         list.add(null);
-        list.add(null);
-        list.add(null);
-        list.add(data);
-        list.add(data);
-        list.add(data);
-        list.add(data);
-        list.add(data);
         list.add(data);
         list.add(null);
         list.add(null);
         list.add(null);
+        list.add(data);
+        list.add(data);
+        list.add(null);
         list.add(null);
         list.add(data);
-        System.out.println(list.size());
+
+        //打印list  第i个元素为: list.get(i)
+        for (int i = 0; i < list.size(); i++) {
+            System.out.println("第" + i + "个元素:" + Hex.toHexString(list.get(i) == null ? new byte[0] : list.get(i)));
+        }
+
 
         //SM4 ECB 内部
         List<byte[]> encodeList = device.sm4InternalBatchEncryptECB(1, list);
+        //打印list
+        for (int i = 0; i < list.size(); i++) {
+            System.out.println("加密后第" + i + "个元素:" + Hex.toHexString(encodeList.get(i) == null ? new byte[0] : encodeList.get(i)));
+        }
         List<byte[]> decodeList = device.sm4InternalBatchDecryptECB(1, encodeList);
+        //打印list
+        for (int i = 0; i < list.size(); i++) {
+            System.out.println("解密后第" + i + "个元素:" + Hex.toHexString(decodeList.get(i) == null ? new byte[0] : decodeList.get(i)));
+        }
         for (int i = 0; i < list.size(); i++) {
             assert Arrays.equals(list.get(i), decodeList.get(i));
         }
