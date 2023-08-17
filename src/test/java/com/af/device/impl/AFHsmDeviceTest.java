@@ -1,11 +1,13 @@
 package com.af.device.impl;
 
 import cn.hutool.core.util.HexUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.af.constant.Algorithm;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.key.symmetricKey.SessionKey;
+import com.af.exception.AFCryptoException;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.agreementData.AgreementData;
@@ -30,7 +32,7 @@ class AFHsmDeviceTest {
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-        device = new AFHsmDevice.Builder("192.168.10.40", 8008 , "abcd1234")
+        device = new AFHsmDevice.Builder("192.168.10.40", 8008, "abcd1234")
                 .responseTimeOut(100000)
                 .connectTimeOut(10000)
                 .channelCount(16)
@@ -52,12 +54,119 @@ class AFHsmDeviceTest {
     }
 
 
+    //region//======> 对称加密 通用接口 <======
+
+    //AES
     @Test
-    void testReConnect()throws Exception {
+    void testAESECB() throws AFCryptoException {
+
+        //SM1 SM4 16 | DES 8 | AES 16  |3DES 24  | AES192 24
+        int keyLen = 16;
+        byte[] key = RandomUtil.randomBytes(keyLen);
+        byte[] iv = RandomUtil.randomBytes(keyLen);
+
+        //ECB
+        byte[] bytes = device.symmEncrypt(Algorithm.SGD_AES_ECB, key, null, data);
+        byte[] bytes1 = device.symmDecrypt(Algorithm.SGD_AES_ECB, key, null, bytes);
+        assert Arrays.equals(data, bytes1);
+        System.out.println("AES ECB SUCCESS");
+
+        //CBC
+        byte[] bytes2 = device.symmEncrypt(Algorithm.SGD_AES_CBC, key, iv, data);
+        byte[] bytes3 = device.symmDecrypt(Algorithm.SGD_AES_CBC, key, iv, bytes2);
+        assert Arrays.equals(data, bytes3);
+        System.out.println("AES CBC SUCCESS");
+
+        //OFB
+        byte[] bytes4 = device.symmEncrypt(Algorithm.SGD_AES_OFB, key, iv, data);
+        byte[] bytes5 = device.symmDecrypt(Algorithm.SGD_AES_OFB, key, iv, bytes4);
+        assert Arrays.equals(data, bytes5);
+        System.out.println("AES OFB SUCCESS");
+
+        //CFB
+        byte[] bytes6 = device.symmEncrypt(Algorithm.SGD_AES_CFB, key, iv, data);
+        byte[] bytes7 = device.symmDecrypt(Algorithm.SGD_AES_CFB, key, iv, bytes6);
+        assert Arrays.equals(data, bytes7);
+        System.out.println("AES CFB SUCCESS");
+
+        //CTR
+        byte[] bytes8 = device.symmEncrypt(Algorithm.SGD_AES_CTR, key, iv, data);
+        byte[] bytes9 = device.symmDecrypt(Algorithm.SGD_AES_CTR, key, iv, bytes8);
+        assert Arrays.equals(data, bytes9);
+        System.out.println("AES CTR SUCCESS");
+    }
+
+
+    //DES
+    @Test
+    void testDESECB() throws AFCryptoException {
+        //SM1 SM4 16 | DES 8 | AES 16  |3DES 24  | AES192 24
+        int keyLen = 8;
+        byte[] key = RandomUtil.randomBytes(keyLen);
+        byte[] iv = RandomUtil.randomBytes(keyLen);
+
+        //ECB
+        byte[] bytes = device.symmEncrypt(Algorithm.SGD_DES_ECB, key, null, data);
+        byte[] bytes1 = device.symmDecrypt(Algorithm.SGD_DES_ECB, key, null, bytes);
+        assert Arrays.equals(data, bytes1);
+        System.out.println("DES ECB SUCCESS");
+
+        //CBC
+        byte[] bytes2 = device.symmEncrypt(Algorithm.SGD_DES_CBC, key, iv, data);
+        byte[] bytes3 = device.symmDecrypt(Algorithm.SGD_DES_CBC, key, iv, bytes2);
+        assert Arrays.equals(data, bytes3);
+        System.out.println("DES CBC SUCCESS");
+
+//        //OFB
+//        byte[] bytes4 = device.symmEncrypt(Algorithm.SGD_DES_OFB, key, iv, data);
+//        byte[] bytes5 = device.symmDecrypt(Algorithm.SGD_DES_OFB, key, iv, bytes4);
+//        assert Arrays.equals(data, bytes5);
+//        System.out.println("DES OFB SUCCESS");
+
+//        //CFB
+//        byte[] bytes6 = device.symmEncrypt(Algorithm.SGD_DES_CFB, key, iv, data);
+//        byte[] bytes7 = device.symmDecrypt(Algorithm.SGD_DES_CFB, key, iv, bytes6);
+//        assert Arrays.equals(data, bytes7);
+//        System.out.println("DES CFB SUCCESS");
+
+//        //CTR
+//        byte[] bytes8 = device.symmEncrypt(Algorithm.SGD_DES_CTR, key, iv, data);
+//        byte[] bytes9 = device.symmDecrypt(Algorithm.SGD_DES_CTR, key, iv, bytes8);
+//        assert Arrays.equals(data, bytes9);
+//        System.out.println("DES CTR SUCCESS");
+
+    }
+
+    //3DES
+    @Test
+    void test3DESECB() throws AFCryptoException {
+        //SM1 SM4 16 | DES 8 | AES 16  |3DES 24  | AES192 24
+        int keyLen = 24;
+        byte[] key = RandomUtil.randomBytes(keyLen);
+        byte[] iv = RandomUtil.randomBytes(keyLen);
+
+        //ECB
+        byte[] bytes = device.symmEncrypt(Algorithm.SGD_3DES_ECB, key, null, data);
+        byte[] bytes1 = device.symmDecrypt(Algorithm.SGD_3DES_ECB, key, null, bytes);
+        assert Arrays.equals(data, bytes1);
+        System.out.println("3DES ECB SUCCESS");
+
+        //CBC
+        byte[] bytes2 = device.symmEncrypt(Algorithm.SGD_3DES_CBC, key, iv, data);
+        byte[] bytes3 = device.symmDecrypt(Algorithm.SGD_3DES_CBC, key, iv, bytes2);
+        assert Arrays.equals(data, bytes3);
+        System.out.println("3DES CBC SUCCESS");
+    }
+
+
+    //endregion
+
+    @Test
+    void testReConnect() throws Exception {
         int i = 0;
         while (true) {
             byte[] random = device.getRandom(5);
-            System.out.println("第"+ i++ +"次获取随机数:" + HexUtil.encodeHexStr(random));
+            System.out.println("第" + i++ + "次获取随机数:" + HexUtil.encodeHexStr(random));
         }
     }
 
@@ -626,7 +735,7 @@ class AFHsmDeviceTest {
         System.out.println("sm3 hash 带公钥 分步结果:" + HexUtil.encodeHexStr(bytes1));
 
         byte[] bytes3 = device.sm3HashWithPubKey(pubKey, userId, data);
-        System.out.println("sm3 hash 带公钥 一步结果:" +HexUtil.encodeHexStr(bytes3));
+        System.out.println("sm3 hash 带公钥 一步结果:" + HexUtil.encodeHexStr(bytes3));
         assert Arrays.equals(bytes1, bytes3);
 
 

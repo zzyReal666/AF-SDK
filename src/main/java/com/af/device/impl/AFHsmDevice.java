@@ -934,6 +934,47 @@ public class AFHsmDevice implements IAFHsmDevice {
     //region======================================================对称加密======================================================
 
     /**
+     * 对称加密
+     * @param algorithm 算法标识 {@link Algorithm}
+     * @param key 密钥
+     * @param iv 初始向量  ECB模式下为null
+     * @param plain 明文
+     * @return 密文
+     */
+    public byte[] symmEncrypt(Algorithm algorithm, byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
+        //region//======>参数检查
+        if(algorithm == null) {
+            logger.error("对称加密失败,算法标识不能为空");
+            throw new AFCryptoException("对称加密失败,算法标识不能为空");
+        }
+        if(key == null || key.length == 0) {
+            logger.error("对称加密失败,密钥不能为空");
+            throw new AFCryptoException("对称加密失败,密钥不能为空");
+        }
+        //不是ECB iv不能为null
+        if(!algorithm.getName().contains("ECB") && (iv == null || iv.length == 0)) {
+            logger.error("对称加密失败,非ECB模式下iv不能为空");
+            throw new AFCryptoException("对称加密失败,iv不能为空");
+        }
+
+        if(plain == null || plain.length == 0) {
+            logger.error("对称加密失败,明文不能为空");
+            throw new AFCryptoException("对称加密失败,明文不能为空");
+        }
+        //endregion
+        //填充数据
+        plain = padding(plain);
+        //分包
+        List<byte[]> bytes = splitPackage(plain);
+        //循环加密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] encrypt = cmd.symEncrypt(algorithm, 0, 0, key, iv, bytes.get(i));
+            bytes.set(i, encrypt);
+        }
+        return mergePackage(bytes);
+    }
+
+    /**
      * SM4 ECB 内部密钥加密
      *
      * @param keyIndex 密钥索引
@@ -971,7 +1012,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return 加密数据
      */
     public byte[] sm4ExternalEncryptECB(byte[] key, byte[] plain) throws AFCryptoException {
-        //参数检查
+        //region//======>参数检查
         if (key == null || key.length == 0) {
             logger.error("SM4 加密，密钥信息不能为空");
             throw new AFCryptoException("SM4 加密，密钥信息不能为空");
@@ -984,6 +1025,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 加密，加密数据不能为空");
             throw new AFCryptoException("SM4 加密，加密数据不能为空");
         }
+        //endregion
         //填充数据
         plain = padding(plain);
         //分包
@@ -1337,6 +1379,40 @@ public class AFHsmDevice implements IAFHsmDevice {
     //endregion
 
     //region======================================================对称解密======================================================
+
+    /**
+     * 对称解密
+     * @param algorithm 算法标识 {@link Algorithm}
+     * @param key 密钥
+     * @param iv 初始向量  ECB模式下为null
+     * @param cipher 密文
+     * @return 明文
+     */
+    public byte[] symmDecrypt(Algorithm algorithm, byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
+        //region//======>参数检查
+        if (algorithm == null) {
+            logger.error("对称解密失败,算法标识不能为空");
+            throw new AFCryptoException("对称解密失败,算法标识不能为空");
+        }
+        if (key == null || key.length == 0) {
+            logger.error("对称解密失败,密钥不能为空");
+            throw new AFCryptoException("对称解密失败,密钥不能为空");
+        }
+
+        if (cipher == null || cipher.length == 0) {
+            logger.error("对称解密失败,密文不能为空");
+            throw new AFCryptoException("对称解密失败,密文不能为空");
+        }
+        //分包
+        List<byte[]> bytes = splitPackage(cipher);
+        //循环解密
+        for (int i = 0; i < bytes.size(); i++) {
+            byte[] decrypt = cmd.symDecrypt(algorithm, 0, 0, key, iv, bytes.get(i));
+            bytes.set(i, decrypt);
+        }
+        //合并数据 并去填充
+        return cutting(mergePackage(bytes));
+    }
 
     /**
      * SM4 内部密钥 解密 ECB
@@ -3271,7 +3347,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      */
     public byte[] readFile(String fileName, int offset, int length) throws AFCryptoException {
         //参数检查
-        if (fileName == null || fileName.length() == 0) {
+        if (fileName == null || fileName.isEmpty()) {
             logger.error("读取文件，文件名不能为空");
             throw new AFCryptoException("读取文件，文件名不能为空");
         }
@@ -3295,7 +3371,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      */
     public void writeFile(String fileName, int offset, byte[] data) throws AFCryptoException {
         //参数检查
-        if (fileName == null || fileName.length() == 0) {
+        if (fileName == null || fileName.isEmpty()) {
             logger.error("写入文件，文件名不能为空");
             throw new AFCryptoException("写入文件，文件名不能为空");
         }
@@ -3317,7 +3393,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      */
     public void deleteFile(String fileName) throws AFCryptoException {
         //参数检查
-        if (fileName == null || fileName.length() == 0) {
+        if (fileName == null || fileName.isEmpty()) {
             logger.error("删除文件，文件名不能为空");
             throw new AFCryptoException("删除文件，文件名不能为空");
         }
@@ -3362,7 +3438,6 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data 数据
      * @return 分组后的数据 List<byte[]>
      */
-
     private List<byte[]> splitPackage(byte[] data) {
         int uiIndex;
         byte[] inputData;

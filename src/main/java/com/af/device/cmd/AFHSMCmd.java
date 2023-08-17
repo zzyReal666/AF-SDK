@@ -907,7 +907,7 @@ public class AFHSMCmd extends AFCmd {
      *
      * @param algorithm 算法 只能是{@link Algorithm}中的SM1,SM4相关枚举
      * @param type      接口标识 0|外部密钥，1|内部密钥，2|检查密钥句柄
-     * @param keyIndex  密钥索引 仅在接口标识为 1|2 时有效
+     * @param keyIndex  密钥索引 仅在接口标识为 1|2 时有效 如果外部密钥，传0
      * @param key       密钥
      * @param iv        向量
      * @param plain     数据 分组且padding过的数据
