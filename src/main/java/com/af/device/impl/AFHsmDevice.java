@@ -934,7 +934,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     //region======================================================对称加密======================================================
 
     /**
-     * 对称加密
+     * 对称加密 通用
      * @param algorithm 算法标识 {@link Algorithm}
      * @param key 密钥
      * @param iv 初始向量  ECB模式下为null
@@ -1381,7 +1381,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     //region======================================================对称解密======================================================
 
     /**
-     * 对称解密
+     * 对称解密 通用
      * @param algorithm 算法标识 {@link Algorithm}
      * @param key 密钥
      * @param iv 初始向量  ECB模式下为null
