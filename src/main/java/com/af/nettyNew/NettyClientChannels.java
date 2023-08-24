@@ -10,8 +10,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
  */
 @Getter
 @Setter
-@NoArgsConstructor
+@ToString
 public class NettyClientChannels implements NettyClient {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyClientChannels.class);
@@ -34,7 +34,12 @@ public class NettyClientChannels implements NettyClient {
 
     private byte[] heartBeat;
 
-
+    //私有无参构造
+    private NettyClientChannels() {
+    }
+    private static class SingletonHolder {
+        private static final NettyClientChannels INSTANCE = new NettyClientChannels();
+    }
     //region//建造者模式
     /**
      * 建造者模式

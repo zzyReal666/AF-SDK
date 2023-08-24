@@ -190,7 +190,7 @@ public class AFSVCmd {
      * @param psw     私钥授权码
      */
     public void getPrivateAccess(int index, int keyType, String psw) throws AFCryptoException { //success
-        logger.info("SV-CMD 获取私钥访问权限, index: {}, keyType: {}", index, keyType);
+        logger.info("SV-CMD 获取私钥访问权限, index: {}, keyType: {}, psw:{}", index, keyType, psw);
         byte[] param = new BytesBuffer()
                 .append(index)
                 .append(keyType)

@@ -178,7 +178,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         public AFHsmDevice build() {
             client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo()).timeout(connectTimeOut).responseTimeout(responseTimeOut).retryCount(retryCount).retryInterval(retryInterval).bufferSize(bufferSize).channelCount(channelCount).build();
             AFHsmDevice hsmDevice = InstanceHolder.instance;
-            if (isAgKey) {
+            if (isAgKey && hsmDevice.getAgKey() == null) {
                 hsmDevice.setAgKey();
             }
             return hsmDevice;

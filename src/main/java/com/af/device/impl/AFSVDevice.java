@@ -263,7 +263,7 @@ public class AFSVDevice implements IAFSVDevice {
                     .channelCount(channelCount)
                     .build();
             AFSVDevice afsvDevice = AFSVDevice.SingletonHolder.INSTANCE;
-            if (isAgKey) {
+            if (isAgKey && afsvDevice.getAgKey() == null) {
                 afsvDevice.setAgKey();
             }
             return afsvDevice;
@@ -335,6 +335,11 @@ public class AFSVDevice implements IAFSVDevice {
             logger.error("keyType 只能为3或4");
             throw new AFCryptoException("keyType 只能为3(SM2)或4(RSA)");
         }
+//        if (psw == null || psw.isEmpty()) {
+//            logger.error("psw 不能为空");
+//            throw new AFCryptoException("psw 不能为空");
+//        }
+        //endregion
         cmd.getPrivateAccess(index, keyType, psw);
     }
     //endregion
