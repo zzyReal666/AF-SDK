@@ -1,6 +1,9 @@
 package com.af.device.impl;
 
 import cn.hutool.core.util.HexUtil;
+import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.af.constant.Algorithm;
 import com.af.constant.ConstantNumber;
 import com.af.constant.ModulusLength;
@@ -21,6 +24,7 @@ import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.agreementData.AgreementData;
+import com.af.struct.signAndVerify.CsrRequest;
 import com.af.utils.BytesBuffer;
 import com.af.utils.pkcs.AFPkcs1Operate;
 import lombok.Getter;
@@ -29,10 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -47,7 +48,7 @@ import java.util.stream.IntStream;
  */
 @Getter
 public class AFHsmDevice implements IAFHsmDevice {
-    //region ======================================================成员与单例模式======================================================
+    //region======================================================成员与单例模式===========================================
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
     private byte[] agKey;  //协商密钥
     @Getter
@@ -121,6 +122,10 @@ public class AFHsmDevice implements IAFHsmDevice {
          * 通道数量
          */
         private int channelCount = 10;
+        /**
+         * http端口
+         */
+        private static int managementPort = 443;
 
         //endregion
 
@@ -158,6 +163,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
         public Builder channelCount(int channelCount) {
             this.channelCount = channelCount;
+            return this;
+        }
+
+        public Builder managementPort(int managementPort) {
+            this.managementPort = managementPort;
             return this;
         }
 
@@ -200,7 +210,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     }
     //endregion
 
-    //region======================================================设备信息 随机数 私钥访问权限======================================================
+    //region======================================================设备信息 随机数 私钥访问权限===============================
 
     /**
      * 获取设备信息
@@ -250,7 +260,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     }
     //endregion
 
-    // region ======================================================导出公钥======================================================
+    // region======================================================导出公钥===============================================
 
     /**
      * 获取SM2签名公钥
@@ -303,7 +313,6 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 生成密钥对 通用
-     *
      */
     public byte[] generateKeyPair(Algorithm algorithm, ModulusLength length) throws AFCryptoException {
         //region//======>参数检查
@@ -3553,7 +3562,224 @@ public class AFHsmDevice implements IAFHsmDevice {
     }
     //endregion
 
-    //region======================================================获取内部对称密钥句柄 获取连接个数======================================================
+    //region//==================================P10 Http 证书请求与导入=================================================
+
+    /**
+     * 根据密钥索引产生证书请求
+     *
+     * @param keyIndex   密钥索引
+     * @param csrRequest 证书请求信息 {@link CsrRequest}
+     * @return CSR文件 Base64编码
+     */
+    public String getCSRByIndex(int keyIndex, CsrRequest csrRequest) throws AFCryptoException {
+        // 获取服务器地址和端口
+        String ip = "";
+        int port = AFHsmDevice.Builder.managementPort;
+        if (client instanceof NettyClientChannels) {
+            ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
+        }
+        //设置请求头
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+        //设置请求参数
+        JSONObject params = new JSONObject();
+        params.set("keyIndex", keyIndex);
+        params.set("dn", csrRequest.toDn());
+        String url = "https://" + ip + ":" + port + "/mngapi/asymm/generate";
+        //发送请求
+        int retry = 3;
+        while (true) {
+            String body = HttpUtil.createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(header)
+                    .body(params.toString())
+                    .execute()
+                    .body();
+            JSONObject jsonObject = null;
+            try {
+                jsonObject = JSONUtil.parseObj(body);
+            } catch (Exception e) {
+                throw new AFCryptoException("HSM-Dev Error: " + "解析服务器响应失败");
+            }
+            logger.info("HSM-Dev Response: " + jsonObject.toStringPretty());
+            int status = jsonObject.getInt("status");
+            if (status == 200) {
+                return jsonObject.getJSONObject("result").getStr("csr");
+            } else {
+                if (retry-- > 0) {
+                    continue;
+                }
+                throw new AFCryptoException("HSM-Dev Error: " + jsonObject.getStr("message"));
+            }
+        }
+
+
+    }
+
+    /**
+     * 根据密钥索引导入证书
+     *
+     * @param keyIndex  密钥索引
+     * @param signCert  签名证书
+     * @param encCert   加密证书
+     * @param encPriKey 加密密钥
+     */
+    public void importCertByIndex(int keyIndex, String signCert, String encCert, String encPriKey) throws AFCryptoException {
+        // 获取服务器地址和端口
+        String ip = "";
+        int port = AFHsmDevice.Builder.managementPort;
+        if (client instanceof NettyClientChannels) {
+            ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
+        }
+
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+
+        JSONObject params = new JSONObject();
+        params.set("keyIndex", keyIndex);
+        params.set("signCert", signCert);
+        params.set("encCert", encCert);
+        params.set("encPriKey", encPriKey);
+        String url = "https://" + ip + ":" + port + "/mngapi/asymm/importCert";
+        int retry = 3;
+        while (true) {
+            String body = HttpUtil.createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(header)
+                    .body(params.toString())
+                    .execute()
+                    .body();
+            JSONObject jsonObject = null;
+            try {
+                jsonObject = JSONUtil.parseObj(body);
+            } catch (Exception e) {
+                throw new AFCryptoException("HSM-Dev Error: " + "解析服务器响应失败");
+            }
+            logger.info("HSM-Dev Response: " + jsonObject.toStringPretty());
+
+            int status = jsonObject.getInt("status");
+            if (status == 200) {
+                return;
+            } else {
+                if (retry-- > 0) {
+                    continue;
+                }
+                throw new AFCryptoException("HSM-Dev Error: " + jsonObject.getStr("message"));
+            }
+        }
+    }
+
+    /**
+     * 根据密钥索引获取证书
+     *
+     * @param keyIndex 密钥索引
+     * @return Map<String, String> 证书Map key:证书类型( encCert|signCert ) value:如果存在则为证书内容，否则为null
+     */
+    public Map<String, String> getCertByIndex(int keyIndex) throws AFCryptoException {
+        // 获取服务器地址和端口
+        String ip = "";
+        int port = AFHsmDevice.Builder.managementPort;
+        if (client instanceof NettyClientChannels) {
+            ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
+        }
+        // 设置请求头
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+        // 设置请求参数
+        JSONObject params = new JSONObject();
+        params.set("keyIndex", keyIndex);
+        String url = "https://" + ip + ":" + port + "/mngapi/asymm/getCert";
+        // 最大重试次数
+        int retry = 3;
+        // 发送请求
+        while (true) {
+            String body = HttpUtil.createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(header)
+                    .body(params.toString())
+                    .execute()
+                    .body();
+            JSONObject jsonObject = null;
+            try {
+                jsonObject = JSONUtil.parseObj(body);
+            } catch (Exception e) {
+                throw new AFCryptoException("HSM-Dev Error: " + "解析服务器响应失败");
+            }
+            logger.info("HSM-Dev Response: " + jsonObject.toStringPretty());
+
+            int status = jsonObject.getInt("status");
+            if (status == 200) {
+                String encCert = jsonObject.getJSONObject("result").getStr("encCert");
+                String signCert = jsonObject.getJSONObject("result").getStr("signCert");
+                Map<String, String> map = new HashMap<>();
+                map.put("encCert", encCert);
+                map.put("signCert", signCert);
+                return map;
+            } else {
+                if (retry-- > 0) {
+                    continue;
+                }
+                throw new AFCryptoException("HSM-Dev Error: " + jsonObject.getStr("message"));
+            }
+        }
+    }
+
+
+    /**
+     * 删除密钥
+     *
+     * @param keyIndex 密钥索引
+     */
+    public void deleteKey(int keyIndex) throws AFCryptoException {
+
+        // 获取服务器地址和端口
+        String ip = "";
+        int port = AFHsmDevice.Builder.managementPort;
+        if (client instanceof NettyClientChannels) {
+            ip = ((NettyClientChannels) client).getNettyChannelPool().getHost();
+        }
+        // 设置请求头
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+        // 设置请求参数
+        JSONObject params = new JSONObject();
+        params.set("keyIndex", keyIndex);
+        String url = "https://" + ip + ":" + port + "/mngapi/asymm/delete";
+        // 发送请求
+        int retry = 3;
+        while (true) {
+            String body = HttpUtil.createPost(url)
+                    .setConnectionTimeout(5 * 1000)
+                    .addHeaders(header)
+                    .body(params.toString())
+                    .execute()
+                    .body();
+            JSONObject jsonObject = null;
+            try {
+                jsonObject = JSONUtil.parseObj(body);
+            } catch (Exception e) {
+                throw new AFCryptoException("HSM-Dev Error: " + "解析服务器响应失败");
+            }
+            logger.info("HSM-Dev Response: " + jsonObject.toStringPretty());
+
+            int status = jsonObject.getInt("status");
+            if (status == 200) {
+                logger.info("HSM-Dev,删除密钥成功,密钥索引:{}", keyIndex);
+                return;
+            } else {
+                if (retry-- > 0) {
+                    continue;
+                }
+                throw new AFCryptoException("HSM-Dev Error: " + jsonObject.getStr("message"));
+            }
+        }
+    }
+
+
+    //endregion
+
+
+    //region======================================================获取内部对称密钥句柄 获取连接个数===========================
 
     /**
      * 获取内部对称密钥句柄
@@ -3581,7 +3807,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     //endregion
 
-    //region============================================================工具============================================================
+    //region============================================================工具============================================
 
 
     /**

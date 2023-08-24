@@ -11,6 +11,7 @@ import com.af.exception.AFCryptoException;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.agreementData.AgreementData;
+import com.af.struct.signAndVerify.CsrRequest;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -20,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 class AFHsmDeviceTest {
@@ -37,6 +39,7 @@ class AFHsmDeviceTest {
                 .connectTimeOut(10000)
                 .channelCount(16)
                 .isAgKey(false)
+                .managementPort(443)
                 .build();
 
 
@@ -53,6 +56,55 @@ class AFHsmDeviceTest {
         device.close(AFHsmDevice.getClient());
         logger.info("服务端已经关闭连接");
     }
+
+
+    //region//======>p10 证书申请<======
+
+    //根据id删除密钥
+    @Test
+    void testDeleteKeyPair() throws Exception {
+        device.deleteKey(5);
+    }
+
+    //生成p10
+    @Test
+    void testGetCSRByIndex() throws Exception {
+        CsrRequest csrRequest = new CsrRequest("cn","sd","jn","szaf","szaf","zzyzzy","zzypersonally@gmail.com");
+        String csrByIndex = device.getCSRByIndex(5, csrRequest);
+        System.out.println("CSR:" + csrByIndex);
+    }
+
+    //根据密钥索引导入证书
+    @Test
+    void testImportCertByIndex() throws AFCryptoException {
+
+        String sigCert = "-----BEGIN CERTIFICATE-----\n" +
+                "MIICaTCCAg+gAwIBAgIJAOWoGwJCnb9cMAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
+                "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
+                "DTIzMDgyNDAyNDE0MFoXDTI0MDgyMzAyNDE0MFowfjELMAkGA1UEBgwCY24xCzAJ\n" +
+                "BgNVBAgMAnNkMQswCQYDVQQHDAJqbjENMAsGA1UECgwEc3phZjENMAsGA1UECwwE\n" +
+                "c3phZjEPMA0GA1UEAwwGenp5enp5MSYwJAYJKoZIhvcNAQkBFhd6enlwZXJzb25h\n" +
+                "bGx5QGdtYWlsLmNvbTBZMBMGByqGSM49AgEGCCqBHM9VAYItA0IABKqDPjxb0JJf\n" +
+                "FunuJIhee6c54okChn3QGZZo/KIummTYKN1zyI1/M55ZJx+ozglSzQYtY2yWjk6S\n" +
+                "533DeQP2/QqjgYwwgYkwDAYDVR0TAQH/BAIwADALBgNVHQ8EBAMCB4AwLAYJYIZI\n" +
+                "AYb4QgENBB8WHUdNQ2VydC5vcmcgU2lnbmVkIENlcnRpZmljYXRlMB0GA1UdDgQW\n" +
+                "BBRfrqABQGAPIus56IkhI++jJv1aFzAfBgNVHSMEGDAWgBR/Wl47AIRZKg+YvqEO\n" +
+                "bzmVQxBNBzAKBggqgRzPVQGDdQNIADBFAiATXWwtV6mFSikAeJNkrr+S9h/bwSC+\n" +
+                "f5q57FgOAnobZwIhAMJbXP2lYupYUVXXRxX1GNkh7b89TRjSjBouklKvAl/N\n" +
+                "-----END CERTIFICATE-----\n";
+        String encCert = "";
+        String encPriKey = "";
+        device.importCertByIndex(5, sigCert, encCert, encPriKey);
+    }
+
+    //根据密钥索引获取证书
+    @Test
+    void testGetCertByIndex() throws AFCryptoException {
+        Map<String, String> certByIndex = device.getCertByIndex(5);
+        System.out.println("证书:" + certByIndex);
+    }
+    //endregion
 
 
     //region//======> 对称加密 通用接口 <======

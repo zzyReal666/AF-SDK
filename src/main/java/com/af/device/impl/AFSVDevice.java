@@ -207,7 +207,6 @@ public class AFSVDevice implements IAFSVDevice {
          * http端口
          */
         private static int managementPort = 443;
-
         //endregion
 
         //region//======>设置参数
