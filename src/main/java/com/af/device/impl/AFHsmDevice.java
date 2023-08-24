@@ -228,6 +228,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
         return cmd.getRandom(length);
     }
+
     /**
      * 获取私钥访问权限
      *
@@ -298,8 +299,31 @@ public class AFHsmDevice implements IAFHsmDevice {
     }
     //endregion
 
-
     //region======================================================生成密钥对======================================================
+
+    /**
+     * 生成密钥对 通用
+     *
+     */
+    public byte[] generateKeyPair(Algorithm algorithm, ModulusLength length) throws AFCryptoException {
+        //region//======>参数检查
+        //算法标识检查 只能是SM2 或者 RSA
+        if (algorithm != Algorithm.SGD_SM2 && algorithm != Algorithm.SGD_RSA) {
+            logger.error("生成密钥对失败,算法标识错误,algorithm(SGD_SM2|SGD_RSA):{}", algorithm);
+            throw new AFCryptoException("生成密钥对失败,算法标识错误,algorithm(SGD_SM2|SGD_RSA):" + algorithm);
+        }
+        //模长检查 SM2只能是256 RSA只能是1024或2048
+        if (algorithm == Algorithm.SGD_SM2 && length != ModulusLength.LENGTH_256) {
+            logger.error("生成密钥对失败,SM2模长错误,length(256):{}", length);
+            throw new AFCryptoException("生成密钥对失败,SM2模长错误,length(256):" + length);
+        }
+        if (algorithm == Algorithm.SGD_RSA && length != ModulusLength.LENGTH_1024 && length != ModulusLength.LENGTH_2048) {
+            logger.error("生成密钥对失败,RSA模长错误,length(1024|2048):{}", length);
+            throw new AFCryptoException("生成密钥对失败,RSA模长错误,length(1024|2048):" + length);
+        }
+        //endregion
+        return cmd.generateKeyPair(algorithm, length);
+    }
 
     /**
      * 生成密钥对 SM2
@@ -434,15 +458,15 @@ public class AFHsmDevice implements IAFHsmDevice {
     /**
      * 生成会话密钥（使用对称密钥）
      *
-     * @param algorithm 加密算法标识 SGD_SM1_ECB|SGD_SMS4_ECB
+     * @param algorithm 加密算法标识 SGD_SM1_ECB|SGD_SM4_ECB
      * @param keyIndex  加密密钥索引
      * @param length    会话密钥长度 8|16|24|32
      */
     public SessionKey generateSessionKeyBySym(Algorithm algorithm, int keyIndex, int length) throws AFCryptoException {
         //参数检查
-        if (algorithm != Algorithm.SGD_SM1_ECB && algorithm != Algorithm.SGD_SMS4_ECB) {
-            logger.error("生成会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SMS4_ECB):{}", algorithm);
-            throw new AFCryptoException("生成会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SMS4_ECB):" + algorithm);
+        if (algorithm != Algorithm.SGD_SM1_ECB && algorithm != Algorithm.SGD_SM4_ECB) {
+            logger.error("生成会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SM4_ECB):{}", algorithm);
+            throw new AFCryptoException("生成会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SM4_ECB):" + algorithm);
         }
         if (keyIndex < 0) {
             logger.error("生成会话密钥失败,加密密钥索引错误,keyIndex:{}", keyIndex);
@@ -464,16 +488,16 @@ public class AFHsmDevice implements IAFHsmDevice {
     /**
      * 导入会话密钥密文（使用对称密钥）
      *
-     * @param algorithm 加密算法标识 SGD_SM1_ECB|SGD_SMS4_ECB
+     * @param algorithm 加密算法标识 SGD_SM1_ECB|SGD_SM4_ECB
      * @param keyIndex  加密密钥索引
      * @param key       会话密钥密文
      * @return 会话密钥id 会话密钥长度
      */
     public SessionKey importSessionKeyBySym(Algorithm algorithm, int keyIndex, byte[] key) throws AFCryptoException {
         //参数检查
-        if (algorithm != Algorithm.SGD_SM1_ECB && algorithm != Algorithm.SGD_SMS4_ECB) {
-            logger.error("导入会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SMS4_ECB):{}", algorithm);
-            throw new AFCryptoException("导入会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SMS4_ECB):" + algorithm);
+        if (algorithm != Algorithm.SGD_SM1_ECB && algorithm != Algorithm.SGD_SM4_ECB) {
+            logger.error("导入会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SM4_ECB):{}", algorithm);
+            throw new AFCryptoException("导入会话密钥失败,算法标识错误,algorithm(SGD_SM1_ECB|SGD_SM4_ECB):" + algorithm);
         }
         byte[] bytes = cmd.importSessionKeyBySym(algorithm, keyIndex, key);
         BytesBuffer buffer = new BytesBuffer(bytes);
@@ -935,29 +959,30 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 对称加密 通用
+     *
      * @param algorithm 算法标识 {@link Algorithm}
-     * @param key 密钥
-     * @param iv 初始向量  ECB模式下为null
-     * @param plain 明文
+     * @param key       密钥
+     * @param iv        初始向量  ECB模式下为null
+     * @param plain     明文
      * @return 密文
      */
     public byte[] symmEncrypt(Algorithm algorithm, byte[] key, byte[] iv, byte[] plain) throws AFCryptoException {
         //region//======>参数检查
-        if(algorithm == null) {
+        if (algorithm == null) {
             logger.error("对称加密失败,算法标识不能为空");
             throw new AFCryptoException("对称加密失败,算法标识不能为空");
         }
-        if(key == null || key.length == 0) {
+        if (key == null || key.length == 0) {
             logger.error("对称加密失败,密钥不能为空");
             throw new AFCryptoException("对称加密失败,密钥不能为空");
         }
         //不是ECB iv不能为null
-        if(!algorithm.getName().contains("ECB") && (iv == null || iv.length == 0)) {
+        if (!algorithm.getName().contains("ECB") && (iv == null || iv.length == 0)) {
             logger.error("对称加密失败,非ECB模式下iv不能为空");
             throw new AFCryptoException("对称加密失败,iv不能为空");
         }
 
-        if(plain == null || plain.length == 0) {
+        if (plain == null || plain.length == 0) {
             logger.error("对称加密失败,明文不能为空");
             throw new AFCryptoException("对称加密失败,明文不能为空");
         }
@@ -982,7 +1007,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @return 加密数据
      */
     public byte[] sm4InternalEncryptECB(int keyIndex, byte[] plain) throws AFCryptoException {
-        //参数检查
+        //region//======>参数检查
         if (keyIndex < 0) {
             logger.error("SM4 加密，索引不能小于0,当前索引：{}", keyIndex);
             throw new AFCryptoException("SM4 加密，索引不能小于0,当前索引：" + keyIndex);
@@ -991,13 +1016,14 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("SM4 加密，加密数据不能为空");
             throw new AFCryptoException("SM4 加密，加密数据不能为空");
         }
+        //endregion
         //填充数据
         plain = padding(plain);
         //分包
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_ECB, 1, keyIndex, null, null, bytes.get(i));
             bytes.set(i, encrypt);
         }
         //合并数据
@@ -1032,7 +1058,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_ECB, 0, 0, key, null, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_ECB, 0, 0, key, null, bytes.get(i));
             bytes.set(i, encrypt);
         }
         return mergePackage(bytes);
@@ -1057,7 +1083,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_ECB, 2, keyHandle, null, null, bytes.get(i));
             bytes.set(i, encrypt);
         }
         return mergePackage(bytes);
@@ -1096,7 +1122,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_CBC, 1, keyIndex, null, iv, bytes.get(i));
             bytes.set(i, encrypt);
         }
         return mergePackage(bytes);
@@ -1138,7 +1164,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_CBC, 0, 0, key, iv, bytes.get(i));
             bytes.set(i, encrypt);
         }
         return mergePackage(bytes);
@@ -1172,7 +1198,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_CBC, 2, keyHandle, null, iv, bytes.get(i));
             bytes.set(i, encrypt);
         }
         return mergePackage(bytes);
@@ -1382,10 +1408,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 对称解密 通用
+     *
      * @param algorithm 算法标识 {@link Algorithm}
-     * @param key 密钥
-     * @param iv 初始向量  ECB模式下为null
-     * @param cipher 密文
+     * @param key       密钥
+     * @param iv        初始向量  ECB模式下为null
+     * @param cipher    密文
      * @return 明文
      */
     public byte[] symmDecrypt(Algorithm algorithm, byte[] key, byte[] iv, byte[] cipher) throws AFCryptoException {
@@ -1435,7 +1462,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_ECB, 1, keyIndex, null, null, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -1468,7 +1495,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_ECB, 0, -1, key, null, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_ECB, 0, -1, key, null, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -1493,7 +1520,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_ECB, 2, keyHandle, null, null, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -1530,7 +1557,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_CBC, 1, keyIndex, null, iv, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -1571,7 +1598,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_CBC, 0, -1, key, iv, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_CBC, 0, -1, key, iv, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -1605,7 +1632,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_CBC, 2, keyHandle, null, iv, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -1812,6 +1839,58 @@ public class AFHsmDevice implements IAFHsmDevice {
     //region======================================================批量加密======================================================
 
     /**
+     * 批量对称加密 通用
+     */
+    public List<byte[]> batchSymmEncrypt(Algorithm algorithm, byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+        //region//======>参数检查
+        if (algorithm == null) {
+            logger.error("对称批量加密失败,算法标识不能为空");
+            throw new AFCryptoException("对称批量加密失败,算法标识不能为空");
+        }
+        if (key == null || key.length == 0) {
+            logger.error("对称批量加密失败,密钥不能为空");
+            throw new AFCryptoException("对称批量加密失败,密钥不能为空");
+        }
+        if (plainList == null || plainList.isEmpty()) {
+            logger.error("对称批量加密失败,加密数据列表不能为空");
+            throw new AFCryptoException("对称批量加密失败,加密数据不能为空");
+        }
+        //记录明文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        //list 总长度<2M
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("对称批量加密失败,加密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("对称批量加密失败,加密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //padding
+        plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
+        //批量加密
+        byte[] bytes = cmd.symEncryptBatch(algorithm, 0, 0, key, iv, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        if (count != plainList.size()) {
+            logger.error("SM4 批量加密，加密数据个数不匹配，期望个数：{}，实际个数：{}", plainList.size(), count);
+            throw new AFCryptoException("SM4 批量加密，加密数据个数不匹配，期望个数：" + plainList.size() + "，实际个数：" + count);
+        }
+        //循环读取放入list
+        List<byte[]> collect = IntStream.range(0, count).mapToObj(i -> buf.readOneData()).collect(Collectors.toList());
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
+    }
+
+
+    /**
      * SM4 内部批量加密 ECB
      *
      * @param keyIndex  密钥索引
@@ -1846,9 +1925,8 @@ public class AFHsmDevice implements IAFHsmDevice {
 
         //padding
         plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
-
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_ECB, 1, keyIndex, null, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -1900,7 +1978,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         //padding
         plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 0, 0, keyIndex, null, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_ECB, 0, 0, keyIndex, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -1951,7 +2029,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         //padding
         plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_ECB, 2, keyHandle, null, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2007,7 +2085,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         //padding
         plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_CBC, 1, keyIndex, null, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2063,7 +2141,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         //padding
         plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_CBC, 0, 0, key, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2116,7 +2194,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         //padding
         plainList = plainList.stream().map(AFHsmDevice::padding).collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_CBC, 2, keyHandle, null, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2452,6 +2530,49 @@ public class AFHsmDevice implements IAFHsmDevice {
     //region======================================================批量解密======================================================
 
     /**
+     * 批量对称解密 通用
+     */
+    public List<byte[]> batchSymmDecrypt(Algorithm algorithm, byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+        //region//======>参数检查
+        if (algorithm == null) {
+            logger.error("批量解密，算法不能为空");
+            throw new AFCryptoException("批量解密，算法不能为空");
+        }
+        if (plainList == null || plainList.isEmpty()) {
+            logger.error("批量解密，解密数据不能为空");
+            throw new AFCryptoException("批量解密，解密数据不能为空");
+        }
+        //endregion
+        //记录密文列表空值索引 并去除空值
+        List<Integer> nullIndex = new ArrayList<>();
+        for (int i = 0; i < plainList.size(); i++) {
+            if (plainList.get(i) == null || plainList.get(i).length == 0) {
+                nullIndex.add(i);
+            }
+        }
+        plainList = plainList.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        //list 总长度<2M
+        int totalLength = plainList.stream().mapToInt(bytes -> bytes.length).sum();
+        if (totalLength > 2 * 1024 * 1024) {
+            logger.error("批量解密，解密数据总长度不能超过2M,当前长度：{}", totalLength);
+            throw new AFCryptoException("批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
+        }
+        //批量解密
+        byte[] bytes = cmd.symDecryptBatch(algorithm, 0, 0, key, iv, plainList);
+        BytesBuffer buf = new BytesBuffer(bytes);
+        //个数
+        int count = buf.readInt();
+        //循环读取放入list
+        List<byte[]> collect = getCollect(buf, count);
+        //空值填充  原值后移
+        for (Integer index : nullIndex) {
+            collect.add(index, null);
+        }
+        return collect;
+    }
+
+
+    /**
      * SM4 内部批量解密 ECB
      *
      * @param keyIndex   密钥索引
@@ -2485,7 +2606,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_ECB, 1, keyIndex, null, null, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2534,7 +2655,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_ECB, 0, 0, key, null, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_ECB, 0, 0, key, null, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2579,7 +2700,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_ECB, 2, keyHandle, null, null, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2631,7 +2752,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_CBC, 1, keyIndex, null, iv, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2684,7 +2805,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_CBC, 0, 0, key, iv, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2734,7 +2855,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_CBC, 2, keyHandle, null, iv, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -3051,6 +3172,37 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     //region======================================================MAC 计算======================================================
 
+
+    /**
+     * Mac 通用
+     *
+     * @param algorithm 算法 必须是CBC模式 {@link Algorithm}
+     * @param key       密钥
+     * @param iv        向量
+     * @param data      计算数据
+     * @return MAC     消息认证码
+     */
+    public byte[] mac(Algorithm algorithm, byte[] key, byte[] iv, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (algorithm == null) {
+            logger.error("MAC 计算，算法不能为空");
+            throw new AFCryptoException("MAC 计算，算法不能为空");
+        }
+        if (key == null || key.length == 0) {
+            logger.error("MAC 计算，密钥不能为空");
+            throw new AFCryptoException("MAC 计算，密钥不能为空");
+        }
+        if (iv == null || iv.length != 16) {
+            logger.error("MAC 计算，iv长度必须为16");
+            throw new AFCryptoException("MAC 计算，iv长度必须为16");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("MAC 计算，计算数据不能为空");
+            throw new AFCryptoException("MAC 计算，计算数据不能为空");
+        }
+        return cmd.mac(algorithm, 0, 0, key, iv, data);
+    }
+
     /**
      * SM4 计算MAC 内部密钥
      *
@@ -3074,7 +3226,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 计算MAC，计算数据不能为空");
         }
         data = padding(data);
-        return cmd.mac(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, data);
+        return cmd.mac(Algorithm.SGD_SM4_CBC, 1, keyIndex, null, iv, data);
     }
 
     /**
@@ -3100,7 +3252,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 计算MAC，计算数据不能为空");
         }
         data = padding(data);
-        return cmd.mac(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, data);
+        return cmd.mac(Algorithm.SGD_SM4_CBC, 0, 0, key, iv, data);
     }
 
     /**
@@ -3123,7 +3275,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM4 计算MAC，计算数据不能为空");
         }
         data = padding(data);
-        return cmd.mac(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, data);
+        return cmd.mac(Algorithm.SGD_SM4_CBC, 2, keyHandle, null, iv, data);
     }
 
     /**
@@ -3297,7 +3449,7 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param data      计算数据
      * @return Hash
      */
-    public  byte[] sm3HashWithPubKey(SM2PublicKey publicKey, byte[] userId, byte[] data) throws AFCryptoException {
+    public byte[] sm3HashWithPubKey(SM2PublicKey publicKey, byte[] userId, byte[] data) throws AFCryptoException {
         //region//======>参数检查
         if (publicKey == null) {
             logger.error("SM3 Hash(带公钥)，公钥不能为空");

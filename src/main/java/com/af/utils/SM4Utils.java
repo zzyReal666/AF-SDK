@@ -1,8 +1,5 @@
 package com.af.utils;
 
-import cn.hutool.crypto.Mode;
-import cn.hutool.crypto.Padding;
-import cn.hutool.crypto.symmetric.SM4;
 import cn.hutool.crypto.symmetric.SymmetricCrypto;
 
 import org.slf4j.Logger;

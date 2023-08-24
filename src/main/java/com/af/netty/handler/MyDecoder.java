@@ -1,7 +1,6 @@
 package com.af.netty.handler;
 
 import cn.hutool.core.util.ByteUtil;
-import cn.hutool.core.util.HexUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;

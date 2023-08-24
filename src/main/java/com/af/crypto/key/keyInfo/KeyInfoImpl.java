@@ -6,11 +6,8 @@ import com.af.constant.CMDCode;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;
-import com.af.utils.SM4Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 import static com.af.constant.CmdConsts.CMD_EXPORT_KEY;
 

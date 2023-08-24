@@ -1781,7 +1781,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_ECB, 1, keyIndex, null, null, bytes.get(i));
             bytes.set(i, encrypt);
             System.gc();
         }
@@ -1816,7 +1816,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_ECB, 0, 0, key, null, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_ECB, 0, 0, key, null, bytes.get(i));
             bytes.set(i, encrypt);
         }
         return mergePackage(bytes);
@@ -1837,7 +1837,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_ECB, 2, keyHandle, null, null, bytes.get(i));
             bytes.set(i, encrypt);
         }
         return mergePackage(bytes);
@@ -1876,7 +1876,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_CBC, 1, keyIndex, null, iv, bytes.get(i));
             bytes.set(i, encrypt);
         }
         return mergePackage(bytes);
@@ -1918,7 +1918,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_CBC, 0, 0, key, iv, bytes.get(i));
             bytes.set(i, encrypt);
         }
         return mergePackage(bytes);
@@ -1947,7 +1947,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(plain);
         //循环加密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, bytes.get(i));
+            byte[] encrypt = cmd.symEncrypt(Algorithm.SGD_SM4_CBC, 2, keyHandle, null, iv, bytes.get(i));
             bytes.set(i, encrypt);
         }
         return mergePackage(bytes);
@@ -2145,7 +2145,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_ECB, 1, keyIndex, null, null, bytes.get(i));
             bytes.set(i, decrypt);
             System.gc();
         }
@@ -2175,7 +2175,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_ECB, 0, -1, key, null, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_ECB, 0, -1, key, null, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -2196,7 +2196,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_ECB, 2, keyHandle, null, null, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -2228,7 +2228,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_CBC, 1, keyIndex, null, iv, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -2264,7 +2264,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_CBC, 0, -1, key, iv, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_CBC, 0, -1, key, iv, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -2293,7 +2293,7 @@ public class AFSVDevice implements IAFSVDevice {
         List<byte[]> bytes = splitPackage(cipher);
         //循环解密
         for (int i = 0; i < bytes.size(); i++) {
-            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, bytes.get(i));
+            byte[] decrypt = cmd.symDecrypt(Algorithm.SGD_SM4_CBC, 2, keyHandle, null, iv, bytes.get(i));
             bytes.set(i, decrypt);
         }
         //合包 去除填充
@@ -2508,7 +2508,7 @@ public class AFSVDevice implements IAFSVDevice {
                 .collect(Collectors.toList());
 
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_ECB, 1, keyIndex, null, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2559,7 +2559,7 @@ public class AFSVDevice implements IAFSVDevice {
                 .map(AFSVDevice::padding)
                 .collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 0, 0, key, null, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_ECB, 0, 0, key, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2608,7 +2608,7 @@ public class AFSVDevice implements IAFSVDevice {
                 .map(AFSVDevice::padding)
                 .collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_ECB, 2, keyHandle, null, null, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2665,7 +2665,7 @@ public class AFSVDevice implements IAFSVDevice {
                 .map(AFSVDevice::padding)
                 .collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_CBC, 1, keyIndex, null, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2722,7 +2722,7 @@ public class AFSVDevice implements IAFSVDevice {
                 .map(AFSVDevice::padding)
                 .collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_CBC, 0, 0, key, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -2776,7 +2776,7 @@ public class AFSVDevice implements IAFSVDevice {
                 .map(AFSVDevice::padding)
                 .collect(Collectors.toList());
         //批量加密
-        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, plainList);
+        byte[] bytes = cmd.symEncryptBatch(Algorithm.SGD_SM4_CBC, 2, keyHandle, null, iv, plainList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -3148,7 +3148,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_ECB, 1, keyIndex, null, null, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_ECB, 1, keyIndex, null, null, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -3195,7 +3195,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_ECB, 0, 0, key, null, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_ECB, 0, 0, key, null, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -3238,7 +3238,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_ECB, 2, keyHandle, null, null, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_ECB, 2, keyHandle, null, null, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -3288,7 +3288,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_CBC, 1, keyIndex, null, iv, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -3338,7 +3338,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_CBC, 0, 0, key, iv, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -3385,7 +3385,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("SM4 批量解密，解密数据总长度不能超过2M,当前长度：" + totalLength);
         }
         //批量解密
-        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, cipherList);
+        byte[] bytes = cmd.symDecryptBatch(Algorithm.SGD_SM4_CBC, 2, keyHandle, null, iv, cipherList);
         BytesBuffer buf = new BytesBuffer(bytes);
         //个数
         int count = buf.readInt();
@@ -3707,7 +3707,7 @@ public class AFSVDevice implements IAFSVDevice {
         //data 不能大于2M
 
         data = padding(data);
-        return cmd.mac(Algorithm.SGD_SMS4_CBC, 1, keyIndex, null, iv, data);
+        return cmd.mac(Algorithm.SGD_SM4_CBC, 1, keyIndex, null, iv, data);
     }
 
     /**
@@ -3728,7 +3728,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("SM4 计算MAC，计算数据不能为空");
         }
         data = padding(data);
-        return cmd.mac(Algorithm.SGD_SMS4_CBC, 0, 0, key, iv, data);
+        return cmd.mac(Algorithm.SGD_SM4_CBC, 0, 0, key, iv, data);
     }
 
     /**
@@ -3746,7 +3746,7 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("SM4 计算MAC，计算数据不能为空");
         }
         data = padding(data);
-        return cmd.mac(Algorithm.SGD_SMS4_CBC, 2, keyHandle, null, iv, data);
+        return cmd.mac(Algorithm.SGD_SM4_CBC, 2, keyHandle, null, iv, data);
     }
 
     /**

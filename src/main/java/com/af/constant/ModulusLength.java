@@ -23,4 +23,14 @@ public enum ModulusLength {
         return length;
     }
 
+    //根据长度获取枚举
+    public static ModulusLength getModulusLength(int length) {
+        for (ModulusLength modulusLength : ModulusLength.values()) {
+            if (modulusLength.getLength() == length) {
+                return modulusLength;
+            }
+        }
+        return null;
+    }
+
 }

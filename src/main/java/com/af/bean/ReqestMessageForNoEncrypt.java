@@ -2,10 +2,7 @@ package com.af.bean;
 
 import cn.hutool.core.util.HexUtil;
 import com.af.utils.BytesBuffer;
-import com.af.utils.SM4Utils;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

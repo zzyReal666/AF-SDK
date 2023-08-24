@@ -5,7 +5,6 @@ import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
 import com.af.constant.ConstantNumber;
 import com.af.crypto.key.keyInfo.KeyInfoImpl;
-import com.af.device.AFDeviceFactory;
 import com.af.exception.AFCryptoException;
 import com.af.netty.AFNettyClient;
 import com.af.utils.BytesBuffer;

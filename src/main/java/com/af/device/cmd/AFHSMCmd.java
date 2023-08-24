@@ -545,7 +545,7 @@ public class AFHSMCmd extends AFCmd {
     /**
      * 导入会话密钥密文（使用对称密钥）
      *
-     * @param algorithm 算法标识 SGD_SM1_ECB|SGD_SMS4_ECB
+     * @param algorithm 算法标识 SGD_SM1_ECB|SGD_SM4_ECB
      * @param keyIndex  密钥索引
      * @param keyData   密钥密文
      * @return 1、4 字节会话密钥 ID
@@ -985,7 +985,7 @@ public class AFHSMCmd extends AFCmd {
      *
      * @param algorithm 算法 只能是{@link Algorithm}中的SM1,SM4相关枚举
      * @param type      接口标识 0|外部密钥，1|内部密钥，2|检查密钥句柄
-     * @param keyIndex  密钥索引 仅在接口标识为 1|2 时有效
+     * @param keyIndex  密钥索引 仅在接口标识为 1|2 时有效 如果外部密钥，传0
      * @param key       密钥
      * @param iv        向量
      * @param dataList  数据 分组且padding过的数据
@@ -1054,7 +1054,7 @@ public class AFHSMCmd extends AFCmd {
      *
      * @param algorithm 算法 {@link Algorithm}  必须为SM1|SM4 CBC 类型算法
      * @param type      接口标识 0|外部密钥，1|内部密钥，2|检查密钥句柄
-     * @param keyIndex  密钥索引 仅在接口标识为 1|2 时有效
+     * @param keyIndex  密钥索引 仅在接口标识为 1|2 时有效 如果外部密钥，传0
      * @param key       密钥
      * @param iv        向量
      * @param data      数据

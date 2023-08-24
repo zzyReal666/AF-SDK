@@ -475,7 +475,7 @@ class AFSVDeviceTest {
         assert Arrays.equals(data, decodeData3);
 
 //        //SM4 CBC 密钥句柄
-//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
 //        byte[] bytes2 = device.sm4HandleEncryptCBC(key2.getId(), iv, data);
 //        byte[] bytes3 = device.sm4HandleDecryptCBC(key2.getId(), iv, bytes2);
 //        //释放密钥句柄
@@ -502,7 +502,7 @@ class AFSVDeviceTest {
         assert Arrays.equals(data, decodeData5);
 
 //        //SM1 ECB 密钥句柄
-//        SessionKey key3 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        SessionKey key3 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
 //        byte[] bytes4 = device.sm1HandleEncryptECB(key3.getId(), data);
 //        byte[] bytes5 = device.sm1HandleDecryptECB(key3.getId(), bytes4);
 //        //释放密钥句柄
@@ -521,7 +521,7 @@ class AFSVDeviceTest {
         assert Arrays.equals(data, decodeData7);
 
 //        //SM1 CBC 密钥句柄
-//        SessionKey key4 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        SessionKey key4 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
 //        byte[] bytes6 = device.sm1HandleEncryptCBC(key4.getId(), iv, data);
 //        byte[] bytes7 = device.sm1HandleDecryptCBC(key4.getId(), iv, bytes6);
 //        //释放密钥句柄
@@ -558,7 +558,7 @@ class AFSVDeviceTest {
         }
 
 //        //SM4 ECB 密钥句柄
-//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
 //        List<byte[]> encodeList2 = device.sm4HandleBatchEncryptECB(key1.getId(), list);
 //        List<byte[]> decodeList2 = device.sm4HandleBatchDecryptECB(key1.getId(), encodeList2);
 //        //释放密钥句柄
@@ -582,7 +582,7 @@ class AFSVDeviceTest {
         }
 
 //        //SM4 CBC 密钥句柄
-//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
 //        List<byte[]> encodeList5 = device.sm4HandleBatchEncryptCBC(key2.getId(), iv, list);
 //        List<byte[]> decodeList5 = device.sm4HandleBatchDecryptCBC(key2.getId(), iv, encodeList5);
 //        //释放密钥句柄
@@ -622,7 +622,7 @@ class AFSVDeviceTest {
         }
 
 //        //SM1 ECB 密钥句柄
-//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
 //        List<byte[]> encodeList2 = device.sm1HandleBatchEncryptECB(key1.getId(), list);
 //        List<byte[]> decodeList2 = device.sm1HandleBatchDecryptECB(key1.getId(), encodeList2);
 //        //释放密钥句柄
@@ -646,7 +646,7 @@ class AFSVDeviceTest {
         }
 
 //        //SM1 CBC 密钥句柄
-//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
 //        List<byte[]> encodeList5 = device.sm1HandleBatchEncryptCBC(key2.getId(), iv, list);
 //        List<byte[]> decodeList5 = device.sm1HandleBatchDecryptCBC(key2.getId(), iv, encodeList5);
 //        //释放密钥句柄
@@ -672,7 +672,7 @@ class AFSVDeviceTest {
         byte[] mac1 = device.sm4ExternalMac(key, iv, data);
 
 //        //SM4 密钥句柄
-//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
 //        byte[] mac2 = device.sm4HandleMac(key1.getId(), iv, data);
 //        //释放密钥句柄
 //        device.releaseSessionKey(key1.getId());
@@ -684,7 +684,7 @@ class AFSVDeviceTest {
         byte[] mac4 = device.sm1ExternalMac(key, iv, data);
 
 //        //SM1 密钥句柄
-//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SMS4_ECB, 1, 16);
+//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
 //        byte[] mac5 = device.sm1HandleMac(key2.getId(), iv, data);
 //        //释放密钥句柄
 

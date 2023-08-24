@@ -72,7 +72,7 @@ public interface IAFDevice {
         byte[] data = new BytesBuffer().append(cPubKey.length).append(cPubKey).toBytes();
         ResponseMessage res = client.send(new RequestMessage(CMDCode.CMD_EXCHANGE_PUBLIC_KEY, data, null));
         if (res.getHeader().getErrorCode() != 0) {
-            throw new DeviceException("密钥协商失败，交换公钥服错误,错误码：" + res.getHeader().getErrorCode() + ",错误信息：" + res.getHeader().getErrorInfo());
+            throw new DeviceException("密钥协商失败，交换公钥错误,错误码：" + res.getHeader().getErrorCode() + ",错误信息：" + res.getHeader().getErrorInfo());
         }
         byte[] cServerPubKey = res.getDataBuffer().readOneData();
         SM4 sm4NoPadding = new SM4(Mode.ECB, Padding.NoPadding, ROOT_KEY);

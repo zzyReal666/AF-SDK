@@ -2,8 +2,6 @@ package com.af.crypto.key.keyInfo;
 
 import com.af.exception.AFCryptoException;
 
-import java.util.List;
-
 /**
  * @author zhangzhongyuan@szanfu.cn
  * @description

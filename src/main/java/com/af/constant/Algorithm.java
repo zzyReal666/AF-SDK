@@ -18,8 +18,8 @@ public enum Algorithm {
     //5 SGD_SM2_2 0x00020400 SM2 椭圆曲线密钥交换协议
     //6 SGD_SM2_3 0x00020800 SM2 椭圆曲线加密算法
     //7 SGD_SM3 0x00000001 SM3 杂凑算法
-    //8 SGD_SMS4_ECB 0x00000401 SM4 算法 ECB 加密模式
-    //9 SGD_SMS4_CBC 0x00000402 SM4 算法 CBC 加密模式
+    //8 SGD_SM4_ECB 0x00000401 SM4 算法 ECB 加密模式
+    //9 SGD_SM4_CBC 0x00000402 SM4 算法 CBC 加密模式
     //10 SGD_RSA 0x00010000 RSA 非对称算法
     //11 SGD_RSA_SIGN 0x00010010 RSA 非对称签名算法
     //12 SGD_RSA_ENC 0x00010020 RSA 非对称加密算法
@@ -39,8 +39,8 @@ public enum Algorithm {
 
     SGD_SM3("SM3", 0x00000001),
 
-    SGD_SMS4_ECB("SM4 ECB", 0x00000401),
-    SGD_SMS4_CBC("SM4 CBC", 0x00000402),
+    SGD_SM4_ECB("SM4 ECB", 0x00000401),
+    SGD_SM4_CBC("SM4 CBC", 0x00000402),
     SGD_SM4_CFB("SM4 CFB", 0x00000404),
     SGD_SM4_OFB("SM4 OFB", 0x00000408),
     SGD_SM4_MAC("SM4 MAC", 0x00000410),
@@ -51,6 +51,7 @@ public enum Algorithm {
     SGD_RSA_SIGN("RSA SIGN", 0x00010010),  //RSA签名
     SGD_RSA_ENC("RSA ENC", 0x00010020),    //RSA加密
 
+
     SGD_DES_ECB("DES ECB", 0x00001001),
     SGD_DES_CBC("DES CBC", 0x00001002),
     SGD_DES_CFB("DES CFB", 0x00001004),
@@ -58,33 +59,35 @@ public enum Algorithm {
     SGD_DES_MAC("DES MAC", 0x00001010),
     SGD_DES_CTR("DES CTR", 0x00001020),
 
-    SGD_2DES_ECB("2DES ECB", 0x01000001),
-    SGD_2DES_CBC("2DES CBC", 0x01000002),
-    SGD_2DES_CFB("2DES CFB", 0x01000004),
-    SGD_2DES_OFB("2DES OFB", 0x01000008),
-    SGD_2DES_MAC("2DES MAC", 0x01000010),
-    SGD_2DES_CTR("2DES CTR", 0x01000020),
+    //3DES-2KEY
+    SGD_2DES_ECB("3DES-2KEY ECB", 0x01000001),
+    SGD_2DES_CBC("3DES-2KEY CBC", 0x01000002),
+    SGD_2DES_CFB("3DES-2KEY CFB", 0x01000004),
+    SGD_2DES_OFB("3DES-2KEY OFB", 0x01000008),
+    SGD_2DES_MAC("3DES-2KEY MAC", 0x01000010),
+    SGD_2DES_CTR("3DES-2KEY CTR", 0x01000020),
 
-    SGD_3DES_ECB("3DES ECB", 0x00002001),
-    SGD_3DES_CBC("3DES CBC", 0x00002002),
-    SGD_3DES_CFB("3DES CFB", 0x00002004),
-    SGD_3DES_OFB("3DES OFB", 0x00002008),
-    SGD_3DES_MAC("3DES MAC", 0x00002010),
-    SGD_3DES_CTR("3DES CTR", 0x00002020),
+    //3DES-3KEY
+    SGD_3DES_ECB("3DES-3KEY ECB", 0x00002001),
+    SGD_3DES_CBC("3DES-3KEY CBC", 0x00002002),
+    SGD_3DES_CFB("3DES-3KEY CFB", 0x00002004),
+    SGD_3DES_OFB("3DES-3KEY OFB", 0x00002008),
+    SGD_3DES_MAC("3DES-3KEY MAC", 0x00002010),
+    SGD_3DES_CTR("3DES-3KEY CTR", 0x00002020),
 
-    SGD_AES_ECB("AES ECB", 0x00004001),
-    SGD_AES_CBC("AES CBC", 0x00004002),
-    SGD_AES_CFB("AES CFB", 0x00004004),
-    SGD_AES_OFB("AES OFB", 0x00004008),
-    SGD_AES_MAC("AES MAC", 0x00004010),
-    SGD_AES_CTR("AES CTR", 0x00004020),
+    SGD_AES_ECB("AES-128 ECB", 0x00004001),
+    SGD_AES_CBC("AES-128 CBC", 0x00004002),
+    SGD_AES_CFB("AES-128 CFB", 0x00004004),
+    SGD_AES_OFB("AES-128 OFB", 0x00004008),
+    SGD_AES_MAC("AES-128 MAC", 0x00004010),
+    SGD_AES_CTR("AES-128 CTR", 0x00004020),
 
-    SGD_AES192_ECB("AES192 ECB", 0x02000001),
-    SGD_AES192_CBC("AES192 CBC", 0x02000002),
-    SGD_AES192_CFB("AES192 CFB", 0x02000004),
-    SGD_AES192_OFB("AES192 OFB", 0x02000008),
-    SGD_AES192_MAC("AES192 MAC", 0x02000010),
-    SGD_AES192_CTR("AES192 CTR", 0x02000020);
+    SGD_AES192_ECB("AES-192 ECB", 0x02000001),
+    SGD_AES192_CBC("AES-192 CBC", 0x02000002),
+    SGD_AES192_CFB("AES-192 CFB", 0x02000004),
+    SGD_AES192_OFB("AES-192 OFB", 0x02000008),
+    SGD_AES192_MAC("AES-192 MAC", 0x02000010),
+    SGD_AES192_CTR("AES-192 CTR", 0x02000020);
 
 
     private final String name;
@@ -95,4 +98,25 @@ public enum Algorithm {
         this.value = value;
     }
 
+    //根据name 获取
+    public static Algorithm getAlgorithmByName(String name) {
+        for (Algorithm algorithm : Algorithm.values()) {
+            if (algorithm.getName().equals(name)) {
+                return algorithm;
+            }
+        }
+        return null;
     }
+
+    //根据value 获取
+    public static Algorithm getAlgorithmByValue(int value) {
+        for (Algorithm algorithm : Algorithm.values()) {
+            if (algorithm.getValue() == value) {
+                return algorithm;
+            }
+        }
+        return null;
+    }
+
+
+}

@@ -1,7 +1,6 @@
 package com.af.struct.impl.RSA;
 
 import com.af.struct.IAFStruct;
-import com.af.exception.AFCryptoException;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
