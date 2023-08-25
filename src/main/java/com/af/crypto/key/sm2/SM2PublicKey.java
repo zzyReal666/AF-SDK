@@ -67,9 +67,10 @@ public class SM2PublicKey implements Key {
 
     @Override
     public void decode(byte[] pubKey) {
-        this.length = BytesOperate.bytes2int(pubKey, 0);
+        this.length = BytesOperate.bytes2int(pubKey);
         System.arraycopy(pubKey, 4, this.x, 0, this.x.length);
         System.arraycopy(pubKey, 4 + this.x.length, this.y, 0, this.y.length);
+//        this.length = this.x.length * 8;
     }
 
     public int size() {

@@ -6,6 +6,7 @@ import cn.hutool.core.util.HexUtil;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2PrivateKey;
 import com.af.device.DeviceInfo;
+import com.af.exception.AFCryptoException;
 import com.af.struct.signAndVerify.*;
 import com.af.struct.signAndVerify.RSA.RSAKeyPairStructure;
 import com.af.struct.signAndVerify.sm2.SM2KeyPairStructure;
@@ -60,7 +61,7 @@ class AFSVDeviceTest {
         device = new AFSVDevice.Builder("47.103.213.215", 28015, "abcd1234")
                 .responseTimeOut(10000)
                 .connectTimeOut(100000)
-                .managementPort(443)
+                .managementPort(28443)
                 .build();
     }
 
@@ -71,6 +72,73 @@ class AFSVDeviceTest {
         logger.info("已经关闭连接");
     }
 
+
+    @Test
+    void azt() throws AFCryptoException {
+
+
+        //获取私钥权限
+        device.getPrivateAccess(11, 3, "12345678");
+        //5号密钥 签名
+        byte[] bytes = device.sm2Signature(11, data);
+        //5号密钥 验签
+        boolean b = device.sm2Verify(11, data, bytes);
+
+        assert b;
+
+
+        //导出5号密钥公钥
+        byte[] sm2SignPublicKey = device.getSM2SignPublicKey(11);
+        //外部密钥验签
+        boolean b1 = device.sm2Verify(sm2SignPublicKey, data, bytes);
+        assert b1;
+
+        String cert = "-----BEGIN CERTIFICATE-----\n" +
+                "MIIDiTCCAy+gAwIBAgIIKyg/2vMP5towCgYIKoEcz1UBg3UwXTELMAkGA1UEBhMC\n" +
+                "Q04xMzAxBgNVBAoMKuWMl+S6rOS4lue6qumAn+eggeS/oeaBr+enkeaKgOaciemZ\n" +
+                "kOWFrOWPuDEZMBcGA1UEAwwQQ1NDQSBUZXN0IFNNMiBDQTAeFw0yMzA4MjUwNzA1\n" +
+                "MThaFw0yNDA4MjUwNzA1MThaMIHgMRMwEQYDVQQqDAplbnRlcnByaXNlMQ0wCwYD\n" +
+                "VQQLDARTYWFTMTYwNAYDVQQKDC3ljJfkuqzlronor4HpgJrkv6Hmga/np5HmioDo\n" +
+                "gqHku73mnInpmZDlhazlj7gxCzAJBgNVBAUMAjAxMRswGQYDVQQEDBI5MTQzMDEw\n" +
+                "MDY4NzQxOTQ3MjcxWDBWBgNVBAMMT+WMl+S6rOWuieivgemAmuS/oeaBr+enkeaK\n" +
+                "gOiCoeS7veaciemZkOWFrOWPuOa5luWNl+WIhuWFrOWPuEA5MTQzMDEwMDY4NzQx\n" +
+                "OTQ3MjcwWTATBgcqhkjOPQIBBggqgRzPVQGCLQNCAASB8i+lWn+vxFWTUoWoxTQk\n" +
+                "86kr25UoEu9PDl9+O/DMeEeIrkkqHT/DvZLUiwDqpq4GodRyM+oxIHmeUibs9dAU\n" +
+                "o4IBUzCCAU8wHwYDVR0jBBgwFoAUWqFyjnsgBON6wBFmuDigIn3Ep70wHQYDVR0O\n" +
+                "BBYEFOXgJARU5zHzVryeQx5HirCVECvIMEoGA1UdIARDMEEwPwYIKoEch4Q3AQIw\n" +
+                "MzAxBggrBgEFBQcCARYlaHR0cHM6Ly93d3cuY3NtYXJ0LmNvbS5jbi9jcHMvY3Bz\n" +
+                "Lmh0bTAOBgNVHQ8BAf8EBAMCBsAwQAYDVR0fBDkwNzA1oDOgMYYvaHR0cHM6Ly93\n" +
+                "d3cuY3NtYXJ0LmNvbS5jbi9jcmwvdGVzdHNtMmNhL2NybC5jcmwwbwYIKwYBBQUH\n" +
+                "AQEEYzBhMDEGCCsGAQUFBzAChiVodHRwOi8vdGVzdC5jc21hcnQuY29tLmNuL2Nh\n" +
+                "aXNzdWUuaHRtMCwGCCsGAQUFBzABhiBodHRwOi8vdGVzdC5jc21hcnQuY29tLmNu\n" +
+                "OjIwNDQzLzAKBggqgRzPVQGDdQNIADBFAiEAt82YivA6ABJwLEmxqdHa4b0H/P4l\n" +
+                "1IUtXtmvSRrWJE4CIFZBhYj+X4NwflSFzrHzR7rLVdcRZCtzAbjm3XH7dd0p\n" +
+                "-----END CERTIFICATE-----\n";
+        //证书验签
+        boolean b2 = device.certVerify(cert.getBytes(), data, bytes);
+        assert b2;
+
+
+//
+//        String key = "04 06 19 12 7a 25 05 a6  4c 46 da 38 c8 1c e5 c5\n" +
+//                "8e 34 c0 8a 85 89 59 d7  35 12 e1 f9 37 fd d7 82\n" +
+//                "8a 6b 9f dc 1e ba 6c ba  d0 dd 26 12 bc bf e5 ce\n" +
+//                "e5 24 f8 c2 8b 4e bb 03  87 48 54 52 1d 2e 50 57\n" +
+//                "bc ";
+//        //去除空格
+//        key = key.replaceAll(" ", "");
+//        //去除换行符
+//        key = key.replaceAll("\n", "");
+//        //十六进制解码为ASN1 der
+//        byte[] decode = HexUtil.decodeHex(key);
+//        //base64编码
+//        byte[] encode = BytesOperate.base64EncodeData(decode);
+//        //证书中的公钥验签
+//        boolean b2 = device.sm2Verify(encode, data, bytes);
+//        assert b2;
+
+
+    }
 
 
     //心跳
@@ -163,18 +231,45 @@ class AFSVDeviceTest {
     //导出公钥 success
     @Test
     void testExportPublicKey() throws Exception {
-        //SM2
-        byte[] sm2EncryptPublicKey = device.getSM2EncryptPublicKey(1);
-        System.out.println("SM2加密公钥:" + new String(sm2EncryptPublicKey));
-        byte[] sm2SignPublicKey = device.getSM2SignPublicKey(1);
-        System.out.println("SM2签名公钥:" + new String(sm2SignPublicKey));
+//        //SM2
+//        byte[] sm2EncryptPublicKey = device.getSM2EncryptPublicKey(1);
+//        System.out.println("SM2加密公钥:" + new String(sm2EncryptPublicKey));
+//        byte[] sm2SignPublicKey = device.getSM2SignPublicKey(1);
+//        System.out.println("SM2签名公钥:" + new String(sm2SignPublicKey));
+//
+//        //RSA
+//        byte[] rsaSignPublicKey = device.getRSASignPublicKey(1);
+//        System.out.println("RSA签名公钥:" + new String(rsaSignPublicKey));
+//        byte[] rsaEncPublicKey = device.getRSAEncPublicKey(1);
+//        System.out.println("RSA加密公钥:" + new String(rsaEncPublicKey));
 
-        //RSA
-        byte[] rsaSignPublicKey = device.getRSASignPublicKey(1);
-        System.out.println("RSA签名公钥:" + new String(rsaSignPublicKey));
-        byte[] rsaEncPublicKey = device.getRSAEncPublicKey(1);
-        System.out.println("RSA加密公钥:" + new String(rsaEncPublicKey));
+//        String db = "AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArn/WpknD21f5d3OiSECti33kNhvLEg3f2GPwBNAfp2oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJRJp0AAlBnLp+27syoqXW9zIWaC+DR477xIcTvnSJXYAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsvfYeaKFjZlDFd8deeHGRV6DGkKD541V7N1i1cSm4+k=";
 
+
+//        String db = "AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYjqsARn/WUG/sj08xOmfXbqNk+vUA18/TDlvjbQIfcYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAInupc9rB96o290m26MemOr4Ym2/wCgCvg3sj2jY93CKAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2WJBz00sb2PYczVJPMzACppPF80m2MScJ8FDcHJjQWk=";
+
+        String db = "AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgfIvpVp/r8RVk1KFqMU0JPOpK9uVKBLvTw5ffjvwzHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEeIrkkqHT/DvZLUiwDqpq4GodRyM+oxIHmeUibs9dAUAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYnMBadhxPDJkP5exxyRAhsW5W4hwv4x6XufKzWaioUU=";
+        byte[] bytes = Base64.decode(db);
+
+        System.out.println(HexUtil.encodeHexStr(bytes));
+
+
+    }
+
+
+    @Test
+    void temp() {
+        String key = "00 04 06 19 12 7a 25 05  a6 4c 46 da 38 c8 1c e5\n" +
+                "c5 8e 34 c0 8a 85 89 59  d7 35 12 e1 f9 37 fd d7\n" +
+                "82 8a 6b 9f dc 1e ba 6c  ba d0 dd 26 12 bc bf e5\n" +
+                "ce e5 24 f8 c2 8b 4e bb  03 87 48 54 52 1d 2e 50\n" +
+                "57 bc ";
+        //去除空格
+        key = key.replaceAll(" ", "");
+        //去除换行符
+        key = key.replaceAll("\n", "");
+        System.out.println(key.length());
+        System.out.println("3046022100ae7fd6a649c3db57f97773a24840ad8b7de4361bcb120ddfd863f004d01fa76a0221009449a740009419cba7edbbb32a2a5d6f73216682f83478efbc48713be74895d8".length());
     }
 
     //生成密钥对
@@ -316,54 +411,46 @@ class AFSVDeviceTest {
     //SM2 签名验签  success
     @Test
     void testSM2() throws Exception {
-//        //生成密钥对
-//        SM2KeyPairStructure sm2KeyPairStructure = device.generateSM2KeyPair(0);
-//        //私钥
-//        byte[] sm2SignPrivateKey = sm2KeyPairStructure.getPriKey();
-//        //公钥
-//        byte[] sm2SignPublicKey = sm2KeyPairStructure.getPubKey();
-//
-//        //设备私钥
-//        byte[] priKey = getPriKey();
-//        SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(priKey);
-//        SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(sm2PrivateKey);
-//        priKey = sm2PrivateKeyStructure.toASN1Primitive().getEncoded("DER");
-//        priKey = BytesOperate.base64EncodeData(priKey);
-//
-//
-//        //设备证书 路径
-//        byte[] cert = userCertFileSM2.getBytes();
+        //生成密钥对
+        SM2KeyPairStructure sm2KeyPairStructure = device.generateSM2KeyPair(0);
+        //私钥
+        byte[] sm2SignPrivateKey = sm2KeyPairStructure.getPriKey();
+        //公钥
+        byte[] sm2SignPublicKey = sm2KeyPairStructure.getPubKey();
+
+        //设备私钥
+        byte[] priKey = getPriKey();
+        SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(priKey);
+        SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(sm2PrivateKey);
+        priKey = sm2PrivateKeyStructure.toASN1Primitive().getEncoded("DER");
+        priKey = BytesOperate.base64EncodeData(priKey);
 
 
-        while (true) {
-            device = new AFSVDevice.Builder("47.103.213.215", 28015, "abcd1234")
-                    .isAgKey(false)
-                    .responseTimeOut(10000)
-                    .connectTimeOut(100000)
-                    .managementPort(443)
-                    .build();
-            //SM2 内部签名验签 success
-            device.getPrivateAccess(1, 3, "12345678");
-            byte[] bytes = device.sm2Signature(1, data);
-            boolean b = device.sm2Verify(1, data, bytes);
-            assert b;
-            device.close(AFSVDevice.getClient());
-        }
+        //设备证书 路径
+        byte[] cert = userCertFileSM2.getBytes();
 
-//        //SM2 外部签名验签 success
-//        byte[] bytes1 = device.sm2Signature(sm2SignPrivateKey, data);
-//        boolean b1 = device.sm2Verify(sm2SignPublicKey, data, bytes1);
-//        assert b1;
-//
-//        //SM2 私钥签名 带z值
-//        byte[] bytes2 = device.sm2SignatureByPrivateKey(priKey, data);
-//        boolean b2 = device.sm2VerifyByCertificate(cert, data, bytes2);
-//        assert b2;
-//
-//        //SM2 私钥签名 带证书
-//        byte[] bytes3 = device.sm2SignatureByCertificate(priKey, data, cert);
-//        boolean b3 = device.sm2VerifyByCertificate(cert, cert, data, bytes3);
-//        assert b3;
+
+        //SM2 内部签名验签 success
+        device.getPrivateAccess(1, 3, "12345678");
+        byte[] bytes = device.sm2Signature(1, data);
+        boolean b = device.sm2Verify(1, data, bytes);
+        assert b;
+        device.close(AFSVDevice.getClient());
+
+        //SM2 外部签名验签 success
+        byte[] bytes1 = device.sm2Signature(sm2SignPrivateKey, data);
+        boolean b1 = device.sm2Verify(sm2SignPublicKey, data, bytes1);
+        assert b1;
+
+        //SM2 私钥签名 带z值
+        byte[] bytes2 = device.sm2SignatureByPrivateKey(priKey, data);
+        boolean b2 = device.sm2VerifyByCertificate(cert, data, bytes2);
+        assert b2;
+
+        //SM2 私钥签名 带证书
+        byte[] bytes3 = device.sm2SignatureByCertificate(priKey, data, cert);
+        boolean b3 = device.sm2VerifyByCertificate(cert, cert, data, bytes3);
+        assert b3;
 
     }
 
@@ -1053,7 +1140,7 @@ class AFSVDeviceTest {
     @Test
     void testGetCSRByIndex() throws Exception {
         CsrRequest csrRequest = new CsrRequest("cn", "sd", "jn", "szaf", "szaf", "zzyzzy", "zzypersonally@gmail.com");
-        String csrByIndex = device.getCSRByIndex(5, csrRequest);
+        String csrByIndex = device.getCSRByIndex(11, csrRequest);
         System.out.println("CSR:" + csrByIndex);
     }
 
@@ -1095,4 +1182,14 @@ class AFSVDeviceTest {
     }
     //endregion
 
+
+    @Test
+    void testAzt() throws Exception {
+        //产生P10 请求
+        CsrRequest csrRequest = new CsrRequest("cn", "sd", "jn", "szaf", "szaf", "zzyzzyzzy", "zzypersonally@gmail.com");
+        String csrByIndex = device.getCSRByIndex(88, csrRequest);
+        System.out.println("CSR:" + csrByIndex);
+
+
+    }
 }

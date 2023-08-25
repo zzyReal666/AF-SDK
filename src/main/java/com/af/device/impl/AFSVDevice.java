@@ -280,7 +280,6 @@ public class AFSVDevice implements IAFSVDevice {
     //endregion
 
 
-
     /**
      * 协商密钥
      */
@@ -369,7 +368,6 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("index 需要大于0");
         }
         byte[] bytes = cmd.exportPublicKey(index, Algorithm.SGD_SM2_1);
-        logger.info("返回需要对比的数据:" + HexUtil.encodeHexStr(bytes));
         return bytesToASN1SM2PubKey(bytes);
     }
 
@@ -1145,7 +1143,7 @@ public class AFSVDevice implements IAFSVDevice {
         SM2PrivateKey sm2PrivateKey = structureToSM2PriKey(privateKey).to512();
         //从证书中解析出公钥
         SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(base64Certificate);
-        //对数据进行SM3杂凑 带公钥方式 todo 带公钥方式能否优化为hutool?
+        //对数据进行SM3杂凑 带公钥方式
         SM3Impl sm3 = new SM3Impl();
         data = sm3.SM3HashWithPublicKey256(data, sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
         //SM2签名
@@ -1306,8 +1304,6 @@ public class AFSVDevice implements IAFSVDevice {
         data = sm3.digest(data);
         //验签
         return cmd.sm2Verify(keyIndex, null, data, signature);
-
-
     }
 
     /**
@@ -1343,6 +1339,41 @@ public class AFSVDevice implements IAFSVDevice {
         SM2PublicKey sm2PublicKey = structureToSM2PubKey(publicKey);
         //验签
         return cmd.sm2Verify(-1, sm2PublicKey.encode(), data, signature);
+    }
+
+    /**
+     * SM2 使用证书验签 不带z值
+     *
+     * @param cert      证书 Base64编码 DER格式
+     * @param data      待验签数据
+     * @param signature 签名数据 Base64编码 ASN1 DER结构
+     * @return true 验签成功 false 验签失败
+     */
+    public boolean certVerify(byte[] cert, byte[] data, byte[] signature) throws AFCryptoException {
+        //region//======>参数检查 日志打印
+        logger.info("SV_Device 证书验签");
+        if (cert == null || cert.length == 0) {
+            logger.error("SV_Device 证书验签,证书为空");
+            throw new AFCryptoException("SV_Device 证书验签,证书为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SV_Device 证书验签,待验签数据为空");
+            throw new AFCryptoException("SV_Device 证书验签,待验签数据为空");
+        }
+        if (signature == null || signature.length == 0) {
+            logger.error("SV_Device 证书验签,签名数据为空");
+            throw new AFCryptoException("SV_Device 证书验签,签名数据为空");
+        }
+        //endregion
+        //从证书中解析出公钥
+        SM2PublicKey sm2PublicKey = parseSM2PublicKeyFromCert(cert);
+        byte[] encode = sm2PublicKey.encode();
+        signature = convertToSM2Signature(signature).to512().encode();
+        //原始数据SM3杂凑
+        data = sm3.digest(data);
+        //验签
+        return cmd.sm2Verify(-1, encode, data, signature);
+
     }
 
     /**
