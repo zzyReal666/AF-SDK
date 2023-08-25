@@ -211,7 +211,7 @@ public class NettyChannelPool {
                 .option(ChannelOption.SO_RCVBUF, bufferSize).
                 option(ChannelOption.TCP_NODELAY, true)  //不写缓存
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout)  //连接超时时间
-                .option(ChannelOption.SO_KEEPALIVE, false) //保持连接
+                .option(ChannelOption.SO_KEEPALIVE, true) //保持连接
                 .handler(new LoggingHandler(LogLevel.INFO)).handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
