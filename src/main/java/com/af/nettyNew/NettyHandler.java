@@ -1,6 +1,7 @@
 package com.af.nettyNew;
 
 import com.af.utils.BytesOperate;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.slf4j.Logger;
@@ -32,16 +33,18 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
     }
 
 
-//    /**
-//     * 心跳
-//     */
-//    @Override
-//    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-//        ctx.writeAndFlush(Unpooled.wrappedBuffer(nettyChannelPool.getClientChannels().getHeartBeat()));
-//    }
+    /**
+     * 心跳
+     */
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        NettyClientChannels.CallbackService callbackService = new NettyClientChannels.CallbackService();
+        ChannelUtils.putCallback2DataMap(ctx.channel(), nettyChannelPool.getClientChannels().getTaskNo(), callbackService);
+        ctx.writeAndFlush(Unpooled.wrappedBuffer(nettyChannelPool.getClientChannels().getHeartBeat()));
+    }
 
     /**
-     * 断线重连
+     * 断线
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {

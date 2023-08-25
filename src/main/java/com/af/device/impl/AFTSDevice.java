@@ -12,6 +12,8 @@ import com.af.netty.NettyClient;
 import com.af.nettyNew.NettyClientChannels;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +22,9 @@ import org.slf4j.LoggerFactory;
  * @description 时间戳设备实现类, 单例模式 因为时间戳接口较少,没有分层,直接在该类中构造message
  * @since 2023/5/18 9:39
  */
+@Setter
+@Getter
+@ToString
 public class AFTSDevice implements IAFTSDevice {
     private static final Logger logger = LoggerFactory.getLogger(AFTSDevice.class);
 
@@ -145,7 +150,7 @@ public class AFTSDevice implements IAFTSDevice {
                     .channelCount(channelCount)
                     .build();
             AFTSDevice instance = SingletonHolder.INSTANCE;
-            if (isAgKey) {
+            if (isAgKey && instance.getAgKey() == null) {
                 instance.setAgKey();
             }
             return instance;

@@ -99,6 +99,10 @@ public class AFSVDevice implements IAFSVDevice {
      */
     private static final SM3 sm3 = new SM3();
 
+    /**
+     * taskNO
+     */
+    private static int taskNo;
 
     private byte[] RSAKey_e = {
             (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
@@ -254,6 +258,10 @@ public class AFSVDevice implements IAFSVDevice {
 
         //region//======>build
         public AFSVDevice build() {
+            //如果对象已经存在则直接返回
+            if (client != null) {
+                return AFSVDevice.SingletonHolder.INSTANCE;
+            }
             client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
                     .timeout(connectTimeOut)
                     .responseTimeout(responseTimeOut)
@@ -272,6 +280,7 @@ public class AFSVDevice implements IAFSVDevice {
     //endregion
 
 
+
     /**
      * 协商密钥
      */
@@ -283,7 +292,8 @@ public class AFSVDevice implements IAFSVDevice {
     }
     //endregion
 
-    //region 设备信息 获取随机数 私钥访问权限
+    //region 设备信息 获取随机数 私钥访问权限 心跳
+
 
     /**
      * 获取设备信息

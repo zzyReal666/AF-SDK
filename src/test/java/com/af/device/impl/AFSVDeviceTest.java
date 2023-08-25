@@ -72,6 +72,13 @@ class AFSVDeviceTest {
     }
 
 
+
+    //心跳
+    @Test
+    void testHeartBeat() throws Exception {
+
+        device.heartBeat(AFSVDevice.getClient(), 1);
+    }
     //region //与HSM共有
 
     /**
@@ -94,7 +101,8 @@ class AFSVDeviceTest {
                     .managementPort(443)
                     .build();
             device.getPrivateAccess(1, 3, "12345678");
-            device.close(AFSVDevice.getClient());
+            //等待2分钟
+            Thread.sleep(2 * 60 * 1000);
         }
 //        device.getPrivateAccess(1, 4, "12345678910");
 //        device.getPrivateAccess(15, 3, "12345678");
@@ -105,6 +113,9 @@ class AFSVDeviceTest {
     void testIsSingleton() throws Exception {
         System.out.println("创建对象1");
         AFSVDevice device1 = getDevice();
+
+        //等待 2分钟
+        Thread.sleep(2 * 60 * 1000);
 
         System.out.println("创建对象2");
         AFSVDevice device2 = getDevice();

@@ -17,6 +17,8 @@ import com.af.exception.DeviceException;
 import com.af.netty.NettyClient;
 import com.af.utils.BytesBuffer;
 import com.af.utils.Sm2Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.KeyPair;
 
@@ -28,6 +30,8 @@ import java.security.KeyPair;
  */
 
 public interface IAFDevice {
+
+    Logger logger = LoggerFactory.getLogger(IAFDevice.class);
 
 
     byte[] ROOT_KEY = {(byte) 0x46, (byte) 0xd3, (byte) 0xf4, (byte) 0x6d, (byte) 0x2e, (byte) 0xc2, (byte) 0x4a, (byte) 0xae, (byte) 0xb1, (byte) 0x84, (byte) 0x62,
@@ -135,8 +139,15 @@ public interface IAFDevice {
         client.close();
     }
 
-    //心跳
+    /**
+     * 心跳
+     *
+     * @param client 客户端
+     * @param id     心跳id
+     * @return 心跳id
+     */
     default int heartBeat(NettyClient client, int id) {
+        logger.info("Dev-发送心跳包");
         byte[] param = new BytesBuffer().append(id).toBytes();
         RequestMessage req = new RequestMessage(CMDCode.CMD_HEART_BEAT, param, null).setIsEncrypt(false);
         ResponseMessage res = client.send(req);
@@ -167,6 +178,7 @@ public interface IAFDevice {
         int i = (t + (t + random(100) * random(88) * random(99) + random(90) + 1) * 100) + threadId;
         //取绝对值
         return Math.abs(i);
+//        return 749044371;
     }
 
     static int random(int n) {

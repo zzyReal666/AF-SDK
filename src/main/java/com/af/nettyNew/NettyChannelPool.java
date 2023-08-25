@@ -8,6 +8,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.Attribute;
 import lombok.Getter;
 import lombok.Setter;
@@ -210,14 +211,14 @@ public class NettyChannelPool {
                 .option(ChannelOption.SO_RCVBUF, bufferSize).
                 option(ChannelOption.TCP_NODELAY, true)  //不写缓存
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout)  //连接超时时间
-                .option(ChannelOption.SO_KEEPALIVE, true) //保持连接
+                .option(ChannelOption.SO_KEEPALIVE, false) //保持连接
                 .handler(new LoggingHandler(LogLevel.INFO)).handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast(new MyDecoder());
+                        pipeline.addLast(new IdleStateHandler(0, 4, 0, TimeUnit.SECONDS));
                         pipeline.addLast(new NettyHandler(NettyChannelPool.this));
-//                        pipeline.addLast(new IdleStateHandler(0, 4, 0, TimeUnit.SECONDS));
                     }
                 });
     }
@@ -235,11 +236,10 @@ public class NettyChannelPool {
         //netty 释放资源
         bootstrap.config().group().shutdownGracefully();
     }
+
     public void reconnect(Channel channel) {
         try {
-            Channel newChannel = connectToServer();
-            channelQueue.offer(newChannel);
-            channel.close();
+            channel = connectToServer();
         } catch (InterruptedException e) {
             logger.error("重连失败", e);
         }

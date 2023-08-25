@@ -37,6 +37,9 @@ public class NettyClientChannels implements NettyClient {
     //私有无参构造
     private NettyClientChannels() {
     }
+
+
+
     private static class SingletonHolder {
         private static final NettyClientChannels INSTANCE = new NettyClientChannels();
     }
@@ -182,7 +185,7 @@ public class NettyClientChannels implements NettyClient {
     /**
      * 连接到服务器 创建通道
      */
-    private void connect() {
+    void connect() {
         nettyChannelPool.init();
     }
 
@@ -208,7 +211,6 @@ public class NettyClientChannels implements NettyClient {
     public void close() {
         nettyChannelPool.close();
     }
-
 
     //空实现
     @Override

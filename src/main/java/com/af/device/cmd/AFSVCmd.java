@@ -1250,6 +1250,17 @@ public class AFSVCmd {
     private static byte[] getBytes(byte[] bytesResponse, int offset, int length) {
         return BytesOperate.subBytes(bytesResponse, offset, length);
     }
+
+    public void sendHeartBeat() {
+
+        logger.info("SV-发送心跳包");
+        byte[] param = new BytesBuffer().append(0).toBytes();
+        RequestMessage requestMessage = new RequestMessage(CMDCode.CMD_HEARTBEAT, param, null);
+        ResponseMessage res = client.send(requestMessage);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.error("SV-发送心跳包失败,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+        }
+    }
     //endregion
 
 }
