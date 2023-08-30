@@ -163,7 +163,6 @@ public class AFSVDevice implements IAFSVDevice {
         private final int port;
         private final String passwd;
         //endregion
-
         //region//======>构造方法
         public Builder(String host, int port, String passwd) {
             this.host = host;
@@ -171,7 +170,6 @@ public class AFSVDevice implements IAFSVDevice {
             this.passwd = passwd;
         }
         //endregion
-
         //region//======>可选参数
 
         /**
@@ -212,7 +210,6 @@ public class AFSVDevice implements IAFSVDevice {
          */
         private static int managementPort = 443;
         //endregion
-
         //region//======>设置参数
         public Builder isAgKey(boolean isAgKey) {
             this.isAgKey = isAgKey;
@@ -255,7 +252,6 @@ public class AFSVDevice implements IAFSVDevice {
         }
 
         //endregion
-
         //region//======>build
         public AFSVDevice build() {
             //如果对象已经存在则直接返回
@@ -994,6 +990,10 @@ public class AFSVDevice implements IAFSVDevice {
     //endregion
 
     //region SM2计算
+
+    /**
+     * SM2 签名 内部密钥
+     */
 
     /**
      * SM2 签名 内部密钥

@@ -75,8 +75,8 @@ public class AFHsmDevice implements IAFHsmDevice {
         private final String host;
         private final int port;
         private final String passwd;
-        //endregion
 
+        //endregion
         //region//======>构造方法
         public Builder(String host, int port, String passwd) {
             //host 去除空格
@@ -86,7 +86,6 @@ public class AFHsmDevice implements IAFHsmDevice {
             this.passwd = passwd;
         }
         //endregion
-
         //region//======>可选参数
 
         /**
@@ -128,8 +127,6 @@ public class AFHsmDevice implements IAFHsmDevice {
         private static int managementPort = 443;
 
         //endregion
-
-
         //region//======>设置参数
         public Builder isAgKey(boolean isAgKey) {
             this.isAgKey = isAgKey;
@@ -172,11 +169,19 @@ public class AFHsmDevice implements IAFHsmDevice {
         }
 
         //endregion
-
-
         //region//======>build
         public AFHsmDevice build() {
-            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo()).timeout(connectTimeOut).responseTimeout(responseTimeOut).retryCount(retryCount).retryInterval(retryInterval).bufferSize(bufferSize).channelCount(channelCount).build();
+            if (client != null) {
+                return InstanceHolder.instance;
+            }
+            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
+                    .timeout(connectTimeOut)
+                    .responseTimeout(responseTimeOut)
+                    .retryCount(retryCount)
+                    .retryInterval(retryInterval)
+                    .bufferSize(bufferSize)
+                    .channelCount(channelCount)
+                    .build();
             AFHsmDevice hsmDevice = InstanceHolder.instance;
             if (isAgKey && hsmDevice.getAgKey() == null) {
                 hsmDevice.setAgKey();
@@ -190,19 +195,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     }
 
-
+    /**
+     * 协商密钥
+     * @return 协商密钥后的设备
+     */
     public AFHsmDevice setAgKey() {
-        //协商密钥
-//        if (client instanceof NettyClientChannels) {
-//            int channelCount = ((NettyClientChannels) client).getNettyChannelPool().getChannelCount();
-//            for (int i = 0; i < channelCount; i++) {
-//                this.agKey = this.keyAgreement(client);
-//            }
-//        } else if (client instanceof AFNettyClient) {
-//            this.agKey = this.keyAgreement(client);
-//        } else {
-//            logger.error("未知的Netty客户端类型");
-//        }
         this.agKey = this.keyAgreement(client);
         cmd.setAgKey(agKey);
         logger.info("协商密钥成功,密钥为:{}", HexUtil.encodeHexStr(agKey));

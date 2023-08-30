@@ -12,6 +12,7 @@ import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.agreementData.AgreementData;
 import com.af.struct.signAndVerify.CsrRequest;
+import com.af.utils.Sm2Util;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,12 +35,11 @@ class AFHsmDeviceTest {
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-        device = new AFHsmDevice.Builder("192.168.90.40", 8008, "abcd1234")
+        device = new AFHsmDevice.Builder("47.103.213.215", 28017, "abcd1234")
                 .responseTimeOut(100000)
                 .connectTimeOut(10000)
                 .channelCount(16)
-                .isAgKey(false)
-                .managementPort(443)
+                .managementPort(28417)
                 .build();
 
 
@@ -56,6 +56,15 @@ class AFHsmDeviceTest {
         device.close(AFHsmDevice.getClient());
         logger.info("服务端已经关闭连接");
     }
+
+
+    @Test
+    void  temp1() {
+        String s = "b9648be30e75134eb5dd5d2cc0e4e629370926cc59535ad563542d2d11405d81";
+        System.out.println(s.length());
+    }
+
+
 
 
     //region//======>p10 证书申请<======
@@ -511,8 +520,12 @@ class AFHsmDeviceTest {
         assert Arrays.equals(data, decodeData1);
 
         //使用内部密钥签名验签
-        byte[] sign = device.sm2InternalSign(1, data);
-        boolean verify = device.sm2InternalVerify(1, data, sign);
+        //获取私钥访问权限
+        device.getPrivateKeyAccessRight(17, 3, "12345678");
+        byte[] sign = device.sm2InternalSign(17, data);
+        byte[] bytes = Sm2Util.change0018to0019(sign);  //todo 转换成0019 Base64 编码 ASN.1 DER 格式
+        byte[] bytes1 = Sm2Util.change0019to0018(bytes); //todo 转换成0018 R+S格式
+        boolean verify = device.sm2InternalVerify(17, data, bytes1);
         assert verify;
 
         //使用外部密钥签名验签

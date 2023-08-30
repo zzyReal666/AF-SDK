@@ -1,29 +1,35 @@
 package com.af.utils;
 
-import org.bouncycastle.crypto.CipherParameters;
-import org.bouncycastle.crypto.params.ParametersWithRandom;
-
-
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ByteUtil;
 import cn.hutool.crypto.CryptoException;
 import cn.hutool.crypto.ECKeyUtil;
 import cn.hutool.crypto.SmUtil;
 import cn.hutool.crypto.asymmetric.SM2;
+import com.af.struct.impl.sm2.SM2Signature;
+import com.af.struct.signAndVerify.sm2.SM2SignStructure;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.params.ParametersWithRandom;
+
+import java.io.IOException;
+
 /**
  * 与硬件设备交互的数据均为GM/T0018格式
- * 
+ *
  * @author linzhj
  * @date 2022年4月22日
  */
 public class Sm2Util {
 
-    /** 32字节的0 */
+    /**
+     * 32字节的0
+     */
     private static final byte[] ZERO_BYTES_32 = new byte[32];
 
     /**
      * 使用公钥加密
-     * 
+     *
      * @param publicKey GM/T0018格式公钥（512bit）
      * @param data      明文
      * @return GM/T0018格式密文（x|y|M|L|C）
@@ -35,7 +41,7 @@ public class Sm2Util {
 
     /**
      * 使用私钥解密
-     * 
+     *
      * @param privateKey 私钥D值
      * @param ciphertext GM/T0018格式密文（x|y|M|L|C）
      * @return
@@ -47,7 +53,7 @@ public class Sm2Util {
 
     /**
      * 用私钥对信息生成数字签名
-     * 
+     *
      * @param privateKey 私钥D值
      * @param data       明文
      * @return 签名值 （512bits r|s）
@@ -85,7 +91,7 @@ public class Sm2Util {
 
     /**
      * GM/T0018格式公钥转换成Q值
-     * 
+     *
      * @param key GM/T0018格式公钥（512bit）
      * @return Q值 （33字节的04|x|y格式）
      */
@@ -99,7 +105,7 @@ public class Sm2Util {
 
     /**
      * Q值转换成GM/T0018格式公钥
-     * 
+     *
      * @param key Q值 （33字节的04|x|y格式）
      * @return GM/T0018格式公钥（512bit）
      */
@@ -115,7 +121,7 @@ public class Sm2Util {
 
     /**
      * C1C3C2格式密文转换成GM/T0018格式密文
-     * 
+     *
      * @param ciphertext C1C3C2格式密文
      * @return GM/T0018格式密文（x|y|M|L|C）
      */
@@ -136,7 +142,7 @@ public class Sm2Util {
 
     /**
      * GM/T0018格式密文转换成C1C3C2格式密文
-     * 
+     *
      * @param ciphertext GM/T0018格式密文（x|y|M|L|C）
      * @return C1C3C2格式密文
      */
@@ -154,7 +160,7 @@ public class Sm2Util {
 
     /**
      * 256位签名值转换成GM/T0018格式
-     * 
+     *
      * @param sign 256bits签名值 r|s
      * @return 512bits签名值 r|s
      */
@@ -170,7 +176,7 @@ public class Sm2Util {
 
     /**
      * GM/T0018格式签名值转换成256位签名值
-     * 
+     *
      * @param sign 512bits签名值 r|s
      * @return 256bits签名值 r|s
      */
@@ -182,4 +188,34 @@ public class Sm2Util {
         return out.toBytes();
     }
 
+
+    /**
+     * GM/T0018格式签名值转化为GM/T0019格式签名值
+     */
+    public static byte[] change0018to0019(byte[] signature) throws IOException {
+        // AF结构
+        SM2Signature sm2Signature = new SM2Signature(signature).to256();
+        // ASN1结构
+        SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);
+        // DER编码
+        byte[] encoded = sm2SignStructure.toASN1Primitive().getEncoded("DER");
+        return BytesOperate.base64EncodeData(encoded);
+    }
+
+    /**
+     * GM/T0019格式签名值转化为GM/T0018格式签名值
+     */
+    public static byte[] change0019to0018(byte[] signature) throws IOException {
+        byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
+        SM2Signature sm2Signature = new SM2Signature();
+        sm2Signature.setLength(256);
+        try (ASN1InputStream ais = new ASN1InputStream(derSignature)) {
+            SM2SignStructure structure = SM2SignStructure.getInstance(ais.readObject());
+            sm2Signature.setR(BigIntegerUtil.asUnsigned32ByteArray(structure.getR()));
+            sm2Signature.setS(BigIntegerUtil.asUnsigned32ByteArray(structure.getS()));
+            return sm2Signature.to512().encode();
+        } catch (IOException e) {
+            throw new IOException("SM2签名值转换失败", e);
+        }
+    }
 }

@@ -17,28 +17,27 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SM2PublicKey implements Key {
 
-    private int length; //  256/512 模长
+    private int length;                //x和y的长度 256/512 位
+    private int bit = 256;        //模长 有效的位数(256意味着如果x和y是64字节,只有后32字节有用)
     private byte[] x = new byte[64];   //公钥x
     private byte[] y = new byte[64];   //公钥y
 
-    //构造函数 字节数据
+    /**
+     * 构造函数
+     * @param data 4+x+y (bit+x+y)
+     */
     public SM2PublicKey(byte[] data) {
         this.decode(data);
     }
 
-    public SM2PublicKey(int length) {
-        this.length = length;
-        this.x = new byte[length / 8];
-        this.y = new byte[length / 8];
-    }
-
-
-    //构造函数 全部参数
+    /**
+     * 构造函数
+     * @param length 当前x和y的实际长度 256/512
+     */
     public SM2PublicKey(int length, byte[] x, byte[] y) {
         this.length = length;
         this.x = x;
         this.y = y;
-
     }
 
     public String toString() {
@@ -59,7 +58,7 @@ public class SM2PublicKey implements Key {
 
     public byte[] encode() {
         return new BytesBuffer()
-                .append(256)
+                .append(bit)
                 .append(this.x)
                 .append(this.y)
                 .toBytes();
@@ -67,16 +66,15 @@ public class SM2PublicKey implements Key {
 
     @Override
     public void decode(byte[] pubKey) {
-        this.length = BytesOperate.bytes2int(pubKey);
+        this.bit = BytesOperate.bytes2int(pubKey);
         System.arraycopy(pubKey, 4, this.x, 0, this.x.length);
         System.arraycopy(pubKey, 4 + this.x.length, this.y, 0, this.y.length);
-//        this.length = this.x.length * 8;
+        this.length = this.x.length * 8;
     }
 
     public int size() {
         return 4 + this.x.length + this.y.length;
     }
-
 
     /**
      * 256位转512位 前32个字节补0

@@ -18,6 +18,8 @@ import lombok.ToString;
 public class SM2KeyPair {
 
 
+    private int length;// 实际长度 256/512
+
     private int bits = 256; //模长恒为256
     //公钥
     private SM2PublicKey pubKey;
@@ -33,10 +35,10 @@ public class SM2KeyPair {
 
 
     public SM2KeyPair to256() {
-        return new SM2KeyPair(256, pubKey.to256(), priKey.to256());
+        return new SM2KeyPair(256, 256, pubKey.to256(), priKey.to256());
     }
 
     public SM2KeyPair to512() {
-        return new SM2KeyPair(256, pubKey.to512(), priKey.to512());
+        return new SM2KeyPair(512, 256, pubKey.to512(), priKey.to512());
     }
 }
