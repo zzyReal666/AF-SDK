@@ -162,6 +162,7 @@ public class AFSVDevice implements IAFSVDevice {
         private final String host;
         private final int port;
         private final String passwd;
+
         //endregion
         //region//======>构造方法
         public Builder(String host, int port, String passwd) {
@@ -209,6 +210,7 @@ public class AFSVDevice implements IAFSVDevice {
          * http端口
          */
         private static int managementPort = 443;
+
         //endregion
         //region//======>设置参数
         public Builder isAgKey(boolean isAgKey) {
@@ -992,8 +994,52 @@ public class AFSVDevice implements IAFSVDevice {
     //region SM2计算
 
     /**
-     * SM2 签名 内部密钥
+     * SM2 签名 内部密钥 digest模式  适用于密码服务平台
+     *
+     * @param index       密钥索引
+     * @param messageType 消息类型 digest|origin
+     *                    digest:传入的data为摘要
+     *                    origin:传入的data为原文
+     *                    默认为origin
+     * @param data        待签名数据
      */
+    public byte[] sm2Signature(int index, String messageType, byte[] data) throws AFCryptoException {
+        //region//======>参数检查
+        logger.info("SV-SM2签名-内部密钥");
+        if (index <= 0) {
+            logger.error("密钥索引错误,index={}", index);
+            throw new AFCryptoException("密钥索引错误,index=" + index);
+        }
+        if (data == null || data.length == 0) {
+            logger.error("待签名的数据为空");
+            throw new AFCryptoException("待签名的数据为空");
+        }
+        byte[] bytes;
+        if ("digest".equals(messageType)) {
+            //如果传入是摘要 直接签名
+            bytes = cmd.sm2Sign(index, null, data);
+        } else if ("origin".equals(messageType)) {
+            //如果传入是原文 先摘要 再签名
+            byte[] digest = sm3.digest(data);
+            bytes = cmd.sm2Sign(index, null, digest);
+        } else {
+            logger.error("messageType 错误,必须为(digest|origin),当前为{}", messageType);
+            throw new AFCryptoException("messageType 错误,必须为(digest|origin)");
+        }
+        // AF结构
+        SM2Signature sm2Signature = new SM2Signature(bytes).to256();
+        // ASN1结构
+        SM2SignStructure sm2SignStructure = new SM2SignStructure(sm2Signature);
+        // DER编码
+        byte[] encoded;
+        try {
+            encoded = sm2SignStructure.toASN1Primitive().getEncoded("DER");
+        } catch (IOException e) {
+            logger.error("SM2签名DER编码失败", e);
+            throw new AFCryptoException("SM2签名DER编码失败");
+        }
+        return BytesOperate.base64EncodeData(encoded);
+    }
 
     /**
      * SM2 签名 内部密钥
@@ -4551,7 +4597,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param keyIndex 密钥索引
      * @return 密钥模长
      */
-    private int getBitsByKeyIndex(int keyIndex) throws AFCryptoException {
+    public int getBitsByKeyIndex(int keyIndex) throws AFCryptoException {
         return new RSAPubKey(cmd.exportPublicKey(keyIndex, Algorithm.SGD_RSA_SIGN)).getBits();
     }
 
@@ -4562,7 +4608,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param filePath 文件路径
      * @return 摘要结果
      */
-    private static byte[] fileReadAndDigest(byte[] filePath) {
+    public static byte[] fileReadAndDigest(byte[] filePath) {
         MessageDigest md;
         try {
             byte[] bytes = FileUtil.readBytes(new String(filePath));
@@ -4582,7 +4628,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param sm2PublicKey SM2 字节流
      * @return ASN1 编码的私钥DER
      */
-    private static byte[] bytesToASN1SM2PubKey(byte[] sm2PublicKey) throws AFCryptoException {
+    public static byte[] bytesToASN1SM2PubKey(byte[] sm2PublicKey) throws AFCryptoException {
         SM2PublicKey sm2PublicKey256 = new SM2PublicKey(sm2PublicKey).to256();
         byte[] encodedKey;
         try {
@@ -4600,7 +4646,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param sequenceBytes RSA 服务端返回的字节流
      * @return Base64编码的  ASN1 DER 结构公钥
      */
-    private static byte[] bytesToASN1RSAPubKey(byte[] sequenceBytes) throws AFCryptoException {
+    public static byte[] bytesToASN1RSAPubKey(byte[] sequenceBytes) throws AFCryptoException {
         byte[] encoded;
         RSAPubKey rsaPubKey = new RSAPubKey(sequenceBytes);
         RSAPublicKeyStructure rsaPublicKeyStructure = new RSAPublicKeyStructure(rsaPubKey);
@@ -4619,7 +4665,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param signature ASN1 signature
      * @return SM2Signature  512位
      */
-    private SM2Signature convertToSM2Signature(byte[] signature) throws AFCryptoException {
+    public SM2Signature convertToSM2Signature(byte[] signature) throws AFCryptoException {
         byte[] derSignature = BytesOperate.base64DecodeData(new String(signature));
         SM2Signature sm2Signature = new SM2Signature();
         sm2Signature.setLength(256);
@@ -4641,7 +4687,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param certificate 证书 base64 编码 DER
      * @return RSAPubKey 对象
      */
-    private RSAPubKey getRSAPublicKeyFromCertificatePath(byte[] certificate) throws AFCryptoException {
+    public RSAPubKey getRSAPublicKeyFromCertificatePath(byte[] certificate) throws AFCryptoException {
         if (null == certificate || certificate.length == 0) {
             logger.info("证书路径为空");
             throw new AFCryptoException("证书路径为空");
@@ -4666,7 +4712,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param base64Certificate 证书
      * @return SM2PublicKey SM2公钥 512位
      */
-    private static SM2PublicKey parseSM2PublicKeyFromCert(byte[] base64Certificate) throws AFCryptoException {
+    public static SM2PublicKey parseSM2PublicKeyFromCert(byte[] base64Certificate) throws AFCryptoException {
         logger.info("SV-从证书(证书需要Base64编码)中解析出SM2公钥(AF结构)");
         //解析证书 从证书中获取公钥
         byte[] derCert = BytesOperate.base64DecodeCert(new String(base64Certificate));
@@ -4716,7 +4762,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param privateKey ：SM2私钥 ASN1结构 Base64编码
      * @return ：自定义SM2私钥结构
      */
-    private static SM2PrivateKey structureToSM2PriKey(byte[] privateKey) throws AFCryptoException {
+    public static SM2PrivateKey structureToSM2PriKey(byte[] privateKey) throws AFCryptoException {
         try {
             byte[] decodeKey = BytesOperate.base64DecodeData(new String(privateKey));
             InputStream inputData = new ByteArrayInputStream(decodeKey);
@@ -4739,7 +4785,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param publicKey 公钥数组 ASN1结构 Base64编码
      * @return RSAPubKey 对象
      */
-    private RSAPubKey decodeRSAPublicKey(byte[] publicKey) {
+    public RSAPubKey decodeRSAPublicKey(byte[] publicKey) {
         RSAPubKey rsaPubKey = new RSAPubKey();
         //Base64解码
         byte[] derPubKeyData = BytesOperate.base64DecodeData(new String(publicKey));
@@ -4761,7 +4807,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param privateKey 私钥数组 ASN1结构 Base64编码
      * @return RSAPriKey SDK私钥结构
      */
-    private RSAPriKey decodeRSAPrivateKey(byte[] privateKey) throws AFCryptoException {
+    public RSAPriKey decodeRSAPrivateKey(byte[] privateKey) throws AFCryptoException {
         RSAPriKey rsaPriKey;
         byte[] derPrvKeyData = BytesOperate.base64DecodeData(new String(privateKey));
         try (ASN1InputStream ais = new ASN1InputStream(derPrvKeyData)) {
@@ -4783,7 +4829,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @return 分组后的数据 List<byte[]>
      */
 
-    private List<byte[]> splitPackage(byte[] data) {
+    public List<byte[]> splitPackage(byte[] data) {
         int uiIndex;
         byte[] inputData;
         List<byte[]> bytes = new ArrayList<>();
@@ -4809,7 +4855,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param list 数组集合
      * @return 合并后的数组
      */
-    private byte[] mergePackage(List<byte[]> list) {
+    public byte[] mergePackage(List<byte[]> list) {
         byte[] newData = new byte[0];
         for (byte[] bytes : list) {
             newData = ArrayUtil.addAll(newData, bytes);
@@ -4825,7 +4871,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data    : 原始数据
      * @return ：digest数据
      */
-    private byte[] digestForRSASign(int index, int length, byte[] data) throws AFCryptoException {
+    public byte[] digestForRSASign(int index, int length, byte[] data) throws AFCryptoException {
         logger.info("RSA签名 摘要计算 index:{},priKey:{}", index, length);
         //获取公钥模长
         int bits;
@@ -4868,7 +4914,7 @@ public class AFSVDevice implements IAFSVDevice {
      * @param data 待填充数据
      * @return 填充后数据
      */
-    private static byte[] padding(byte[] data) {
+    public static byte[] padding(byte[] data) {
         int paddingNumber = 16 - (data.length % 16);
         byte[] paddingData = new byte[paddingNumber];
         Arrays.fill(paddingData, (byte) paddingNumber);
@@ -4963,12 +5009,12 @@ public class AFSVDevice implements IAFSVDevice {
     }
 
     /**
-     * ASN1 cipher 转换为 SM2Cipher
+     * ASN1 cipher 转换为 SM2Cipher  0018 -> 0019
      *
      * @param encData ASN1 DER编码的密文
      * @return SM2Cipher AF结构 512位
      */
-    private static SM2Cipher getSm2Cipher(byte[] encData) throws AFCryptoException {
+    public static SM2Cipher getSm2Cipher(byte[] encData) throws AFCryptoException {
         SM2Cipher sm2Cipher;
         byte[] decodeData = BytesOperate.base64DecodePubKey(new String(encData));
         try (ASN1InputStream ais = new ASN1InputStream(decodeData)) {
