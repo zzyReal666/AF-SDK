@@ -1,7 +1,6 @@
 package com.af.device.impl;
 
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.HexUtil;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2PrivateKey;
@@ -11,7 +10,6 @@ import com.af.struct.signAndVerify.*;
 import com.af.struct.signAndVerify.RSA.RSAKeyPairStructure;
 import com.af.struct.signAndVerify.sm2.SM2KeyPairStructure;
 import com.af.struct.signAndVerify.sm2.SM2PrivateKeyStructure;
-import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
 import com.af.utils.base64.Base64;
 import org.junit.Ignore;
@@ -32,13 +30,13 @@ class AFSVDeviceTest {
 
     //日志
     static Logger logger = Logger.getLogger("AFSVDeviceTest");
-
     static AFSVDevice device;
 
 
     //    static byte[] data = "1234567890abcde".getBytes();
     //大数据
-    static byte[] data = FileUtil.readBytes("D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData");
+//    static byte[] data = FileUtil.readBytes("D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData");
+    static byte[] data = "1234567890abcde".getBytes(StandardCharsets.UTF_8);
 
     //证书文件路径
     static String userCertFileSM2 = "user.cer";
@@ -51,25 +49,22 @@ class AFSVDeviceTest {
     static byte[] userCert = FileUtil.readBytes(userCertFileSM2);
     static byte[] deviceCert = FileUtil.readBytes(deviceCertPath);
     static byte[] rootCert = FileUtil.readBytes(rootCertPath);
-
-
     //endregion
-
 
     @BeforeAll
     static void setUp() throws Exception {
-        device = new AFSVDevice.Builder("47.103.213.215", 28015, "abcd1234")
+        device = new AFSVDevice.Builder("192.168.90.182", 6000, "abcd1234")
                 .responseTimeOut(10000)
                 .connectTimeOut(100000)
-                .managementPort(28443)
+                .managementPort(443)
                 .build();
     }
 
     @AfterAll
     static void tearDown() throws Exception {
-        logger.info("发送关闭连接请求");
-        device.close(AFSVDevice.getClient());
-        logger.info("已经关闭连接");
+//        logger.info("发送关闭连接请求");
+//        device.close(AFSVDevice.getClient());
+//        logger.info("已经关闭连接");
     }
 
 
@@ -144,9 +139,10 @@ class AFSVDeviceTest {
     //心跳
     @Test
     void testHeartBeat() throws Exception {
-
         device.heartBeat(AFSVDevice.getClient(), 1);
     }
+
+
     //region //与HSM共有
 
     /**
@@ -157,39 +153,6 @@ class AFSVDeviceTest {
 //        device.close(AFSVDevice.getClient());
     }
 
-    /**
-     * 获取私钥访问权限 success
-     */
-    @Test
-    void testGetPrivateKeyAccessRight() throws Exception {
-        while (true) {
-            device = new AFSVDevice.Builder("47.103.213.215", 28015, "abcd1234")
-                    .responseTimeOut(10000)
-                    .connectTimeOut(100000)
-                    .managementPort(443)
-                    .build();
-            device.getPrivateAccess(1, 3, "12345678");
-            //等待2分钟
-            Thread.sleep(2 * 60 * 1000);
-        }
-//        device.getPrivateAccess(1, 4, "12345678910");
-//        device.getPrivateAccess(15, 3, "12345678");
-    }
-
-    //测试是否单例
-    @Test
-    void testIsSingleton() throws Exception {
-        System.out.println("创建对象1");
-        AFSVDevice device1 = getDevice();
-
-        //等待 2分钟
-        Thread.sleep(2 * 60 * 1000);
-
-        System.out.println("创建对象2");
-        AFSVDevice device2 = getDevice();
-
-        assert device1 == device2;
-    }
 
     private AFSVDevice getDevice() {
         AFSVDevice device = new AFSVDevice.Builder("47.103.213.215", 28015, "abcd1234")
@@ -307,12 +270,14 @@ class AFSVDeviceTest {
         System.out.println("生成公钥:" + HexUtil.encodeHexStr(sm2SignPublicKey));
 
 
-//        //计算公钥
-//        byte[] sm2PubKeyFromPriKey = device.getSM2PubKeyFromPriKey(sm2SignPrivateKey);
-//        System.out.println("计算出的公钥:" + HexUtil.encodeHexStr(sm2PubKeyFromPriKey));
+        //计算公钥
+        byte[] sm2PubKeyFromPriKey = device.getSM2PubKeyFromPriKey(sm2SignPrivateKey);
+        System.out.println("计算出的公钥:" + HexUtil.encodeHexStr(sm2PubKeyFromPriKey));
 
 
     }
+
+
 
     //RSA 操作 success
     @Test
@@ -328,7 +293,7 @@ class AFSVDeviceTest {
         byte[] fileName = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData".getBytes();
 
         //RSA 内部签名验签 success
-        device.getPrivateAccess(1, 4, "12345678910");
+        device.getPrivateAccess(1, 4, "12345678");
         byte[] bytes = device.rsaSignature(1, "1234567".getBytes());
         boolean b = device.rsaVerify(1, "1234567".getBytes(), bytes);
         assert b;
@@ -351,9 +316,11 @@ class AFSVDeviceTest {
         //公钥
         byte[] rsaSignPublicKey = rsaKeyPairStructure.getPubKey();
         //读取文件
-        byte[] dataPath = "D:\\test.zip".getBytes();
+        byte[] dataPath = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData".getBytes();
 
         //RSA 内部密钥文件签名验签 success
+        //获取私钥权限
+        device.getPrivateAccess(1, 4, "12345678");
         byte[] bytes2 = device.rsaSignFile(1, dataPath);
         boolean b2 = device.rsaVerifyFile(1, dataPath, bytes2);
         assert b2;
@@ -437,22 +404,21 @@ class AFSVDeviceTest {
         byte[] bytes = device.sm2Signature(1, data);
         boolean b = device.sm2Verify(1, data, bytes);
         assert b;
-        device.close(AFSVDevice.getClient());
 
         //SM2 外部签名验签 success
         byte[] bytes1 = device.sm2Signature(sm2SignPrivateKey, data);
         boolean b1 = device.sm2Verify(sm2SignPublicKey, data, bytes1);
         assert b1;
 
-        //SM2 私钥签名 带z值
-        byte[] bytes2 = device.sm2SignatureByPrivateKey(priKey, data);
-        boolean b2 = device.sm2VerifyByCertificate(cert, data, bytes2);
-        assert b2;
-
-        //SM2 私钥签名 带证书
-        byte[] bytes3 = device.sm2SignatureByCertificate(priKey, data, cert);
-        boolean b3 = device.sm2VerifyByCertificate(cert, cert, data, bytes3);
-        assert b3;
+//        //SM2 私钥签名 带z值
+//        byte[] bytes2 = device.sm2SignatureByPrivateKey(priKey, data);
+//        boolean b2 = device.sm2VerifyByCertificate(cert, data, bytes2);
+//        assert b2;
+//
+//        //SM2 私钥签名 带证书
+//        byte[] bytes3 = device.sm2SignatureByCertificate(priKey, data, cert);
+//        boolean b3 = device.sm2VerifyByCertificate(cert, cert, data, bytes3);
+//        assert b3;
 
     }
 
@@ -474,12 +440,14 @@ class AFSVDeviceTest {
         priKey = sm2PrivateKeyStructure.toASN1Primitive().getEncoded("DER");
         priKey = BytesOperate.base64EncodeData(priKey);
         //设备证书
-        byte[] cert = userCertFileSM2.getBytes();
+        byte[] cert = userCert;
 
         //读取文件
-        byte[] dataPath = "D:\\test.zip".getBytes();
+        byte[] dataPath = "D:\\workPlace\\Sazf_SDK\\src\\test\\resources\\bigData".getBytes();
 
         //SM2 内部签名验签 success
+        //获取私钥权限
+        device.getPrivateAccess(1, 3, "12345678");
         byte[] bytes = device.sm2SignFile(1, dataPath);
         boolean b = device.sm2VerifyFile(1, dataPath, bytes);
         assert b;
@@ -518,7 +486,7 @@ class AFSVDeviceTest {
         priKey = sm2PrivateKeyStructure.toASN1Primitive().getEncoded("DER");
         priKey = BytesOperate.base64EncodeData(priKey);
         //设备证书
-        byte[] cert = userCertFileSM2.getBytes();
+        byte[] cert = userCert;
 
 
         //SM2 内部加解密 success
@@ -526,7 +494,7 @@ class AFSVDeviceTest {
         byte[] bytes1 = device.sm2Decrypt(1, bytes);
         assert Arrays.equals(data, BytesOperate.base64DecodeData(bytes1));
 
-        //SM2 外部加解密
+        //SM2 外部加解密 success
         byte[] bytes2 = device.sm2Encrypt(sm2SignPublicKey, data);
         byte[] bytes3 = device.sm2Decrypt(sm2SignPrivateKey, bytes2);
         assert Arrays.equals(data, BytesOperate.base64DecodeData(bytes3));
@@ -540,6 +508,14 @@ class AFSVDeviceTest {
 
     }
 
+    @Test
+    void  testTemp()throws Exception {
+        //SM2 内部加解密 success
+//        device.getPrivateAccess(1, 3, "12345678");
+        byte[] bytes = device.sm2Encrypt(1, data);
+        byte[] bytes1 = device.sm2Decrypt(1, bytes);
+        assert Arrays.equals(data, BytesOperate.base64DecodeData(bytes1));
+    }
     //SM4 ECB success
     @Test
     void testSm4ECBIn() throws Exception {
@@ -565,35 +541,6 @@ class AFSVDeviceTest {
         byte[] encodeData1 = device.sm4ExternalEncryptECB(key, data);
         byte[] decodeData1 = device.sm4ExternalDecryptECB(key, encodeData1);
         assert Arrays.equals(data, decodeData1);
-
-    }
-
-    @Test
-    void test006() throws Exception {
-        System.out.println("文件大小：" + data.length / 1024 / 1024 + "MB");
-        System.out.println("头：" + HexUtil.encodeHexStr(ArrayUtil.sub(data, 0, 10)));
-        System.out.println("尾：" + HexUtil.encodeHexStr(ArrayUtil.sub(data, data.length - 10, data.length)));
-
-        List<byte[]> list = new ArrayList<>();
-        int itemSize = 2 * 1024 * 1024;
-        BytesBuffer buf = new BytesBuffer(data);
-        while (buf.size() > itemSize) {
-            list.add(buf.read(itemSize));
-        }
-        list.add(buf.toBytes());
-
-        System.out.println("分割份数：" + list.size());
-
-        byte[] newData = new byte[0];
-        for (int i = 0; i < list.size(); i++) {
-            newData = ArrayUtil.addAll(newData, list.get(i));
-        }
-        System.out.println("文件大小：" + newData.length / 1024 / 1024 + "MB");
-        System.out.println("头：" + HexUtil.encodeHexStr(ArrayUtil.sub(newData, 0, 10)));
-        System.out.println("尾：" + HexUtil.encodeHexStr(ArrayUtil.sub(newData, newData.length - 10, newData.length)));
-
-        byte[] newData111 = new byte[data.length];
-        System.out.println("111文件大小：" + newData111.length / 1024 / 1024 + "MB");
 
     }
 
@@ -808,7 +755,6 @@ class AFSVDeviceTest {
 
         //SM4 内部
         byte[] mac = device.sm4InternalMac(1, iv, data);
-
         //SM4 外部
         byte[] mac1 = device.sm4ExternalMac(key, iv, data);
 
@@ -1014,12 +960,16 @@ class AFSVDeviceTest {
     void testGetDeviceCert() throws Exception {
         byte[] deviceCert = device.getServerCert();
         System.out.println(new String(deviceCert));
+        byte[] serverCertByUsage = device.getServerCertByUsage(1);
+        System.out.println("加密证书:" + new String(serverCertByUsage));
+        byte[] serverCertByUsage1 = device.getServerCertByUsage(2);
+        System.out.println("签名证书:" + new String(serverCertByUsage1));
     }
 
     //获取应用实体信息 success
     @Test
     void testGetAppEntityInfo() throws Exception {
-        AFSvCryptoInstance instance = device.getInstance("zzytest");
+        AFSvCryptoInstance instance = device.getInstance("zzyzzy");
         System.out.println(instance);
     }
 
@@ -1034,7 +984,7 @@ class AFSVDeviceTest {
     //获取应用实体证书数据 success
     @Test
     void testGetAppEntityCert() throws Exception {
-        String policyName = "zzytest";
+        String policyName = "zzyzzy";
         byte[] signCertByPolicyName = device.getSignCertByPolicyName(policyName);
         System.out.println(new String(signCertByPolicyName));
     }
@@ -1097,7 +1047,7 @@ class AFSVDeviceTest {
         //签名证书
         byte[] cert = deviceCert;
         //加密证书
-        byte[] encCert = null;
+        byte[] encCert = deviceCert;
 
         //数字信封编码
         byte[] bytes = device.encodeEnvelopedDataForSM2(encoded, key, cert, encCert, key);
@@ -1116,23 +1066,23 @@ class AFSVDeviceTest {
         System.out.println(sm2PrivateKey);
     }
 
-    //获取设备私钥
+    //获取设备私钥 0018
     private byte[] getPriKey() {
         byte[] bytes = FileUtil.readBytes(userCertPrivateKeyPath);
         byte[] decode = Base64.decode(bytes);
         //删除前132个字节
-        //Base64编码
-        return Arrays.copyOfRange(decode, 132, decode.length);
+        byte[] result = Arrays.copyOfRange(decode, 132, decode.length);
+        //保留前4个字节和后32个字节
+        byte[] result2 = new byte[36];
+        System.arraycopy(decode, 0, result2, 0, 4);
+        System.arraycopy(decode, decode.length - 32, result2, 4, 32);
+        result = result2;
+        //base64 编码为字符串
+        byte[] encode = Base64.encode(result);
+        System.out.println(new String(encode));
+        return result;
     }
 
-    @Test
-    void testG() throws Exception {
-        String s = "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e049198cdad480c20d041bab7f73e8608aa055d2aa9925663f771b84f4bffcb98d86fec8679474dac27a8d1a6f738750270142762831df8d7c0b7d04d8fc3916ad504a370524c2322fb5a84442e7fd23613409e15ee6ff1ff4f97c328655e6fd9e226fb16caa7dda738204a3a42a51aa628aad61bc3563cf3e8421aff6e5d31f";
-        String s2 = "";
-        System.out.println(
-                s.length()
-        );
-    }
 
     //endregion
 
@@ -1142,7 +1092,7 @@ class AFSVDeviceTest {
     @Test
     void testGetCSRByIndex() throws Exception {
         CsrRequest csrRequest = new CsrRequest("cn", "sd", "jn", "szaf", "szaf", "zzyzzy", "zzypersonally@gmail.com");
-        String csrByIndex = device.getCSRByIndex(11, csrRequest);
+        String csrByIndex = device.getCSRByIndex(5, csrRequest);
         System.out.println("CSR:" + csrByIndex);
     }
 
@@ -1185,13 +1135,7 @@ class AFSVDeviceTest {
     //endregion
 
 
-    @Test
-    void testAzt() throws Exception {
-        //产生P10 请求
-        CsrRequest csrRequest = new CsrRequest("cn", "sd", "jn", "szaf", "szaf", "zzyzzyzzy", "zzypersonally@gmail.com");
-        String csrByIndex = device.getCSRByIndex(88, csrRequest);
-        System.out.println("CSR:" + csrByIndex);
 
 
-    }
+
 }

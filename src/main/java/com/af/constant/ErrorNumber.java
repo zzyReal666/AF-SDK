@@ -45,7 +45,7 @@ public class ErrorNumber {
     private static final Error err;
 
     public static int SDR_OK = 0x0;                           /*成功*/
-    public static int SDR_BASE = 0x01000000;
+    public static int SDR_BASE = 0x01000000;              /*错误码基础值 01*/
     public static int SDR_UNKNOWERR = (SDR_BASE + 0x00000001);       /*未知错误*/
     public static int SDR_NOTSUPPORT = (SDR_BASE + 0x00000002);       /*不支持*/
     public static int SDR_COMMFAIL = (SDR_BASE + 0x00000003);    /*通信错误*/
@@ -70,7 +70,7 @@ public class ErrorNumber {
 
     /*============================================================*/
     /*扩展错误码*/
-    public static int SWR_BASE = (SDR_BASE + 0x00010000);    /*自定义错误码基础值*/
+    public static int SWR_BASE = (SDR_BASE + 0x00010000);    /*自定义错误码基础值 0101*/
     public static int SWR_INVALID_USER = (SWR_BASE + 0x00000001);    /*无效的用户名*/
     public static int SWR_INVALID_AUTHENCODE = (SWR_BASE + 0x00000002);    /*无效的授权码*/
     public static int SWR_PROTOCOL_VER_ERR = (SWR_BASE + 0x00000003);    /*不支持的协议版本*/
@@ -103,7 +103,7 @@ public class ErrorNumber {
 
     /*============================================================*/
     /*密码卡错误码*/
-    public static int SWR_CARD_BASE = (SDR_BASE + 0x00020000);            /*密码卡错误码*/
+    public static int SWR_CARD_BASE = (SDR_BASE + 0x00020000);            /*密码卡错误码 0102*/
     public static int SWR_CARD_UNKNOWERR = (SWR_CARD_BASE + 0x00000001);    //未知错误
     public static int SWR_CARD_NOTSUPPORT = (SWR_CARD_BASE + 0x00000002);    //不支持的接口调用
     public static int SWR_CARD_COMMFAIL = (SWR_CARD_BASE + 0x00000003);    //与设备通信失败
@@ -215,7 +215,7 @@ public class ErrorNumber {
         err.put(SWR_SYNCH_ERR, "多卡同步错误");
         err.put(SWR_SYNCH_LOGIN_ERR, "多卡同步后登录错误");
         err.put(SWR_SOCKET_TIMEOUT, "超时错误");
-        err.put(SWR_CONNECT_ERR, "连接服务器错误");
+        err.put(SWR_CONNECT_ERR, "连接服务器错误,白名单拒绝连接");
         err.put(SWR_SET_SOCKOPT_ERR, "设置Socket参数错误");
         err.put(SWR_SOCKET_SEND_ERR, "发送数据错误");
         err.put(SWR_SOCKET_RECV_ERR, "接收数据错误");
