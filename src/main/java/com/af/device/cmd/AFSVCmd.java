@@ -413,6 +413,27 @@ public class AFSVCmd {
         if (res.getHeader().getErrorCode() == 16777230) {
             return false;
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("SV-CMD-SM2 验证签名,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("SV-CMD-SM2 验证签名,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -1161,7 +1182,6 @@ public class AFSVCmd {
 
     /**
      * PKCS7 签名信息验证
-     * <p>验证签名数据</p>
      *
      * @param rawData  原文数据
      * @param signData 签名数据

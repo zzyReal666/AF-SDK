@@ -18,11 +18,11 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SM2Cipher implements IAFStruct {
 
-    private int length; // 256位或者512位
+    private int length; // 256
     private byte[] x;   //x
     private byte[] y;   //y
     private byte[] M;   //明文SM3摘要值
-    private int L;      //密文长度
+    private int L;      //密文长度 C的实际长度
     private byte[] C  ;   //密文
 
 
@@ -31,6 +31,7 @@ public class SM2Cipher implements IAFStruct {
     }
 
     public SM2Cipher(int length, byte[] x, byte[] y, byte[] M, byte[] C) {
+        this.length = length;
         this.x = x;
         this.y = y;
         this.M = M;

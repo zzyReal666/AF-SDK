@@ -4,7 +4,7 @@ import lombok.Getter;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
- * @description  获取时间戳信息标识
+ * @description 获取时间戳信息标识
  * @since 2023/6/8 14:59
  */
 @Getter
@@ -35,12 +35,36 @@ public enum TSMInfoFlag {
     STF_SUBJECT_CITY_OF_TSSIGNER("签发者城市", 0x0000000B),
     STF_SUBJECT_EMAIL_OF_TSSIGNER("签发者联系用电子邮箱", 0x0000000C);
 
-    private String name;
-    private int value;
+    private final String name;
+    private final int value;
 
     TSMInfoFlag(String name, int value) {
         this.name = name;
         this.value = value;
+    }
+
+    /**
+     * 根据name获取
+     */
+    public static TSMInfoFlag getByName(String name) {
+        for (TSMInfoFlag tsmInfoFlag : TSMInfoFlag.values()) {
+            if (tsmInfoFlag.getName().equals(name)) {
+                return tsmInfoFlag;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 根据value获取
+     */
+    public static TSMInfoFlag getByValue(int value) {
+        for (TSMInfoFlag tsmInfoFlag : TSMInfoFlag.values()) {
+            if (tsmInfoFlag.getValue() == value) {
+                return tsmInfoFlag;
+            }
+        }
+        return null;
     }
 
 }

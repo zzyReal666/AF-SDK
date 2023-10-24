@@ -109,7 +109,7 @@ public enum CMDCode {
     public static final int CMD_GET_CERT_BY_POLICY_NAME = 0x0001000F;  //获取应用实体证书数据
     public static final int CMD_SM2_SIGNDATA_ENCODE = 0x00010821;  //PKCS7 签名信息编码
     public static final int CMD_SM2_SIGNDATA_DECODE = 0x00010822;  //PKCS7 签名信息解码
-    public static final int CMD_SM2_SIGNDATA_VERIFY = 0x00010823;
+    public static final int CMD_SM2_SIGNDATA_VERIFY = 0x00010823;  //PKCS7 签名信息验证
     public static final int CMD_CLOSE = 0x0002000B;
 
 

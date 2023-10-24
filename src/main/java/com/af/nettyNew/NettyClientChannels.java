@@ -115,7 +115,7 @@ public class NettyClientChannels implements NettyClient {
         }
     }
 
-    /**
+        /**
      * 发送消息并且接收响应
      */
     public ResponseMessage send(RequestMessage requestMessage) {
@@ -197,11 +197,16 @@ public class NettyClientChannels implements NettyClient {
         byte[] param = new BytesBuffer().append(psw).toBytes();
         ResponseMessage responseMessage = null;
         responseMessage = send(new RequestMessage(0x00000000, param, null));
-        if (null == responseMessage || responseMessage.getHeader().getErrorCode() != 0x00000000) {
-            logger.error("登录失败");
+        if (null == responseMessage) {
+            logger.error("登录失败,无响应");
+            throw new RuntimeException("登录失败");
+        }else if(responseMessage.getHeader().getErrorCode() != 0x00000000){
+            logger.error("登录失败,错误码{}",responseMessage.getHeader().getErrorCode());
             throw new RuntimeException("登录失败");
         }
-        logger.info("服务端版本号{}", new String(responseMessage.getDataBuffer().readOneData()));
+        BytesBuffer dataBuffer = responseMessage.getDataBuffer();
+        logger.info("服务端版本号{}", new String(dataBuffer.readOneData()));
+//        logger.info("服务端设备类型{}", new String(dataBuffer.readOneData()));
         logger.info("客户端版本号{}", new String("1.0.0".getBytes()));
     }
 

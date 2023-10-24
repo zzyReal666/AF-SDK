@@ -994,21 +994,21 @@ public class AFSVDevice implements IAFSVDevice {
     //region SM2计算
 
     /**
-     * SM2 签名 内部密钥 digest模式  适用于密码服务平台
+     * SM2 签名 外部密钥 带Z值(摘要用SM3HashWithPublicKey) 传入的data可以是原文或者摘要  适用于密码服务平台
      *
-     * @param index       密钥索引
+     * @param privateKey  私钥 0018结构
      * @param messageType 消息类型 digest|origin
      *                    digest:传入的data为摘要
      *                    origin:传入的data为原文
      *                    默认为origin
      * @param data        待签名数据
      */
-    public byte[] sm2Signature(int index, String messageType, byte[] data) throws AFCryptoException {
+    public byte[] sm2Signature(byte[] privateKey, String messageType, byte[] data) throws AFCryptoException {
         //region//======>参数检查
         logger.info("SV-SM2签名-内部密钥");
-        if (index <= 0) {
-            logger.error("密钥索引错误,index={}", index);
-            throw new AFCryptoException("密钥索引错误,index=" + index);
+        if (privateKey == null || privateKey.length == 0) {
+            logger.error("私钥为空");
+            throw new AFCryptoException("私钥为空");
         }
         if (data == null || data.length == 0) {
             logger.error("待签名的数据为空");
@@ -1017,11 +1017,11 @@ public class AFSVDevice implements IAFSVDevice {
         byte[] bytes;
         if ("digest".equals(messageType)) {
             //如果传入是摘要 直接签名
-            bytes = cmd.sm2Sign(index, null, data);
+            bytes = cmd.sm2Sign(-1, privateKey, data);
         } else if ("origin".equals(messageType)) {
             //如果传入是原文 先摘要 再签名
             byte[] digest = sm3.digest(data);
-            bytes = cmd.sm2Sign(index, null, digest);
+            bytes = cmd.sm2Sign(-1, privateKey, digest);
         } else {
             logger.error("messageType 错误,必须为(digest|origin),当前为{}", messageType);
             throw new AFCryptoException("messageType 错误,必须为(digest|origin)");
@@ -1039,6 +1039,42 @@ public class AFSVDevice implements IAFSVDevice {
             throw new AFCryptoException("SM2签名DER编码失败");
         }
         return BytesOperate.base64EncodeData(encoded);
+    }
+
+    /**
+     * SM2 验签 外部密钥 含有digest模式  适用于密码服务平台 上面方法的验签
+     *
+     */
+    public boolean sm2Verify(byte[] publicKey, String messageType, byte[] data, byte[] signatureData) throws AFCryptoException {
+        logger.info("SV-SM2验签-外部公钥");
+        //region//======>参数检查
+        if (publicKey == null || publicKey.length == 0) {
+            logger.error("公钥为空");
+            throw new AFCryptoException("公钥为空");
+        }
+        if (data == null || data.length == 0) {
+            logger.error("待签名的数据为空");
+            throw new AFCryptoException("待签名的数据为空");
+        }
+        if (signatureData == null || signatureData.length == 0) {
+            logger.error("签名数据为空");
+            throw new AFCryptoException("签名数据为空");
+        }
+
+        //endregion
+        boolean b;
+        if ("digest".equals(messageType)) {
+            //如果传入是摘要 直接验签
+            b = cmd.sm2Verify(-1, publicKey, data, signatureData);
+        } else if ("origin".equals(messageType)) {
+            //如果传入是原文 先摘要 再验签
+            byte[] digest = sm3.digest(data);
+            b = cmd.sm2Verify(-1, publicKey, digest, signatureData);
+        } else {
+            logger.error("messageType 错误,必须为(digest|origin),当前为{}", messageType);
+            throw new AFCryptoException("messageType 错误,必须为(digest|origin)");
+        }
+        return b;
     }
 
     /**
@@ -1209,7 +1245,6 @@ public class AFSVDevice implements IAFSVDevice {
         return BytesOperate.base64EncodeData(encoded);
 
     }
-
 
     /**
      * SM2 文件签名 内部密钥
@@ -1806,11 +1841,8 @@ public class AFSVDevice implements IAFSVDevice {
         }
         logger.info("使用内部密钥进行SM2解密");
         //endregion
-//        //获取私钥访问权限
-//        cmd.getPrivateAccess(keyIndex, 3);
         //密文转换为SM2Cipher
         SM2Cipher sm2Cipher = getSm2Cipher(encData).to512();
-        logger.error("SM2内部密钥解密,密文数据:{}", sm2Cipher.encode());
         //SM2解密
         byte[] bytes = cmd.sm2Decrypt(keyIndex, null, sm2Cipher.encode());
         return BytesOperate.base64EncodeData(bytes);
@@ -3983,6 +4015,8 @@ public class AFSVDevice implements IAFSVDevice {
 
     /**
      * SM3 Hash 带公钥
+     *
+     * @param publicKey 公钥  0018 结构
      */
     public byte[] sm3HashWithPubKey(byte[] publicKey, byte[] userId, byte[] data) throws AFCryptoException {
         //region//======>参数检查
@@ -4075,11 +4109,12 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * 验证证书有效性
      *
+     * 证书的根证书需要导入到管理侧CA
+     *
      * @param cert 证书
      * @return 0：验证成功，其他：验证失败
      */
     public int validateCertificate(byte[] cert) throws AFCryptoException {
-        logger.info("验证证书有效性");
         byte[] derCert = BytesOperate.base64DecodeCert(new String(cert));
         return cmd.validateCertificate(derCert);
     }
@@ -4154,6 +4189,10 @@ public class AFSVDevice implements IAFSVDevice {
      * @return ：Base64编码的服务器证书
      */
     public byte[] getServerCertByUsage(int usage) throws AFCryptoException {
+        if (usage != ConstantNumber.SGD_SERVER_CERT_SIGN && usage != ConstantNumber.SGD_SERVER_CERT_ENC) {
+            logger.error("获取服务器证书失败，证书用途错误,证书用途应该为1(加密)或者2(签名),当前证书用途：{}", usage);
+            throw new AFCryptoException("获取服务器证书失败，证书用途错误,证书用途应该为1(加密)或者2(签名),当前证书用途：" + usage);
+        }
         byte[] cert;
         cert = cmd.getServerCertByUsage(usage);
         if (null == cert) {
