@@ -53,10 +53,7 @@ class AFSVDeviceTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-        device = new AFSVDevice.Builder("192.168.90.182", 6000, "abcd1234")
-                .responseTimeOut(10000)
-                .connectTimeOut(100000)
-                .managementPort(443)
+        device = new AFSVDevice.Builder("192.168.90.40", 8008, "abcd1234")
                 .build();
     }
 
@@ -240,17 +237,21 @@ class AFSVDeviceTest {
     //生成密钥对
     @Test
     void testGenerateKeyPair() throws Exception {
-        SM2KeyPairStructure sm2KeyPairStructure = device.generateSM2KeyPair(0);
-        System.out.println("Sm2签名密钥对:" + sm2KeyPairStructure);
-        SM2KeyPairStructure sm2KeyPairStructure1 = device.generateSM2KeyPair(1);
-        System.out.println("Sm2加密密钥对:" + sm2KeyPairStructure1);
-        SM2KeyPairStructure sm2KeyPairStructure2 = device.generateSM2KeyPair(2);
-        System.out.println("Sm2密钥交换密钥对:" + sm2KeyPairStructure2);
-        SM2KeyPairStructure sm2KeyPairStructure3 = device.generateSM2KeyPair(3);
-        System.out.println("Sm2密钥对:" + sm2KeyPairStructure3);
+        //循环100次
+        for (int i = 0; i < 100; i++) {
+            //SM2
+            SM2KeyPairStructure sm2KeyPairStructure = device.generateSM2KeyPair(0);
+            System.out.println("Sm2签名密钥对:" + sm2KeyPairStructure);
+            SM2KeyPairStructure sm2KeyPairStructure1 = device.generateSM2KeyPair(1);
+            System.out.println("Sm2加密密钥对:" + sm2KeyPairStructure1);
+            SM2KeyPairStructure sm2KeyPairStructure2 = device.generateSM2KeyPair(2);
+            System.out.println("Sm2密钥交换密钥对:" + sm2KeyPairStructure2);
+            SM2KeyPairStructure sm2KeyPairStructure3 = device.generateSM2KeyPair(3);
+            System.out.println("Sm2密钥对:" + sm2KeyPairStructure3);
+            RSAKeyPairStructure rsaKeyPairStructure = device.generateRSAKeyPair(ModulusLength.LENGTH_1024);
+            System.out.println("RSA密钥对:" + rsaKeyPairStructure);
+        }
 
-        RSAKeyPairStructure rsaKeyPairStructure = device.generateRSAKeyPair(ModulusLength.LENGTH_1024);
-        System.out.println("RSA密钥对:" + rsaKeyPairStructure);
     }
 
     /**

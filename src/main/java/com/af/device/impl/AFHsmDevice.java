@@ -3198,14 +3198,16 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("MAC 计算，密钥不能为空");
             throw new AFCryptoException("MAC 计算，密钥不能为空");
         }
-        if (iv == null || iv.length != 16) {
-            logger.error("MAC 计算，iv长度必须为16");
-            throw new AFCryptoException("MAC 计算，iv长度必须为16");
+        if (iv == null || iv.length == 0) {
+            logger.error("MAC 计算，iv不能为空");
+            throw new AFCryptoException("MAC 计算，iv不能为空");
         }
+
         if (data == null || data.length == 0) {
             logger.error("MAC 计算，计算数据不能为空");
             throw new AFCryptoException("MAC 计算，计算数据不能为空");
         }
+        data = padding(data);
         return cmd.mac(algorithm, 0, 0, key, iv, data);
     }
 

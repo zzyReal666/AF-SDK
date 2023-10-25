@@ -29,7 +29,7 @@ class AFHsmDeviceTest {
 
     static Logger logger = Logger.getLogger("AFHsmDeviceTest");
     static AFHsmDevice device;
-    static byte[] data = "1234567887654321".getBytes(StandardCharsets.UTF_8);
+    static byte[] data = "hello/密码服务接口测试".getBytes(StandardCharsets.UTF_8);
 
 //    static byte[] data = FileUtil.readBytes("bigData");
 
@@ -43,10 +43,10 @@ class AFHsmDeviceTest {
                 .build();
 
 
-        //获取私钥访问权限
-        device.getPrivateKeyAccessRight(1, 3, "12345678");
-        //获取私钥访问权限
-        device.getPrivateKeyAccessRight(1, 4, "12345678");
+//        //获取私钥访问权限
+//        device.getPrivateKeyAccessRight(1, 3, "12345678");
+//        //获取私钥访问权限
+//        device.getPrivateKeyAccessRight(1, 4, "12345678");
     }
 
 
@@ -56,7 +56,6 @@ class AFHsmDeviceTest {
         device.close(AFHsmDevice.getClient());
         logger.info("服务端已经关闭连接");
     }
-
 
 
     //region//======>p10 证书申请<======
@@ -70,7 +69,7 @@ class AFHsmDeviceTest {
     //生成p10
     @Test
     void testGetCSRByIndex() throws Exception {
-        CsrRequest csrRequest = new CsrRequest("cn","sd","jn","szaf","szaf","zzyzzy","zzypersonally@gmail.com");
+        CsrRequest csrRequest = new CsrRequest("cn", "sd", "jn", "szaf", "szaf", "zzyzzy", "zzypersonally@gmail.com");
         String csrByIndex = device.getCSRByIndex(5, csrRequest);
         System.out.println("CSR:" + csrByIndex);
     }
@@ -150,6 +149,27 @@ class AFHsmDeviceTest {
 //        System.out.println("AES CTR SUCCESS");
     }
 
+    //SM1
+    @Test
+    void testSM1() throws Exception {
+        //SM1 SM4 16 | DES 8 | AES 16  |3DES 24  | AES192 24
+        int keyLen = 16;
+        byte[] key = RandomUtil.randomBytes(keyLen);
+        byte[] iv = RandomUtil.randomBytes(keyLen);
+
+        //ECB
+        byte[] bytes = device.symmEncrypt(Algorithm.SGD_SM1_ECB, key, null, data);
+        byte[] bytes1 = device.symmDecrypt(Algorithm.SGD_SM1_ECB, key, null, bytes);
+        assert Arrays.equals(data, bytes1);
+        System.out.println("SM1 ECB SUCCESS");
+
+        //CBC
+        byte[] bytes2 = device.symmEncrypt(Algorithm.SGD_SM1_CBC, key, iv, data);
+        byte[] bytes3 = device.symmDecrypt(Algorithm.SGD_SM1_CBC, key, iv, bytes2);
+        assert Arrays.equals(data, bytes3);
+        System.out.println("SM1 CBC SUCCESS");
+    }
+
 
     //DES
     @Test
@@ -209,7 +229,35 @@ class AFHsmDeviceTest {
         byte[] bytes2 = device.symmEncrypt(Algorithm.SGD_3DES_CBC, key, iv, data);
         byte[] bytes3 = device.symmDecrypt(Algorithm.SGD_3DES_CBC, key, iv, bytes2);
         assert Arrays.equals(data, bytes3);
+
         System.out.println("3DES CBC SUCCESS");
+    }
+
+    //3DES 2KEY
+    @Test
+    void test3DES2KEYECB() throws AFCryptoException {
+        //SM1 SM4 16 | DES 8 | AES 16  |3DES 24  | AES192 24
+        int keyLen = 16;
+        byte[] key = RandomUtil.randomBytes(keyLen);
+        byte[] iv = RandomUtil.randomBytes(keyLen);
+        byte[] iv_8 = RandomUtil.randomBytes(8);
+//
+//        //ECB
+//        byte[] bytes = device.symmEncrypt(Algorithm.SGD_2DES_ECB, key, null, data);
+//        byte[] bytes1 = device.symmDecrypt(Algorithm.SGD_2DES_ECB, key, null, bytes);
+//        assert Arrays.equals(data, bytes1);
+//        System.out.println("3DES 2KEY ECB SUCCESS");
+//
+//        //CBC
+//        byte[] bytes2 = device.symmEncrypt(Algorithm.SGD_2DES_CBC, key, iv, data);
+//        byte[] bytes3 = device.symmDecrypt(Algorithm.SGD_2DES_CBC, key, iv, bytes2);
+//        assert Arrays.equals(data, bytes3);
+//        System.out.println("3DES 2KEY CBC SUCCESS");
+
+        //MAC
+        byte[] bytes4 = device.mac(Algorithm.SGD_2DES_CBC, key, iv_8, data);
+        System.out.println("3DES 2KEY MAC VALUE:" + HexUtil.encodeHexStr(bytes4));
+
     }
 
 
@@ -260,7 +308,7 @@ class AFHsmDeviceTest {
             try {
                 if (algorithm.getName().contains("ECB")) {
                     iv = null;
-                }else{
+                } else {
                     iv = RandomUtil.randomBytes(keyLen);
                 }
                 List<byte[]> list = new ArrayList<>();
@@ -289,8 +337,8 @@ class AFHsmDeviceTest {
     @Test
     void testReConnect() throws Exception {
         int i = 0;
-            byte[] random = device.getRandom(5);
-            System.out.println("第" + i++ + "次获取随机数:" + HexUtil.encodeHexStr(random));
+        byte[] random = device.getRandom(5);
+        System.out.println("第" + i++ + "次获取随机数:" + HexUtil.encodeHexStr(random));
     }
 
     /**
@@ -804,6 +852,12 @@ class AFHsmDeviceTest {
 //        byte[] mac5 = device.sm1HandleMac(key2.getId(), iv, data);
 //        //释放密钥句柄
 //        device.releaseSessionKey(key2.getId());
+
+    }
+
+    //MAC 计算 通用
+    @Test
+    void testMac2() throws Exception {
 
     }
 
