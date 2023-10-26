@@ -916,6 +916,7 @@ public class AFSVCmd {
      * @return 验证结果
      */
     public boolean validateCertificate(byte[] rootCert, byte[] caCert, byte[] userCert) {
+        logger.info("caLen:{}",caCert.length);
         byte[] param = new BytesBuffer()
                 .append(BytesOperate.int2bytes(userCert.length))
                 .append(userCert)

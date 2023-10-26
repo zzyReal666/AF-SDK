@@ -1,6 +1,7 @@
 package com.af.device.impl;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.HexUtil;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2PrivateKey;
@@ -53,8 +54,8 @@ class AFSVDeviceTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-        device = new AFSVDevice.Builder("192.168.90.40", 8008, "abcd1234").build();
-//        device = new AFSVDevice.Builder("192.168.90.182", 6000, "abcd1234").build();
+//        device = new AFSVDevice.Builder("192.168.90.40", 8008, "abcd1234").build();
+        device = new AFSVDevice.Builder("192.168.90.182", 6001, "abcd1234").build();
     }
 
     @AfterAll
@@ -931,7 +932,28 @@ class AFSVDeviceTest {
                 "RgIhAJ7AZAC0i+4OyfxDuvPIg0I7ZtqL2kII2f1syaIW4C6iAiEAlHuUu0TMrOAr\n" +
                 "sU47scL1B9BhyEh5tbEjsKLHia3K0YU=\n" +
                 "-----END CERTIFICATE-----";
+
+
+//        String userCert = "-----BEGIN CERTIFICATE-----\r\n MIIEMjCCA9WgAwIBAgIIaeIA0AAnL0IwDAYIKoEcz1UBg3UFADCBgjELMAkGA1UEBhMCQ04xDzANBgNVBAgMBll1bm5hbjEQMA4GA1UEBwwHS3VubWluZzENMAsGA1UECgwEeW5jYTEuMCwGA1UECwwlWXVubmFuIENlcnRpZmljYXRpb24gQXV0aG9yaXR5IENlbnRyZTERMA8GA1UEAwwIWU5DQV9TTTIwHhcNMjIwOTI5MDY0OTAwWhcNMjMwOTI5MDY0OTAwWjBpMQswCQYDVQQGEwJDTjESMBAGA1UECAwJ5YyX5Lqs5biCMRIwEAYDVQQHDAnluILovpbljLoxDzANBgNVBAUMBjY4NDk2NjEhMB8GA1UEAwwY5rWq5r2u5oC76ZuG5rWL6K+V5p2O5biFMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEw+dcbcbwvHq6easfBiE5QR/eY/2NOUAmPYtjvab8ykAlybhrBkS7LDqAledS4ziFI+oJPwVL1BnoeW5i+88jQaOCAkkwggJFMAwGA1UdEwQFMAMBAQAwKgYDVR0lAQH/BCAwHgYIKwYBBQUHAwEGCCsGAQUFBwMCBggrBgEFBQcDBDALBgNVHQ8EBAMCAMAwGgYEKgUdAQQSOTExMTAxMDYzOTk0MTQwMVhHMB8GA1UdIwQYMBaAFDjDC6Z+GXwOzw0+ouzFH2r8ubTgMIGoBgNVHR8EgaAwgZ0wgZqggZeggZSGgZFsZGFwOi8vc2xkYXAueXVubmFuY2EubmV0L0NOPVlOQ0FfU00yLENOPVlOQ0FfU00yLCBPVT1DUkxEaXN0cmlidXRlUG9pbnRzLCBvPXluY2E/Y2VydGlmaWNhdGVSZXZvY2F0aW9uTGlzdD9iYXNlP29iamVjdGNsYXNzPWNSTERpc3RyaWJ1dGlvblBvaW50MIGiBggrBgEFBQcBAQSBlTCBkjCBjwYIKwYBBQUHMAKGgYJsZGFwOi8vc2xkYXAueXVubmFuY2EubmV0L0NOPVlOQ0FfU00yLENOPVlOQ0FfU00yLCBTVD1jQUNlcnRpZmljYXRlcywgbz15bmNhP2NBQ2VydGlmaWNhdGU/YmFzZT9vYmplY3RDbGFzcz1jZXJ0aWZpY2F0aW9uQXV0aG9yaXR5MB0GA1UdDgQWBBQOMN0MNeXMW3zGH3mnPaMcdzjiaTBQBgNVHSAESTBHMEUGCCqBHM9VCAEBMDkwNwYIKwYBBQUHAgEWK2h0dHA6Ly93d3cueXVubmFuY2EubmV0Lz9waWNkb3duL2lkLzIzLmh0bWwwDAYIKoEcz1UBg3UFAANJADBGAiEAjg9DulijKASqJxQZlEl8gJhcgXBahzIsXgJHJfr4T6oCIQCzxOdUFY5Et3sF5lqM8WMhWpBJnsTIYj00+WuYroYWpg==\r\n-----END CERTIFICATE-----";
+//        String rootCert = "-----BEGIN CERTIFICATE-----\r\n" + "MIIBszCCAVegAwIBAgIIaeL+wBcKxnswDAYIKoEcz1UBg3UFADAuMQswCQYDVQQG\r\n"
+//                + "EwJDTjEOMAwGA1UECgwFTlJDQUMxDzANBgNVBAMMBlJPT1RDQTAeFw0xMjA3MTQw\r\n" + "MzExNTlaFw00MjA3MDcwMzExNTlaMC4xCzAJBgNVBAYTAkNOMQ4wDAYDVQQKDAVO\r\n"
+//                + "UkNBQzEPMA0GA1UEAwwGUk9PVENBMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAE\r\n" + "MPCca6pmgcchsTf2UnBeL9rtp4nw+itk1Kzrmbnqo05lUwkwlWK+4OIrtFdAqnRT\r\n"
+//                + "V7Q9v1htkv42TsIutzd126NdMFswHwYDVR0jBBgwFoAUTDKxl9kzG8SmBcHG5Yti\r\n" + "W/CXdlgwDAYDVR0TBAUwAwEB/zALBgNVHQ8EBAMCAQYwHQYDVR0OBBYEFEwysZfZ\r\n"
+//                + "MxvEpgXBxuWLYlvwl3ZYMAwGCCqBHM9VAYN1BQADSAAwRQIgG1bSLeOXp3oB8H7b\r\n" + "53W+CKOPl2PknmWEq/lMhtn25HkCIQDaHDgWxWFtnCrBjH16/W3Ezn7/U/Vjo5xI\r\n" + "pDoiVhsLwg==\r\n"
+//                + "-----END CERTIFICATE-----\r\n" + "";
+//
+//        String caCert = "-----BEGIN CERTIFICATE-----\r\n" + "MIIC2DCCAnugAwIBAgIQV7TuB2YcI/6qDe1ASX7IyzAMBggqgRzPVQGDdQUAMC4x\r\n"
+//                + "CzAJBgNVBAYTAkNOMQ4wDAYDVQQKDAVOUkNBQzEPMA0GA1UEAwwGUk9PVENBMB4X\r\n" + "DTE0MDIxMTA5Mzc0OVoXDTM0MDIwNjA5Mzc0OVowgYIxCzAJBgNVBAYTAkNOMQ8w\r\n"
+//                + "DQYDVQQIDAZZdW5uYW4xEDAOBgNVBAcMB0t1bm1pbmcxDTALBgNVBAoMBHluY2Ex\r\n" + "LjAsBgNVBAsMJVl1bm5hbiBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eSBDZW50cmUx\r\n"
+//                + "ETAPBgNVBAMMCFlOQ0FfU00yMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAELCV0\r\n" + "NY0gBgUE2mGQQchmFug20hxd+gC6MYW3M40uQ4iKDWs+n3EG6nc+gywL+vxFVPdH\r\n"
+//                + "/RXLRh98xOarhF0yj6OCASIwggEeMB8GA1UdIwQYMBaAFEwysZfZMxvEpgXBxuWL\r\n" + "Ylvwl3ZYMA8GA1UdEwEB/wQFMAMBAf8wgboGA1UdHwSBsjCBrzBBoD+gPaQ7MDkx\r\n"
+//                + "CzAJBgNVBAYTAkNOMQ4wDAYDVQQKDAVOUkNBQzEMMAoGA1UECwwDQVJMMQwwCgYD\r\n" + "VQQDDANhcmwwKqAooCaGJGh0dHA6Ly93d3cucm9vdGNhLmdvdi5jbi9hcmwvYXJs\r\n"
+//                + "LmNybDA+oDygOoY4bGRhcDovL2xkYXAucm9vdGNhLmdvdi5jbjozODkvQ049YXJs\r\n" + "LE9VPUFSTCxPPU5SQ0FDLEM9Q04wDgYDVR0PAQH/BAQDAgEGMB0GA1UdDgQWBBQ4\r\n"
+//                + "wwumfhl8Ds8NPqLsxR9q/Lm04DAMBggqgRzPVQGDdQUAA0kAMEYCIQDfw9cTuNlP\r\n" + "VV/Ou4B9P9ACqtPmCdd57z2guDdmrVnyYgIhAOfB9RKct0/DCQwbqtYSZUfMAkWN\r\n"
+//                + "8qPKrD6MddSsfi1i\r\n" + "-----END CERTIFICATE-----\r\n" + "";
+
         boolean b = device.validateCertificate(rootCert, null, userCert);
+        System.out.println("验证结果 "+ b);
         assert b;
     }
 
@@ -1182,6 +1204,51 @@ class AFSVDeviceTest {
     //endregion
 
 
+    //根据网站 签发的证书和私钥 签名一条信息 带Z值
+    @Test
+    void test3242()throws Exception {
+        String keyStr = "-----BEGIN EC PRIVATE KEY-----\n" +
+                "MHcCAQEEIPpPJ23h6tP1wQfjZ3Ct4wpR4nqNhpDYKwThwTB7Mq0ToAoGCCqBHM9V\n" +
+                "AYItoUQDQgAEtVK5SlRzCrF4vHk4lcMo0GZmYDbSQv8Y45M2OyUUcRdsx8py635h\n" +
+                "jv4g61uQCy259WUgHJ6xZ8FvOja4z38FwQ==\n" +
+                "-----END EC PRIVATE KEY-----\n";
+
+        String base64Key = "AAEAAPpPJ23h6tP1wQfjZ3Ct4wpR4nqNhpDYKwThwTB7Mq0T";
+
+        String certStr = "-----BEGIN CERTIFICATE-----\n" +
+                "MIICUTCCAfigAwIBAgIJAOWoGwJCnci1MAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
+                "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
+                "DTIzMTAyNjA2MTM1M1oXDTI0MTAyNTA2MTM1M1owZzELMAkGA1UEBhMCQ04xETAP\n" +
+                "BgNVBAgMCHNoYW5kb25nMQ4wDAYDVQQHDAVqaW5hbjENMAsGA1UECgwEc3phZjER\n" +
+                "MA8GA1UECwwIc3phZl9zZWMxEzARBgNVBAMMCmNsb3VkX3Rlc3QwWTATBgcqhkjO\n" +
+                "PQIBBggqgRzPVQGCLQNCAAS1UrlKVHMKsXi8eTiVwyjQZmZgNtJC/xjjkzY7JRRx\n" +
+                "F2zHynLrfmGO/iDrW5ALLbn1ZSAcnrFnwW86NrjPfwXBo4GMMIGJMAwGA1UdEwEB\n" +
+                "/wQCMAAwCwYDVR0PBAQDAgeAMCwGCWCGSAGG+EIBDQQfFh1HTUNlcnQub3JnIFNp\n" +
+                "Z25lZCBDZXJ0aWZpY2F0ZTAdBgNVHQ4EFgQU5rtPV6byvsSfKgplsthW+xyMMqsw\n" +
+                "HwYDVR0jBBgwFoAUf1peOwCEWSoPmL6hDm85lUMQTQcwCgYIKoEcz1UBg3UDRwAw\n" +
+                "RAIgS53rXeeoF+IfatvsRc39cx3zXkJOTlszFYLitjpU1l8CIGnS8D9ntOxFZn5v\n" +
+                "AFUSFI65In10ZTwsN5kK4UN/kxFx\n" +
+                "-----END CERTIFICATE-----";
+
+
+        byte[] key0018 = cn.hutool.core.codec.Base64.decode(base64Key);
+        System.out.println(key0018.length);
+
+        byte[] sub = ArrayUtil.sub(key0018, 4, 36);
+        System.out.println("sub len " + sub.length);
+        byte[] bytes = ArrayUtil.addAll(BytesOperate.int2bytes(256), new byte[32], sub);
+
+        SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(bytes);
+        SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(sm2PrivateKey);
+        byte[] encoded = sm2PrivateKeyStructure.toASN1Primitive().getEncoded();
+        byte[] bytes2 = BytesOperate.base64EncodeData(encoded);
+
+        byte[] bytes1 = device.sm2SignatureByCertificate(bytes2, "af/密码云平台测试".getBytes(StandardCharsets.UTF_8), certStr.getBytes(StandardCharsets.UTF_8));
+        System.out.println(cn.hutool.core.codec.Base64.encode(bytes1));
+
+
+    }
 
 
 
