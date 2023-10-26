@@ -415,25 +415,6 @@ public class AFSVCmd {
         }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("SV-CMD-SM2 验证签名,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("SV-CMD-SM2 验证签名,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
@@ -909,11 +890,11 @@ public class AFSVCmd {
      *
      * <p>验证证书有效性，通过OCSP模式获取当前证书的有效性。 注：选择此方式验证证书有效性，需连接互联网，或者可以访问到待测证书的OCSP服务器</p>
      *
-     * @param base64Certificate : 待验证的证书--BASE64编码格式
+     * @param base64Certificate : 待验证的证书 -- 证书去掉头尾,Base64解码后的数据
      * @return ：返回证书验证结果，0为验证通过
      */
     public int validateCertificate(byte[] base64Certificate) throws AFCryptoException { //success
-        logger.info("SV-OCSP验证证书有效性, base64Certificate:{}", base64Certificate);
+        logger.info("SV-OCSP验证证书有效性, 证书:{}", base64Certificate);
         byte[] param = new BytesBuffer()
                 .append(base64Certificate.length)
                 .append(base64Certificate)
@@ -925,6 +906,33 @@ public class AFSVCmd {
         }
         return res.getHeader().getErrorCode();
     }
+
+    /**
+     * 验证证书
+     *
+     * @param root 根证书  证书字符串去掉头尾 base64解码 下同
+     * @param ca   中间证书
+     * @param user 要验证的用户证书
+     * @return 验证结果
+     */
+    public boolean validateCertificate(byte[] rootCert, byte[] caCert, byte[] userCert) {
+        byte[] param = new BytesBuffer()
+                .append(BytesOperate.int2bytes(userCert.length))
+                .append(userCert)
+                .append(BytesOperate.int2bytes(caCert.length))
+                .append(caCert)
+                .append(BytesOperate.int2bytes(rootCert.length))
+                .append(rootCert)
+                .toBytes();
+        RequestMessage req = new RequestMessage(CMDCode.CMD_VALIDATE_CERT, param, agKey);
+        ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() != 0) {
+            logger.info("SV-验证证书有效性错误,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
+            return false;
+        }
+        return true;
+    }
+
 
 
     /**
@@ -1281,6 +1289,8 @@ public class AFSVCmd {
             logger.error("SV-发送心跳包失败,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
         }
     }
+
+
     //endregion
 
 }

@@ -121,6 +121,7 @@ public enum CMDCode {
 
 
     public static final int CMD_VERIFY_CERT = 0x00010007;   //验证证书
+    public static final int CMD_VALIDATE_CERT = 0x00010010;   //验证用户证书
 
     public static final int PKCS7_ENCODE_WITH_SIGN = 0x00010824; //PKCS7 带签名信息的数字信封编码
 

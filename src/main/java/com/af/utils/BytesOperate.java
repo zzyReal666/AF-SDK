@@ -225,7 +225,7 @@ public class BytesOperate {
 
 
     /**
-     * base64编码证书
+     * 证书去掉头尾 然后base64解码
      *
      * @param base64Cert base64编码证书文件
      * @return byte[]

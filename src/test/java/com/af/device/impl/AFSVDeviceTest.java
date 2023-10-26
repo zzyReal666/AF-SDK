@@ -53,8 +53,8 @@ class AFSVDeviceTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-        device = new AFSVDevice.Builder("192.168.90.40", 8008, "abcd1234")
-                .build();
+        device = new AFSVDevice.Builder("192.168.90.40", 8008, "abcd1234").build();
+//        device = new AFSVDevice.Builder("192.168.90.182", 6000, "abcd1234").build();
     }
 
     @AfterAll
@@ -64,6 +64,12 @@ class AFSVDeviceTest {
 //        logger.info("已经关闭连接");
     }
 
+    @Test
+    void test3232() {
+         String base64Cert = "-----BEGIN CERTIFICATE-----\r\n MIIEMjCCA9WgAwIBAgIIaeIA0AAnL0IwDAYIKoEcz1UBg3UFADCBgjELMAkGA1UEBhMCQ04xDzANBgNVBAgMBll1bm5hbjEQMA4GA1UEBwwHS3VubWluZzENMAsGA1UECgwEeW5jYTEuMCwGA1UECwwlWXVubmFuIENlcnRpZmljYXRpb24gQXV0aG9yaXR5IENlbnRyZTERMA8GA1UEAwwIWU5DQV9TTTIwHhcNMjIwOTI5MDY0OTAwWhcNMjMwOTI5MDY0OTAwWjBpMQswCQYDVQQGEwJDTjESMBAGA1UECAwJ5YyX5Lqs5biCMRIwEAYDVQQHDAnluILovpbljLoxDzANBgNVBAUMBjY4NDk2NjEhMB8GA1UEAwwY5rWq5r2u5oC76ZuG5rWL6K+V5p2O5biFMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEw+dcbcbwvHq6easfBiE5QR/eY/2NOUAmPYtjvab8ykAlybhrBkS7LDqAledS4ziFI+oJPwVL1BnoeW5i+88jQaOCAkkwggJFMAwGA1UdEwQFMAMBAQAwKgYDVR0lAQH/BCAwHgYIKwYBBQUHAwEGCCsGAQUFBwMCBggrBgEFBQcDBDALBgNVHQ8EBAMCAMAwGgYEKgUdAQQSOTExMTAxMDYzOTk0MTQwMVhHMB8GA1UdIwQYMBaAFDjDC6Z+GXwOzw0+ouzFH2r8ubTgMIGoBgNVHR8EgaAwgZ0wgZqggZeggZSGgZFsZGFwOi8vc2xkYXAueXVubmFuY2EubmV0L0NOPVlOQ0FfU00yLENOPVlOQ0FfU00yLCBPVT1DUkxEaXN0cmlidXRlUG9pbnRzLCBvPXluY2E/Y2VydGlmaWNhdGVSZXZvY2F0aW9uTGlzdD9iYXNlP29iamVjdGNsYXNzPWNSTERpc3RyaWJ1dGlvblBvaW50MIGiBggrBgEFBQcBAQSBlTCBkjCBjwYIKwYBBQUHMAKGgYJsZGFwOi8vc2xkYXAueXVubmFuY2EubmV0L0NOPVlOQ0FfU00yLENOPVlOQ0FfU00yLCBTVD1jQUNlcnRpZmljYXRlcywgbz15bmNhP2NBQ2VydGlmaWNhdGU/YmFzZT9vYmplY3RDbGFzcz1jZXJ0aWZpY2F0aW9uQXV0aG9yaXR5MB0GA1UdDgQWBBQOMN0MNeXMW3zGH3mnPaMcdzjiaTBQBgNVHSAESTBHMEUGCCqBHM9VCAEBMDkwNwYIKwYBBQUHAgEWK2h0dHA6Ly93d3cueXVubmFuY2EubmV0Lz9waWNkb3duL2lkLzIzLmh0bWwwDAYIKoEcz1UBg3UFAANJADBGAiEAjg9DulijKASqJxQZlEl8gJhcgXBahzIsXgJHJfr4T6oCIQCzxOdUFY5Et3sF5lqM8WMhWpBJnsTIYj00+WuYroYWpg==\r\n-----END CERTIFICATE-----";
+
+        System.out.println(base64Cert);
+    }
 
     @Test
     void azt() throws AFCryptoException {
@@ -875,7 +881,7 @@ class AFSVDeviceTest {
         System.out.println(new String(certTrustListAltName.getCertList()));
     }
 
-    //验证证书（一） success
+    //验证证书有效性 success
     @Test
     void testVerifyCert() throws Exception {
         int i = device.validateCertificate(userCert);
@@ -883,7 +889,7 @@ class AFSVDeviceTest {
 //        device.isCertificateRevoked(cert);
     }
 
-    //验证证书（二） ignore
+    //验证证书有效性 ignore
     @Test
     @Ignore
     void testVerifyCert2() throws Exception {
@@ -891,6 +897,46 @@ class AFSVDeviceTest {
         boolean certificateRevoked = device.isCertificateRevoked(userCert, crlData);
         assert !certificateRevoked;
     }
+
+    //验证证书有效性 根证书/中间证书/用户证书
+    @Test
+    void testVerifyCert3() throws Exception {
+        String userCert = "-----BEGIN CERTIFICATE-----\n" +
+                "MIICUTCCAfigAwIBAgIJAOWoGwJCnci1MAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
+                "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
+                "DTIzMTAyNjA2MTM1M1oXDTI0MTAyNTA2MTM1M1owZzELMAkGA1UEBhMCQ04xETAP\n" +
+                "BgNVBAgMCHNoYW5kb25nMQ4wDAYDVQQHDAVqaW5hbjENMAsGA1UECgwEc3phZjER\n" +
+                "MA8GA1UECwwIc3phZl9zZWMxEzARBgNVBAMMCmNsb3VkX3Rlc3QwWTATBgcqhkjO\n" +
+                "PQIBBggqgRzPVQGCLQNCAAS1UrlKVHMKsXi8eTiVwyjQZmZgNtJC/xjjkzY7JRRx\n" +
+                "F2zHynLrfmGO/iDrW5ALLbn1ZSAcnrFnwW86NrjPfwXBo4GMMIGJMAwGA1UdEwEB\n" +
+                "/wQCMAAwCwYDVR0PBAQDAgeAMCwGCWCGSAGG+EIBDQQfFh1HTUNlcnQub3JnIFNp\n" +
+                "Z25lZCBDZXJ0aWZpY2F0ZTAdBgNVHQ4EFgQU5rtPV6byvsSfKgplsthW+xyMMqsw\n" +
+                "HwYDVR0jBBgwFoAUf1peOwCEWSoPmL6hDm85lUMQTQcwCgYIKoEcz1UBg3UDRwAw\n" +
+                "RAIgS53rXeeoF+IfatvsRc39cx3zXkJOTlszFYLitjpU1l8CIGnS8D9ntOxFZn5v\n" +
+                "AFUSFI65In10ZTwsN5kK4UN/kxFx\n" +
+                "-----END CERTIFICATE-----";
+
+        String rootCert = "-----BEGIN CERTIFICATE-----\n" +
+                "MIICIzCCAcigAwIBAgIJAKun/ZLoSXfeMAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
+                "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
+                "DTE5MTAyNDEyMzEzM1oXDTM5MDcxMTEyMzEzM1owZzELMAkGA1UEBhMCQ04xEDAO\n" +
+                "BgNVBAgMB0JlaWppbmcxEDAOBgNVBAcMB0hhaURpYW4xEzARBgNVBAoMCkdNQ2Vy\n" +
+                "dC5vcmcxHzAdBgNVBAMMFkdNQ2VydCBHTSBSb290IENBIC0gMDEwWTATBgcqhkjO\n" +
+                "PQIBBggqgRzPVQGCLQNCAASXWWtv+ifV7dJHqPNXwcmioh/48Wg3IuI+o11nLEOD\n" +
+                "zljxL2yMxoQM6xfNJHuqadXXNZv3D2rml5Pk0W/tmfHEo10wWzAdBgNVHQ4EFgQU\n" +
+                "f1peOwCEWSoPmL6hDm85lUMQTQcwHwYDVR0jBBgwFoAUf1peOwCEWSoPmL6hDm85\n" +
+                "lUMQTQcwDAYDVR0TBAUwAwEB/zALBgNVHQ8EBAMCAQYwCgYIKoEcz1UBg3UDSQAw\n" +
+                "RgIhAJ7AZAC0i+4OyfxDuvPIg0I7ZtqL2kII2f1syaIW4C6iAiEAlHuUu0TMrOAr\n" +
+                "sU47scL1B9BhyEh5tbEjsKLHia3K0YU=\n" +
+                "-----END CERTIFICATE-----";
+        boolean b = device.validateCertificate(rootCert, null, userCert);
+        assert b;
+    }
+
+
+
 
     //获取证书信息 success
     @Test
