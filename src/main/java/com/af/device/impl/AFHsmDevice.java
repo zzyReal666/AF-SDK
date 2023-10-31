@@ -230,7 +230,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         //参数检查
         if (length <= 0 || length > ConstantNumber.MAX_RANDOM_LENGTH) {
             logger.error("随机数长度不合法,长度范围为1-4096,当前长度为:{}", length);
-            throw new AFCryptoException("随机数长度不合法");
+            throw new AFCryptoException("随机数长度不合法,长度范围为1-4096,当前长度为:" + length);
         }
 
         return cmd.getRandom(length);

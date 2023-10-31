@@ -122,8 +122,9 @@ public class AFTSMCmd extends AFCmd{
             logger.error("获取时间戳主要信息失败, 错误码: {}, 错误信息: {}", responseMessage.getHeader().getErrorCode(), responseMessage.getHeader().getErrorInfo());
             throw new AFCryptoException("获取时间戳主要信息失败, 错误码: " + responseMessage.getHeader().getErrorCode() + ", 错误信息: " + responseMessage.getHeader().getErrorInfo());
         }
-        byte[] issue = responseMessage.getDataBuffer().readOneData();
-        byte[] time = responseMessage.getDataBuffer().readOneData();
+        BytesBuffer dataBuffer = responseMessage.getDataBuffer();
+        byte[] issue = dataBuffer.readOneData();
+        byte[] time = dataBuffer.readOneData();
         return new String(issue, StandardCharsets.UTF_8) + "|" + new String(time, StandardCharsets.UTF_8);
     }
 

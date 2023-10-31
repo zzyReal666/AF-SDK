@@ -3,8 +3,11 @@ package com.af.device.impl;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.HexUtil;
+import com.af.constant.ConstantNumber;
 import com.af.constant.ModulusLength;
+import com.af.crypto.algorithm.sm3.SM3Impl;
 import com.af.crypto.key.sm2.SM2PrivateKey;
+import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.device.DeviceInfo;
 import com.af.exception.AFCryptoException;
 import com.af.struct.signAndVerify.*;
@@ -67,7 +70,7 @@ class AFSVDeviceTest {
 
     @Test
     void test3232() {
-         String base64Cert = "-----BEGIN CERTIFICATE-----\r\n MIIEMjCCA9WgAwIBAgIIaeIA0AAnL0IwDAYIKoEcz1UBg3UFADCBgjELMAkGA1UEBhMCQ04xDzANBgNVBAgMBll1bm5hbjEQMA4GA1UEBwwHS3VubWluZzENMAsGA1UECgwEeW5jYTEuMCwGA1UECwwlWXVubmFuIENlcnRpZmljYXRpb24gQXV0aG9yaXR5IENlbnRyZTERMA8GA1UEAwwIWU5DQV9TTTIwHhcNMjIwOTI5MDY0OTAwWhcNMjMwOTI5MDY0OTAwWjBpMQswCQYDVQQGEwJDTjESMBAGA1UECAwJ5YyX5Lqs5biCMRIwEAYDVQQHDAnluILovpbljLoxDzANBgNVBAUMBjY4NDk2NjEhMB8GA1UEAwwY5rWq5r2u5oC76ZuG5rWL6K+V5p2O5biFMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEw+dcbcbwvHq6easfBiE5QR/eY/2NOUAmPYtjvab8ykAlybhrBkS7LDqAledS4ziFI+oJPwVL1BnoeW5i+88jQaOCAkkwggJFMAwGA1UdEwQFMAMBAQAwKgYDVR0lAQH/BCAwHgYIKwYBBQUHAwEGCCsGAQUFBwMCBggrBgEFBQcDBDALBgNVHQ8EBAMCAMAwGgYEKgUdAQQSOTExMTAxMDYzOTk0MTQwMVhHMB8GA1UdIwQYMBaAFDjDC6Z+GXwOzw0+ouzFH2r8ubTgMIGoBgNVHR8EgaAwgZ0wgZqggZeggZSGgZFsZGFwOi8vc2xkYXAueXVubmFuY2EubmV0L0NOPVlOQ0FfU00yLENOPVlOQ0FfU00yLCBPVT1DUkxEaXN0cmlidXRlUG9pbnRzLCBvPXluY2E/Y2VydGlmaWNhdGVSZXZvY2F0aW9uTGlzdD9iYXNlP29iamVjdGNsYXNzPWNSTERpc3RyaWJ1dGlvblBvaW50MIGiBggrBgEFBQcBAQSBlTCBkjCBjwYIKwYBBQUHMAKGgYJsZGFwOi8vc2xkYXAueXVubmFuY2EubmV0L0NOPVlOQ0FfU00yLENOPVlOQ0FfU00yLCBTVD1jQUNlcnRpZmljYXRlcywgbz15bmNhP2NBQ2VydGlmaWNhdGU/YmFzZT9vYmplY3RDbGFzcz1jZXJ0aWZpY2F0aW9uQXV0aG9yaXR5MB0GA1UdDgQWBBQOMN0MNeXMW3zGH3mnPaMcdzjiaTBQBgNVHSAESTBHMEUGCCqBHM9VCAEBMDkwNwYIKwYBBQUHAgEWK2h0dHA6Ly93d3cueXVubmFuY2EubmV0Lz9waWNkb3duL2lkLzIzLmh0bWwwDAYIKoEcz1UBg3UFAANJADBGAiEAjg9DulijKASqJxQZlEl8gJhcgXBahzIsXgJHJfr4T6oCIQCzxOdUFY5Et3sF5lqM8WMhWpBJnsTIYj00+WuYroYWpg==\r\n-----END CERTIFICATE-----";
+        String base64Cert = "-----BEGIN CERTIFICATE-----\r\n MIIEMjCCA9WgAwIBAgIIaeIA0AAnL0IwDAYIKoEcz1UBg3UFADCBgjELMAkGA1UEBhMCQ04xDzANBgNVBAgMBll1bm5hbjEQMA4GA1UEBwwHS3VubWluZzENMAsGA1UECgwEeW5jYTEuMCwGA1UECwwlWXVubmFuIENlcnRpZmljYXRpb24gQXV0aG9yaXR5IENlbnRyZTERMA8GA1UEAwwIWU5DQV9TTTIwHhcNMjIwOTI5MDY0OTAwWhcNMjMwOTI5MDY0OTAwWjBpMQswCQYDVQQGEwJDTjESMBAGA1UECAwJ5YyX5Lqs5biCMRIwEAYDVQQHDAnluILovpbljLoxDzANBgNVBAUMBjY4NDk2NjEhMB8GA1UEAwwY5rWq5r2u5oC76ZuG5rWL6K+V5p2O5biFMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEw+dcbcbwvHq6easfBiE5QR/eY/2NOUAmPYtjvab8ykAlybhrBkS7LDqAledS4ziFI+oJPwVL1BnoeW5i+88jQaOCAkkwggJFMAwGA1UdEwQFMAMBAQAwKgYDVR0lAQH/BCAwHgYIKwYBBQUHAwEGCCsGAQUFBwMCBggrBgEFBQcDBDALBgNVHQ8EBAMCAMAwGgYEKgUdAQQSOTExMTAxMDYzOTk0MTQwMVhHMB8GA1UdIwQYMBaAFDjDC6Z+GXwOzw0+ouzFH2r8ubTgMIGoBgNVHR8EgaAwgZ0wgZqggZeggZSGgZFsZGFwOi8vc2xkYXAueXVubmFuY2EubmV0L0NOPVlOQ0FfU00yLENOPVlOQ0FfU00yLCBPVT1DUkxEaXN0cmlidXRlUG9pbnRzLCBvPXluY2E/Y2VydGlmaWNhdGVSZXZvY2F0aW9uTGlzdD9iYXNlP29iamVjdGNsYXNzPWNSTERpc3RyaWJ1dGlvblBvaW50MIGiBggrBgEFBQcBAQSBlTCBkjCBjwYIKwYBBQUHMAKGgYJsZGFwOi8vc2xkYXAueXVubmFuY2EubmV0L0NOPVlOQ0FfU00yLENOPVlOQ0FfU00yLCBTVD1jQUNlcnRpZmljYXRlcywgbz15bmNhP2NBQ2VydGlmaWNhdGU/YmFzZT9vYmplY3RDbGFzcz1jZXJ0aWZpY2F0aW9uQXV0aG9yaXR5MB0GA1UdDgQWBBQOMN0MNeXMW3zGH3mnPaMcdzjiaTBQBgNVHSAESTBHMEUGCCqBHM9VCAEBMDkwNwYIKwYBBQUHAgEWK2h0dHA6Ly93d3cueXVubmFuY2EubmV0Lz9waWNkb3duL2lkLzIzLmh0bWwwDAYIKoEcz1UBg3UFAANJADBGAiEAjg9DulijKASqJxQZlEl8gJhcgXBahzIsXgJHJfr4T6oCIQCzxOdUFY5Et3sF5lqM8WMhWpBJnsTIYj00+WuYroYWpg==\r\n-----END CERTIFICATE-----";
 
         System.out.println(base64Cert);
     }
@@ -284,7 +287,6 @@ class AFSVDeviceTest {
 
 
     }
-
 
 
     //RSA 操作 success
@@ -517,13 +519,14 @@ class AFSVDeviceTest {
     }
 
     @Test
-    void  testTemp()throws Exception {
+    void testTemp() throws Exception {
         //SM2 内部加解密 success
 //        device.getPrivateAccess(1, 3, "12345678");
         byte[] bytes = device.sm2Encrypt(1, data);
         byte[] bytes1 = device.sm2Decrypt(1, bytes);
         assert Arrays.equals(data, BytesOperate.base64DecodeData(bytes1));
     }
+
     //SM4 ECB success
     @Test
     void testSm4ECBIn() throws Exception {
@@ -953,11 +956,9 @@ class AFSVDeviceTest {
 //                + "8qPKrD6MddSsfi1i\r\n" + "-----END CERTIFICATE-----\r\n" + "";
 
         boolean b = device.validateCertificate(rootCert, null, userCert);
-        System.out.println("验证结果 "+ b);
+        System.out.println("验证结果 " + b);
         assert b;
     }
-
-
 
 
     //获取证书信息 success
@@ -1206,7 +1207,7 @@ class AFSVDeviceTest {
 
     //根据网站 签发的证书和私钥 签名一条信息 带Z值
     @Test
-    void test3242()throws Exception {
+    void test3242() throws Exception {
         String keyStr = "-----BEGIN EC PRIVATE KEY-----\n" +
                 "MHcCAQEEIPpPJ23h6tP1wQfjZ3Ct4wpR4nqNhpDYKwThwTB7Mq0ToAoGCCqBHM9V\n" +
                 "AYItoUQDQgAEtVK5SlRzCrF4vHk4lcMo0GZmYDbSQv8Y45M2OyUUcRdsx8py635h\n" +
@@ -1245,11 +1246,73 @@ class AFSVDeviceTest {
         byte[] bytes2 = BytesOperate.base64EncodeData(encoded);
 
         byte[] bytes1 = device.sm2SignatureByCertificate(bytes2, "af/密码云平台测试".getBytes(StandardCharsets.UTF_8), certStr.getBytes(StandardCharsets.UTF_8));
-        System.out.println(cn.hutool.core.codec.Base64.encode(bytes1));
+
+//        boolean b2 = device.sm2VerifyByCertificate(certStr.getBytes(), "af/密码云平台测试".getBytes(StandardCharsets.UTF_8), bytes1);
+//        System.out.println(b2);
+
+        SM2PublicKey sm2PublicKey = AFSVDevice.parseSM2PublicKeyFromCert(certStr.getBytes());
+        byte[] encode = sm2PublicKey.encode();
+        data = new SM3Impl().SM3HashWithPublicKey256("af/密码云平台测试".getBytes(StandardCharsets.UTF_8), sm2PublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
+        System.out.println("消息摘要长度:"+data.length);
+        String encode1 = cn.hutool.core.codec.Base64.encode(data);
+        System.out.println(encode1);
+        boolean b = device.sm2Verify(encode, "", data, bytes1);
+        System.out.println(b);
 
 
     }
 
+    //文件签名
+    @Test
+    void test213412()throws  Exception {
+        String keyStr = "-----BEGIN EC PRIVATE KEY-----\n" +
+                "MHcCAQEEIPpPJ23h6tP1wQfjZ3Ct4wpR4nqNhpDYKwThwTB7Mq0ToAoGCCqBHM9V\n" +
+                "AYItoUQDQgAEtVK5SlRzCrF4vHk4lcMo0GZmYDbSQv8Y45M2OyUUcRdsx8py635h\n" +
+                "jv4g61uQCy259WUgHJ6xZ8FvOja4z38FwQ==\n" +
+                "-----END EC PRIVATE KEY-----\n";
+
+        String base64Key = "AAEAAPpPJ23h6tP1wQfjZ3Ct4wpR4nqNhpDYKwThwTB7Mq0T";
+
+        String certStr = "-----BEGIN CERTIFICATE-----\n" +
+                "MIICUTCCAfigAwIBAgIJAOWoGwJCnci1MAoGCCqBHM9VAYN1MGcxCzAJBgNVBAYT\n" +
+                "AkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdIYWlEaWFuMRMwEQYDVQQK\n" +
+                "DApHTUNlcnQub3JnMR8wHQYDVQQDDBZHTUNlcnQgR00gUm9vdCBDQSAtIDAxMB4X\n" +
+                "DTIzMTAyNjA2MTM1M1oXDTI0MTAyNTA2MTM1M1owZzELMAkGA1UEBhMCQ04xETAP\n" +
+                "BgNVBAgMCHNoYW5kb25nMQ4wDAYDVQQHDAVqaW5hbjENMAsGA1UECgwEc3phZjER\n" +
+                "MA8GA1UECwwIc3phZl9zZWMxEzARBgNVBAMMCmNsb3VkX3Rlc3QwWTATBgcqhkjO\n" +
+                "PQIBBggqgRzPVQGCLQNCAAS1UrlKVHMKsXi8eTiVwyjQZmZgNtJC/xjjkzY7JRRx\n" +
+                "F2zHynLrfmGO/iDrW5ALLbn1ZSAcnrFnwW86NrjPfwXBo4GMMIGJMAwGA1UdEwEB\n" +
+                "/wQCMAAwCwYDVR0PBAQDAgeAMCwGCWCGSAGG+EIBDQQfFh1HTUNlcnQub3JnIFNp\n" +
+                "Z25lZCBDZXJ0aWZpY2F0ZTAdBgNVHQ4EFgQU5rtPV6byvsSfKgplsthW+xyMMqsw\n" +
+                "HwYDVR0jBBgwFoAUf1peOwCEWSoPmL6hDm85lUMQTQcwCgYIKoEcz1UBg3UDRwAw\n" +
+                "RAIgS53rXeeoF+IfatvsRc39cx3zXkJOTlszFYLitjpU1l8CIGnS8D9ntOxFZn5v\n" +
+                "AFUSFI65In10ZTwsN5kK4UN/kxFx\n" +
+                "-----END CERTIFICATE-----";
+
+
+        byte[] key0018 = cn.hutool.core.codec.Base64.decode(base64Key);
+        System.out.println(key0018.length);
+
+        byte[] sub = ArrayUtil.sub(key0018, 4, 36);
+        System.out.println("sub len " + sub.length);
+        byte[] bytes = ArrayUtil.addAll(BytesOperate.int2bytes(256), new byte[32], sub);
+
+        SM2PrivateKey sm2PrivateKey = new SM2PrivateKey(bytes);
+        SM2PrivateKeyStructure sm2PrivateKeyStructure = new SM2PrivateKeyStructure(sm2PrivateKey);
+        byte[] encoded = sm2PrivateKeyStructure.toASN1Primitive().getEncoded();
+        byte[] bytes2 = BytesOperate.base64EncodeData(encoded);
+
+
+        byte[] bytes1 = device.sm2SignFileByCertificate(bytes2, "C:\\Users\\zzype\\Desktop\\1.txt".getBytes(), certStr.getBytes());
+
+        boolean b = device.sm2VerifyFileByCertificate(certStr.getBytes(), "C:\\Users\\zzype\\Desktop\\1.txt".getBytes(), bytes1);
+        System.out.println();
+
+
+        System.out.println(cn.hutool.core.codec.Base64.encode(bytes1));
+
+
+    }
 
 
 }

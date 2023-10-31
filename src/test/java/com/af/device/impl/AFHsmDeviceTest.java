@@ -167,7 +167,13 @@ class AFHsmDeviceTest {
         byte[] bytes3 = device.symmDecrypt(Algorithm.SGD_SM1_CBC, key, iv, bytes2);
         assert Arrays.equals(data, bytes3);
         System.out.println("SM1 CBC SUCCESS");
+
+        //OFB
+        byte[] bytes4 = device.symmEncrypt(Algorithm.SGD_SM1_OFB, key, iv, data);
+        byte[] bytes5 = device.symmDecrypt(Algorithm.SGD_SM1_OFB, key, iv, bytes4);
+        assert Arrays.equals(data, bytes5);
     }
+
 
 
     //DES

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 
-class d {
+class AFTSDeviceTest {
 //        static AFTSDevice device = AFDeviceFactory.getAFTSDevice("192.168.10.40", 8008, "abcd1234");
     static AFTSDevice device = new AFTSDevice.Builder("192.168.90.40", 8008, "abcd1234")
         .responseTimeOut(100000)
@@ -35,7 +35,7 @@ class d {
         System.out.println(HexUtil.encodeHexStr(bytes1));
 
 
-        //验证时间戳信息 不携带证书
+        //验证时间戳信息 不携带证书的响应 需要外部传入证书
         boolean b = device.tsVerify(bytes, Algorithm.SGD_SM2_1.getValue(), deviceCert);
         System.out.println("不携带证书验证:" + b);
 
