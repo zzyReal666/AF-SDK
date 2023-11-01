@@ -35,6 +35,8 @@ public class NettyChannelPool {
 
     private NettyClientChannels clientChannels;
 
+    private boolean loginStatus = false;
+
     /**
      * 主机
      */
@@ -239,7 +241,13 @@ public class NettyChannelPool {
 
     public void reconnect(Channel channel) {
         try {
-            channel = connectToServer();
+            Channel channelNew = connectToServer();
+            //channelQueue 中删除 channel
+            channelQueue.remove(channel);
+            //attr中删除对应的map
+            channel.attr(ChannelUtils.DATA_MAP_ATTRIBUTEKEY).set(null);
+            //添加新的channel到队列
+            channelQueue.offer(channelNew);
         } catch (InterruptedException e) {
             logger.error("重连失败", e);
         }

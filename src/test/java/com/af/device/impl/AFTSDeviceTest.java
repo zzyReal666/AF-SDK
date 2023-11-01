@@ -84,7 +84,7 @@ class AFTSDeviceTest {
         //遍历TSMInfoFlag
         for (TSMInfoFlag value : TSMInfoFlag.values()) {
             byte[] tsDetailInfo1 = device.getTsDetailInfo(bytes1, value);
-            System.out.println("携带证书获取时间戳详细信息:" + HexUtil.encodeHexStr(tsDetailInfo1));
+            System.out.println("携带证书获取时间戳详细信息-" +value.getName()+" : "+ new String(tsDetailInfo1));
         }
 
     }

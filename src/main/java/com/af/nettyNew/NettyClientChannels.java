@@ -208,6 +208,8 @@ public class NettyClientChannels implements NettyClient {
         logger.info("服务端版本号{}", new String(dataBuffer.readOneData()));
 //        logger.info("服务端设备类型{}", new String(dataBuffer.readOneData()));
         logger.info("客户端版本号{}", new String("1.0.0".getBytes()));
+        getNettyChannelPool().setLoginStatus(true);
+
     }
 
     /**
