@@ -192,7 +192,13 @@ public class AFTSDevice implements IAFTSDevice {
      * @param reqType 时间戳服务类型 0代表响应包含TSA证书 1代表响应不包含TSA证书
      * @return 时间戳请求信息数据（DER 编码）
      */
-    public byte[] tsRequest(byte[] data, int reqType) throws AFCryptoException { //success
+    public byte[] tsRequest(byte[] data, int reqType) throws AFCryptoException {
+        if (data == null || data.length == 0) {
+            throw new AFCryptoException("时间戳请求数据为空,data is null");
+        }
+        if (reqType != 0 && reqType != 1) {
+            throw new AFCryptoException("时间戳请求类型错误,reqType is invalid");
+        }
         return cmd.tsRequest(data, null, reqType, Algorithm.SGD_SM3.getValue());
     }
 
@@ -203,6 +209,9 @@ public class AFTSDevice implements IAFTSDevice {
      * @return 时间戳响应数据（DER 编码）
      */
     public byte[] tsResponse(byte[] asn1Request) throws AFCryptoException {
+        if (asn1Request == null || asn1Request.length == 0) {
+            throw new AFCryptoException("时间戳请求数据为空,asn1Request is null");
+        }
         return cmd.tsResponse(asn1Request, Algorithm.SGD_SM3.getValue());
     }
 
@@ -223,21 +232,14 @@ public class AFTSDevice implements IAFTSDevice {
      *
      * @param tsValue  时间戳响应信息
      * @param signAlg  签名算法标识（SGD_SM2|SGD_SM2_1|SGD_SM2_2|SGD_SM2_3）
-     * @param signCert TSA证书
+     * @param signCert TSA证书 Base64编码
      */
     public boolean tsVerify(byte[] tsValue, int signAlg, byte[] signCert) throws AFCryptoException {
-        //region //======>参数检查
         if (tsValue == null || tsValue.length == 0) {
             throw new AFCryptoException("tsValue is null");
         }
-        //endregion
-        byte[] derSignCert;
-        if (null == signCert) {
-            derSignCert = null;
-        } else {
-            derSignCert = BytesOperate.base64DecodeCert(new String(signCert));
-        }
-        return cmd.tsVerify(tsValue, signAlg, Algorithm.SGD_SM3.getValue(), derSignCert);
+        signCert = null == signCert ? null : BytesOperate.base64DecodeCert(new String(signCert));
+        return cmd.tsVerify(tsValue, signAlg, Algorithm.SGD_SM3.getValue(), signCert);
     }
 
 
