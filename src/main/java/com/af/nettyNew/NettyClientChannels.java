@@ -9,6 +9,7 @@ import com.af.utils.BytesBuffer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 @Getter
 @Setter
 @ToString
+@EqualsAndHashCode
 public class NettyClientChannels implements NettyClient {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyClientChannels.class);
@@ -38,12 +40,8 @@ public class NettyClientChannels implements NettyClient {
     private NettyClientChannels() {
     }
 
-
-
-    private static class SingletonHolder {
-        private static final NettyClientChannels INSTANCE = new NettyClientChannels();
-    }
     //region//建造者模式
+
     /**
      * 建造者模式
      */
@@ -115,7 +113,7 @@ public class NettyClientChannels implements NettyClient {
         }
     }
 
-        /**
+    /**
      * 发送消息并且接收响应
      */
     public ResponseMessage send(RequestMessage requestMessage) {
@@ -200,13 +198,13 @@ public class NettyClientChannels implements NettyClient {
         if (null == responseMessage) {
             logger.error("登录失败,无响应");
             throw new RuntimeException("登录失败");
-        }else if(responseMessage.getHeader().getErrorCode() != 0x00000000){
-            logger.error("登录失败,错误码{}",responseMessage.getHeader().getErrorCode());
+        } else if (responseMessage.getHeader().getErrorCode() != 0x00000000) {
+            logger.error("登录失败,错误码{}", responseMessage.getHeader().getErrorCode());
             throw new RuntimeException("登录失败");
         }
         BytesBuffer dataBuffer = responseMessage.getDataBuffer();
         logger.info("服务端版本号{}", new String(dataBuffer.readOneData()));
-//        logger.info("服务端设备类型{}", new String(dataBuffer.readOneData()));
+        logger.info("服务端设备类型{}", new String(dataBuffer.readOneData()));
         logger.info("客户端版本号{}", new String("1.0.0".getBytes()));
         getNettyChannelPool().setLoginStatus(true);
 
@@ -217,6 +215,11 @@ public class NettyClientChannels implements NettyClient {
      */
     public void close() {
         nettyChannelPool.close();
+    }
+
+    @Override
+    public String getAddr() {
+        return nettyChannelPool.getHost() + nettyChannelPool.getPort();
     }
 
     //空实现

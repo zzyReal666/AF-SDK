@@ -26,5 +26,5 @@ public interface NettyClient {
     void close();
 
 
-
+    String getAddr();
 }

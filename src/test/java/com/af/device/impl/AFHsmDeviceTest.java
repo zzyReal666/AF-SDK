@@ -34,12 +34,14 @@ class AFHsmDeviceTest {
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-        device = new AFHsmDevice.Builder("192.168.90.40", 8008, "abcd1234")
-                .responseTimeOut(100000)
-                .connectTimeOut(10000)
-                .channelCount(16)
-                .managementPort(443)
-                .build();
+//        device = new AFHsmDevice.Builder("192.168.90.40", 8008, "abcd1234")
+//                .responseTimeOut(100000)
+//                .connectTimeOut(10000)
+//                .channelCount(16)
+//                .managementPort(443)
+//                .build();
+
+
 
 
 //        //获取私钥访问权限
@@ -49,11 +51,26 @@ class AFHsmDeviceTest {
     }
 
 
+
+
+
     @AfterAll
     static void tearDown() throws Exception {
-        logger.info("发送关闭连接请求");
-        device.close(AFHsmDevice.getClient());
-        logger.info("服务端已经关闭连接");
+//        logger.info("发送关闭连接请求");
+//        NettyClient client = device.getClient();
+//        System.out.println(client);
+//        device.close(client);
+//        logger.info("服务端已经关闭连接");
+    }
+
+
+    @Test
+    void testDevice() throws AFCryptoException {
+        AFHsmDevice build = new AFHsmDevice.Builder("192.168.90.182", 6000, "abcd1234").build();
+        AFHsmDevice build2 = new AFHsmDevice.Builder("192.168.90.182", 6005, "abcd1234").build();
+        byte[] random2 = build2.getRandom(5);
+        byte[] random = build.getRandom(5);
+        System.out.println(build.equals(build2));
     }
 
 

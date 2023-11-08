@@ -1,5 +1,6 @@
 package com.af.device;
 
+import cn.hutool.core.util.HexUtil;
 import com.af.utils.BytesOperate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -45,7 +46,7 @@ public class DeviceInfo {
         String nl = System.getProperty("line.separator");
         builder.append("    |    project          |   value  ").append(nl);
         builder.append("   _|_____________________|______________________________________________________").append(nl);
-        builder.append("   1| issuerName          | ").append(new String(this.IssuerName)).append(nl);
+        builder.append("   1| issuerName          | ").append(HexUtil.encodeHexStr(IssuerName)).append(nl);
         builder.append("   2| Device name         | ").append(new String(this.DeviceName)).append(nl);
         builder.append("   3| Serial number       | ").append(new String(this.DeviceSerial)).append(nl);
         builder.append("   4| Device version      | ").append("v" + this.toHexString(this.DeviceVersion)).append(nl);

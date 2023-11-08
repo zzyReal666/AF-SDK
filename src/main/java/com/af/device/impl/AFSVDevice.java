@@ -21,7 +21,6 @@ import com.af.device.IAFDevice;
 import com.af.device.IAFSVDevice;
 import com.af.device.cmd.AFSVCmd;
 import com.af.exception.AFCryptoException;
-import com.af.netty.AFNettyClient;
 import com.af.netty.NettyClient;
 import com.af.nettyNew.NettyClientChannels;
 import com.af.struct.impl.RSA.RSAKeyPair;
@@ -87,17 +86,16 @@ public class AFSVDevice implements IAFSVDevice {
     /**
      * 通信客户端
      */
-    @Getter
-    private static NettyClient client;
+    private  NettyClient client;
     /**
      * 命令对象
      */
-    private final AFSVCmd cmd = new AFSVCmd(client, agKey);
+    private  AFSVCmd cmd = new AFSVCmd(client, agKey);
 
     /**
      * SM3 用于计算摘要
      */
-    private static final SM3 sm3 = new SM3();
+    private  final SM3 sm3 = new SM3();
 
     /**
      * taskNO
@@ -145,14 +143,9 @@ public class AFSVDevice implements IAFSVDevice {
 
     //静态内部类单例
     private static class SingletonHolder {
-        private static final AFSVDevice INSTANCE = new AFSVDevice();
+        private static final Map<String, AFSVDevice> INSTANCEMAP = new HashMap<>();
     }
 
-    //获取单例
-    public static AFSVDevice getInstance(String host, int port, String passwd) {
-        client = AFNettyClient.getInstance(host, port, passwd);
-        return SingletonHolder.INSTANCE;
-    }
 
     /**
      * 建造者模式
@@ -256,11 +249,11 @@ public class AFSVDevice implements IAFSVDevice {
         //endregion
         //region//======>build
         public AFSVDevice build() {
-            //如果对象已经存在则直接返回
-            if (client != null) {
-                return AFSVDevice.SingletonHolder.INSTANCE;
+            if (SingletonHolder.INSTANCEMAP.containsKey(host + port)) {
+                return SingletonHolder.INSTANCEMAP.get(host + port);
             }
-            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
+            AFSVDevice afsvDevice = new AFSVDevice();
+            NettyClientChannels client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
                     .timeout(connectTimeOut)
                     .responseTimeout(responseTimeOut)
                     .retryCount(retryCount)
@@ -268,7 +261,9 @@ public class AFSVDevice implements IAFSVDevice {
                     .bufferSize(bufferSize)
                     .channelCount(channelCount)
                     .build();
-            AFSVDevice afsvDevice = AFSVDevice.SingletonHolder.INSTANCE;
+            afsvDevice.setClient(client);
+            afsvDevice.setCmd(new AFSVCmd(client, afsvDevice.getAgKey()));
+            SingletonHolder.INSTANCEMAP.put(host + port, afsvDevice);
             if (isAgKey && afsvDevice.getAgKey() == null) {
                 afsvDevice.setAgKey();
             }
@@ -286,6 +281,11 @@ public class AFSVDevice implements IAFSVDevice {
         this.cmd.setAgKey(this.agKey);
         logger.info("协商密钥成功,密钥:{}", HexUtil.encodeHexStr(this.agKey));
         return this;
+    }
+
+    @Override
+    public void close() {
+        SingletonHolder.INSTANCEMAP.remove(client.getAddr());
     }
     //endregion
 
@@ -324,6 +324,9 @@ public class AFSVDevice implements IAFSVDevice {
         System.arraycopy(buff, 0, output, output.length - stepLen, stepLen);
         return BytesOperate.base64EncodeData(output);
     }
+
+
+
 
     /**
      * 获取私钥访问权限

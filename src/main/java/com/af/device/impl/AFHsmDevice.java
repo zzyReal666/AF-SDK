@@ -27,7 +27,10 @@ import com.af.struct.impl.agreementData.AgreementData;
 import com.af.struct.signAndVerify.CsrRequest;
 import com.af.utils.BytesBuffer;
 import com.af.utils.pkcs.AFPkcs1Operate;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,24 +50,20 @@ import java.util.stream.IntStream;
  * @since 2023/4/27 14:53
  */
 @Getter
+@Setter
+@EqualsAndHashCode
+@ToString(exclude = {"agKey", "sm3", "cmd"})
 public class AFHsmDevice implements IAFHsmDevice {
     //region======================================================成员与单例模式===========================================
     private static final Logger logger = LoggerFactory.getLogger(AFHsmDevice.class);
     private byte[] agKey;  //协商密钥
-    @Getter
-    private static NettyClient client;  //netty客户端
-    private final SM3 sm3 = new SM3Impl();  //国密SM3算法
-    private final AFHSMCmd cmd = new AFHSMCmd(client, agKey);
+    private NettyClient client;  //netty客户端
+    private SM3 sm3 = new SM3Impl();  //国密SM3算法
+    private AFHSMCmd cmd;
 
     private static final class InstanceHolder {
-        static final AFHsmDevice instance = new AFHsmDevice();
+        static final Map<String, AFHsmDevice> instanceMap = new HashMap<>();
     }
-
-    public static AFHsmDevice getInstance(String host, int port, String passwd) {
-        client = new NettyClientChannels.Builder(host, port, passwd, 0).build();
-        return InstanceHolder.instance;
-    }
-
 
     /**
      * 建造者模式
@@ -79,7 +78,6 @@ public class AFHsmDevice implements IAFHsmDevice {
         //endregion
         //region//======>构造方法
         public Builder(String host, int port, String passwd) {
-            //host 去除空格
             host = host.replaceAll(" ", "");
             this.host = host;
             this.port = port;
@@ -164,17 +162,17 @@ public class AFHsmDevice implements IAFHsmDevice {
         }
 
         public Builder managementPort(int managementPort) {
-            this.managementPort = managementPort;
+            Builder.managementPort = managementPort;
             return this;
         }
 
         //endregion
         //region//======>build
         public AFHsmDevice build() {
-            if (client != null) {
-                return InstanceHolder.instance;
+            if (InstanceHolder.instanceMap.containsKey(host + port)) {
+                return InstanceHolder.instanceMap.get(host + port);
             }
-            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
+            NettyClientChannels client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
                     .timeout(connectTimeOut)
                     .responseTimeout(responseTimeOut)
                     .retryCount(retryCount)
@@ -182,7 +180,10 @@ public class AFHsmDevice implements IAFHsmDevice {
                     .bufferSize(bufferSize)
                     .channelCount(channelCount)
                     .build();
-            AFHsmDevice hsmDevice = InstanceHolder.instance;
+            AFHsmDevice hsmDevice = new AFHsmDevice();
+            hsmDevice.setClient(client);
+            hsmDevice.setCmd(new AFHSMCmd(client, hsmDevice.getAgKey()));
+            InstanceHolder.instanceMap.put(host + port, hsmDevice);
             if (isAgKey && hsmDevice.getAgKey() == null) {
                 hsmDevice.setAgKey();
             }
@@ -197,6 +198,7 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     /**
      * 协商密钥
+     *
      * @return 协商密钥后的设备
      */
     public AFHsmDevice setAgKey() {
@@ -204,6 +206,11 @@ public class AFHsmDevice implements IAFHsmDevice {
         cmd.setAgKey(agKey);
         logger.info("协商密钥成功,密钥为:{}", HexUtil.encodeHexStr(agKey));
         return this;
+    }
+    @Override
+    public void close() {
+        InstanceHolder.instanceMap.remove(client.getAddr());
+
     }
     //endregion
 
@@ -235,6 +242,9 @@ public class AFHsmDevice implements IAFHsmDevice {
 
         return cmd.getRandom(length);
     }
+
+
+
 
     /**
      * 获取私钥访问权限

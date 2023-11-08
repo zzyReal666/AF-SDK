@@ -237,6 +237,11 @@ public class AFNettyClient implements NettyClient {
         }
     }
 
+    @Override
+    public String getAddr() {
+        return null;
+    }
+
     //endregion
 
 }

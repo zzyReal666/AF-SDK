@@ -58,7 +58,7 @@ class AFSVDeviceTest {
     @BeforeAll
     static void setUp() throws Exception {
 //        device = new AFSVDevice.Builder("192.168.90.40", 8008, "abcd1234").build();
-        device = new AFSVDevice.Builder("192.168.90.182", 6001, "abcd1234").build();
+//        device = new AFSVDevice.Builder("192.168.90.182", 6000, "abcd1234").build();
     }
 
     @AfterAll
@@ -146,7 +146,7 @@ class AFSVDeviceTest {
     //心跳
     @Test
     void testHeartBeat() throws Exception {
-        device.heartBeat(AFSVDevice.getClient(), 1);
+        device.heartBeat(device.getClient(), 1);
     }
 
 
@@ -185,8 +185,18 @@ class AFSVDeviceTest {
      */
     @Test
     void testGetDeviceInfo() throws Exception {
-        DeviceInfo deviceInfo = device.getDeviceInfo();
+
+
+        AFSVDevice abcd12345 = new AFSVDevice.Builder("192.168.90.182", 6005, "abcd1234").build();
+        DeviceInfo deviceInfo1 = abcd12345.getDeviceInfo();
+        System.out.println(deviceInfo1);
+        AFSVDevice abcd1234 = new AFSVDevice.Builder("192.168.90.182", 6000, "abcd1234").build();
+        DeviceInfo deviceInfo = abcd1234.getDeviceInfo();
         System.out.println(deviceInfo);
+        abcd1234.close(abcd1234.getClient());
+        AFSVDevice abcd123455 = new AFSVDevice.Builder("192.168.90.182", 6000, "abcd1234").build();
+        DeviceInfo deviceInfo2 = abcd123455.getDeviceInfo();
+        System.out.println(deviceInfo2);
     }
 
     /**

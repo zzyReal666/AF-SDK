@@ -8,11 +8,12 @@ import com.af.constant.ModulusLength;
 import com.af.device.DeviceInfo;
 import com.af.exception.AFCryptoException;
 import com.af.netty.NettyClient;
-import com.af.nettyNew.NettyClientChannels;
 import com.af.struct.impl.RSA.RSAPriKey;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.utils.BytesBuffer;
 import com.af.utils.BytesOperate;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -22,8 +23,9 @@ import java.util.List;
  * @description
  * @since 2023/5/29 11:13
  */
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class AFHSMCmd extends AFCmd {
-    int count = client instanceof NettyClientChannels ? ((NettyClientChannels) client).getNettyChannelPool().getChannelCount() : 1;
 
     public AFHSMCmd(NettyClient client, byte[] agKey) {
         super(client, agKey);

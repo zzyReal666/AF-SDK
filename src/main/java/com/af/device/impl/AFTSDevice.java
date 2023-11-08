@@ -7,7 +7,6 @@ import com.af.device.IAFDevice;
 import com.af.device.IAFTSDevice;
 import com.af.device.cmd.AFTSMCmd;
 import com.af.exception.AFCryptoException;
-import com.af.netty.AFNettyClient;
 import com.af.netty.NettyClient;
 import com.af.nettyNew.NettyClientChannels;
 import com.af.utils.BytesOperate;
@@ -16,6 +15,9 @@ import lombok.Setter;
 import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -27,35 +29,16 @@ import org.slf4j.LoggerFactory;
 @ToString
 public class AFTSDevice implements IAFTSDevice {
     private static final Logger logger = LoggerFactory.getLogger(AFTSDevice.class);
-
-
-    /**
-     * 通信客户端
-     */
-    @Getter
-    private static NettyClient client = null;
+    private NettyClient client = null;
     private byte[] agKey;
-
-    private final AFTSMCmd cmd = new AFTSMCmd(client, agKey);
-
+    private AFTSMCmd cmd;
     //私有化构造方法
     private AFTSDevice() {
     }
-
     //静态内部类单例
     private static class SingletonHolder {
-        private static final AFTSDevice INSTANCE = new AFTSDevice();
+        private static final Map<String, AFTSDevice> INSTANCE = new HashMap<>();
     }
-
-    //获取单例
-    public static AFTSDevice getInstance(String host, int port, String passwd) {
-        client = AFNettyClient.getInstance(host, port, passwd);
-        return SingletonHolder.INSTANCE;
-    }
-
-    /**
-     * 建造者模式
-     */
     public static class Builder {
         //必要参数
         private final String host;
@@ -141,7 +124,12 @@ public class AFTSDevice implements IAFTSDevice {
         }
 
         public AFTSDevice build() {
-            client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
+
+            if (SingletonHolder.INSTANCE.containsKey(host + port)) {
+                return SingletonHolder.INSTANCE.get(host + port);
+            }
+            AFTSDevice instance = new AFTSDevice();
+            NettyClientChannels build = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
                     .timeout(connectTimeOut)
                     .responseTimeout(responseTimeOut)
                     .retryCount(retryCount)
@@ -149,7 +137,9 @@ public class AFTSDevice implements IAFTSDevice {
                     .bufferSize(bufferSize)
                     .channelCount(channelCount)
                     .build();
-            AFTSDevice instance = SingletonHolder.INSTANCE;
+            instance.setClient(build);
+            instance.setCmd(new AFTSMCmd(build, instance.agKey));
+            SingletonHolder.INSTANCE.put(host + port, instance);
             if (isAgKey && instance.getAgKey() == null) {
                 instance.setAgKey();
             }
@@ -182,6 +172,11 @@ public class AFTSDevice implements IAFTSDevice {
     @Override
     public byte[] getRandom(int length) throws AFCryptoException {
         return new byte[0];
+    }
+
+    @Override
+    public void close() {
+        SingletonHolder.INSTANCE.remove(client.getAddr());
     }
 
 

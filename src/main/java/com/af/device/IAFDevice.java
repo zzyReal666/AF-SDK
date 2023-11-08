@@ -33,7 +33,6 @@ public interface IAFDevice {
 
     Logger logger = LoggerFactory.getLogger(IAFDevice.class);
 
-
     byte[] ROOT_KEY = {(byte) 0x46, (byte) 0xd3, (byte) 0xf4, (byte) 0x6d, (byte) 0x2e, (byte) 0xc2, (byte) 0x4a, (byte) 0xae, (byte) 0xb1, (byte) 0x84, (byte) 0x62,
             (byte) 0xdd, (byte) 0x86, (byte) 0x23, (byte) 0x71, (byte) 0xed};
 
@@ -47,7 +46,6 @@ public interface IAFDevice {
      */
     DeviceInfo getDeviceInfo() throws AFCryptoException;
 
-
     /**
      * 获取随机数
      *
@@ -58,6 +56,10 @@ public interface IAFDevice {
     byte[] getRandom(int length) throws AFCryptoException;
 
 
+    void close();
+    /**
+     * 密钥协商
+     */
     default byte[] keyAgreement(NettyClient client) {
         /*
          * 1、生成公私钥对
@@ -137,7 +139,10 @@ public interface IAFDevice {
         }
         //关闭连接
         client.close();
+        //设备实例从map中删除
+        close();
     }
+
 
     /**
      * 心跳

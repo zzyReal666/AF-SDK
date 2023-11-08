@@ -201,7 +201,7 @@ public class NettyChannelPool {
         }
         //队列输出channelId
         logger.info("初始化通道池成功,共有通道数量:{}", channelQueue.size());
-        channelQueue.forEach(channel -> logger.info("channelId:{}", channel.id()));
+        channelQueue.forEach(channel -> logger.info("channelId:{},remoteAddress:{},localAddress:{}", channel.id(), channel.remoteAddress(), channel.localAddress()));
     }
     /**
      * 设置bootstrap
