@@ -249,8 +249,8 @@ public class AFSVDevice implements IAFSVDevice {
         //endregion
         //region//======>build
         public AFSVDevice build() {
-            if (SingletonHolder.INSTANCEMAP.containsKey(host + port)) {
-                return SingletonHolder.INSTANCEMAP.get(host + port);
+            if (SingletonHolder.INSTANCEMAP.containsKey(host + ":" + port)) {
+                return SingletonHolder.INSTANCEMAP.get(host + ":" + port);
             }
             AFSVDevice afsvDevice = new AFSVDevice();
             NettyClientChannels client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
@@ -263,7 +263,7 @@ public class AFSVDevice implements IAFSVDevice {
                     .build();
             afsvDevice.setClient(client);
             afsvDevice.setCmd(new AFSVCmd(client, afsvDevice.getAgKey()));
-            SingletonHolder.INSTANCEMAP.put(host + port, afsvDevice);
+            SingletonHolder.INSTANCEMAP.put(host + ":" + port, afsvDevice);
             if (isAgKey && afsvDevice.getAgKey() == null) {
                 afsvDevice.setAgKey();
             }

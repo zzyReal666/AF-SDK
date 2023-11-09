@@ -17,11 +17,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 
 class AFHsmDeviceTest {
@@ -42,16 +40,11 @@ class AFHsmDeviceTest {
 //                .build();
 
 
-
-
 //        //获取私钥访问权限
 //        device.getPrivateKeyAccessRight(1, 3, "12345678");
 //        //获取私钥访问权限
 //        device.getPrivateKeyAccessRight(1, 4, "12345678");
     }
-
-
-
 
 
     @AfterAll
@@ -65,12 +58,32 @@ class AFHsmDeviceTest {
 
 
     @Test
-    void testDevice() throws AFCryptoException {
-        AFHsmDevice build = new AFHsmDevice.Builder("192.168.90.182", 6000, "abcd1234").build();
-        AFHsmDevice build2 = new AFHsmDevice.Builder("192.168.90.182", 6005, "abcd1234").build();
-        byte[] random2 = build2.getRandom(5);
+    void testDevice() throws AFCryptoException, IOException, InterruptedException {
+        AFHsmDevice build = new AFHsmDevice.Builder("192.168.90.40", 8008, "abcd1234")
+                .responseTimeOut(100000)
+                .connectTimeOut(100000)
+                .build();
         byte[] random = build.getRandom(5);
-        System.out.println(build.equals(build2));
+        System.out.println("随机数:" + HexUtil.encodeHexStr(random));
+        //等待30秒
+        Thread.sleep(30000);
+      build.getRandom(5);
+      build.getRandom(5);
+      build.getRandom(5);
+      build.getRandom(5);
+      build.getRandom(5);
+
+
+
+
+
+
+//
+//        AFHsmDevice build3 = new AFHsmDevice.Builder("192.168.90.40", 8008, "abcd1234").build();
+//        byte[] random3 = build3.getRandom(5);
+//        System.out.println("随机数:" + HexUtil.encodeHexStr(random3));
+
+
     }
 
 
@@ -190,7 +203,6 @@ class AFHsmDeviceTest {
         byte[] bytes5 = device.symmDecrypt(Algorithm.SGD_SM1_OFB, key, iv, bytes4);
         assert Arrays.equals(data, bytes5);
     }
-
 
 
     //DES

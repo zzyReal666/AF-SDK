@@ -1,5 +1,6 @@
 package com.af.nettyNew;
 
+import com.af.device.impl.AFHsmDevice;
 import com.af.netty.handler.MyDecoder;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -20,6 +21,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -104,8 +106,6 @@ public class NettyChannelPool {
     //endregion
 
 
-
-
     public NettyChannelPool(NettyClientChannels clientChannels) {
         this.channelQueue = new ConcurrentLinkedQueue<>();
         this.locks = new Object[channelCount];
@@ -142,6 +142,7 @@ public class NettyChannelPool {
         }
         return channel;
     }
+
     /**
      * 放回通道
      */
@@ -153,30 +154,48 @@ public class NettyChannelPool {
             }
         }
     }
+
     /**
-     * 连接到服务端  此方法只能获取到一个channel
+     * 连接到服务端  此方法只能获取到一个channel  自动重试3次
      *
      * @return channel
      */
-    public synchronized Channel connectToServer() throws InterruptedException {
-        if (retryCount <= 0) {
-            retryCount = 3;
+    public Channel connectToServer() throws InterruptedException {
+        //获取对象锁 从lock[]中获取锁
+        int index = (int) (Thread.currentThread().getId() % channelCount);
+        synchronized (locks[index]) {
+            AtomicInteger retryCount = new AtomicInteger(this.retryCount);
+            return connectToServer0(retryCount);
+        }
+    }
+
+    private Channel connectToServer0(AtomicInteger retryCount) throws InterruptedException {
+        if (retryCount.get() <= 0) {
             throw new RuntimeException("重试3次失败，连接服务端失败");
         }
         //连接服务端 添加监听器 重试机制
         ChannelFuture channelFuture = bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
-                logger.error("连接服务端失败，正在重试,剩余重试次数:{}", retryCount--);
-                future.channel().eventLoop().schedule(this::connectToServer, retryInterval, TimeUnit.MILLISECONDS);
+                //重试次数减一
+                retryCount.decrementAndGet();
+                logger.error("连接服务端失败，正在重试...,剩余重试次数:{}", retryCount);
             }
         });
-        Channel channel = channelFuture.sync().channel();
-        //为刚刚创建的channel，初始化channel属性
-        Attribute<Map<Channel, Object>> attribute = channel.attr(ChannelUtils.DATA_MAP_ATTRIBUTEKEY);
-        ConcurrentHashMap<Channel, Object> dataMap = new ConcurrentHashMap<>();
-        attribute.set(dataMap);
+        Channel channel = null;
+        try {
+            channel = channelFuture.sync().channel();  //阻塞等待连接成功
+            Attribute<Map<Channel, Object>> attribute = channel.attr(ChannelUtils.DATA_MAP_ATTRIBUTEKEY);
+            ConcurrentHashMap<Channel, Object> dataMap = new ConcurrentHashMap<>();
+            attribute.set(dataMap);
+        } catch (Exception e) {
+            Thread.sleep(retryInterval);
+            channel = connectToServer0(retryCount);
+
+        }
         return channel;
+
     }
+
 
     /**
      * 初始化 通道池获取通道
@@ -186,23 +205,6 @@ public class NettyChannelPool {
         initChannels();
     }
 
-    /**
-     * 初始化通道池
-     */
-    protected void initChannels() {
-        //初始化通道池
-        for (int i = 0; i < channelCount; i++) {
-            try {
-                Channel channel = connectToServer();
-                channelQueue.offer(channel);
-            } catch (InterruptedException e) {
-                logger.error("初始化通道池失败", e);
-            }
-        }
-        //队列输出channelId
-        logger.info("初始化通道池成功,共有通道数量:{}", channelQueue.size());
-        channelQueue.forEach(channel -> logger.info("channelId:{},remoteAddress:{},localAddress:{}", channel.id(), channel.remoteAddress(), channel.localAddress()));
-    }
     /**
      * 设置bootstrap
      */
@@ -224,6 +226,27 @@ public class NettyChannelPool {
                     }
                 });
     }
+
+    /**
+     * 初始化通道池
+     */
+    protected void initChannels() {
+        //初始化通道池
+        for (int i = 0; i < channelCount; i++) {
+            Channel channel = null;
+            try {
+                channel = connectToServer();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            channelQueue.offer(channel);
+        }
+        //队列输出channelId
+        logger.info("初始化通道池成功,共有通道数量:{}", channelQueue.size());
+        channelQueue.forEach(channel -> logger.info("channelId:{},remoteAddress:{},localAddress:{}", channel.id(), channel.remoteAddress(), channel.localAddress()));
+    }
+
+
     /**
      * 关闭通道池
      */
@@ -240,16 +263,18 @@ public class NettyChannelPool {
     }
 
     public void reconnect(Channel channel) {
+        //channelQueue 中删除 channel
+        channelQueue.remove(channel);
+        //attr中删除对应的map
+        channel.attr(ChannelUtils.DATA_MAP_ATTRIBUTEKEY).set(null);
+        //创建新的channel
+        Channel channelNew = null;
         try {
-            Channel channelNew = connectToServer();
-            //channelQueue 中删除 channel
-            channelQueue.remove(channel);
-            //attr中删除对应的map
-            channel.attr(ChannelUtils.DATA_MAP_ATTRIBUTEKEY).set(null);
-            //添加新的channel到队列
+            channelNew = connectToServer();
             channelQueue.offer(channelNew);
-        } catch (InterruptedException e) {
-            logger.error("重连失败", e);
+        } catch (Exception e) {
+            logger.error("重连失败,清除设备,{}", clientChannels.getAddr());
+            AFHsmDevice.close(clientChannels.getAddr());
         }
     }
 }

@@ -16,6 +16,8 @@ public class ChannelUtils {
     public static final AttributeKey<Map<Channel, Object>> DATA_MAP_ATTRIBUTEKEY = AttributeKey.valueOf("dataMap");
 
 
+
+
     public static <T> void putCallback2DataMap(Channel channel, int seq, T callback) {
         channel.attr(DATA_MAP_ATTRIBUTEKEY).get().put(channel, callback);
     }

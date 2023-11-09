@@ -219,7 +219,7 @@ public class NettyClientChannels implements NettyClient {
 
     @Override
     public String getAddr() {
-        return nettyChannelPool.getHost() + nettyChannelPool.getPort();
+        return nettyChannelPool.getHost() + ":" + nettyChannelPool.getPort();
     }
 
     //空实现

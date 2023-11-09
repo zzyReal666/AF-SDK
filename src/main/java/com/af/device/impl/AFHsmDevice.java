@@ -65,6 +65,7 @@ public class AFHsmDevice implements IAFHsmDevice {
         static final Map<String, AFHsmDevice> instanceMap = new HashMap<>();
     }
 
+
     /**
      * 建造者模式
      */
@@ -169,8 +170,9 @@ public class AFHsmDevice implements IAFHsmDevice {
         //endregion
         //region//======>build
         public AFHsmDevice build() {
-            if (InstanceHolder.instanceMap.containsKey(host + port)) {
-                return InstanceHolder.instanceMap.get(host + port);
+            if (InstanceHolder.instanceMap.containsKey(host + ":" + port)) {
+                logger.info("设备实例已经存在,地址为:{}", host + ":" + port);
+                return InstanceHolder.instanceMap.get(host + ":" + port);
             }
             NettyClientChannels client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
                     .timeout(connectTimeOut)
@@ -183,7 +185,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             AFHsmDevice hsmDevice = new AFHsmDevice();
             hsmDevice.setClient(client);
             hsmDevice.setCmd(new AFHSMCmd(client, hsmDevice.getAgKey()));
-            InstanceHolder.instanceMap.put(host + port, hsmDevice);
+            InstanceHolder.instanceMap.put(host + ":" + port, hsmDevice);
             if (isAgKey && hsmDevice.getAgKey() == null) {
                 hsmDevice.setAgKey();
             }
@@ -207,10 +209,20 @@ public class AFHsmDevice implements IAFHsmDevice {
         logger.info("协商密钥成功,密钥为:{}", HexUtil.encodeHexStr(agKey));
         return this;
     }
+
     @Override
     public void close() {
         InstanceHolder.instanceMap.remove(client.getAddr());
 
+    }
+
+    public static void close(String addr) {
+        logger.info("关闭设备:{}", addr);
+        InstanceHolder.instanceMap.remove(addr);
+    }
+
+    public static boolean containsKey(String addr) {
+        return InstanceHolder.instanceMap.containsKey(addr);
     }
     //endregion
 
@@ -239,11 +251,8 @@ public class AFHsmDevice implements IAFHsmDevice {
             logger.error("随机数长度不合法,长度范围为1-4096,当前长度为:{}", length);
             throw new AFCryptoException("随机数长度不合法,长度范围为1-4096,当前长度为:" + length);
         }
-
         return cmd.getRandom(length);
     }
-
-
 
 
     /**

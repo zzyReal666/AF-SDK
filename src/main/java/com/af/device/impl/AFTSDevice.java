@@ -125,8 +125,8 @@ public class AFTSDevice implements IAFTSDevice {
 
         public AFTSDevice build() {
 
-            if (SingletonHolder.INSTANCE.containsKey(host + port)) {
-                return SingletonHolder.INSTANCE.get(host + port);
+            if (SingletonHolder.INSTANCE.containsKey(host + ":" + port)) {
+                return SingletonHolder.INSTANCE.get(host + ":" + port);
             }
             AFTSDevice instance = new AFTSDevice();
             NettyClientChannels build = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
@@ -139,7 +139,7 @@ public class AFTSDevice implements IAFTSDevice {
                     .build();
             instance.setClient(build);
             instance.setCmd(new AFTSMCmd(build, instance.agKey));
-            SingletonHolder.INSTANCE.put(host + port, instance);
+            SingletonHolder.INSTANCE.put(host + ":" + port, instance);
             if (isAgKey && instance.getAgKey() == null) {
                 instance.setAgKey();
             }

@@ -1,7 +1,9 @@
 package com.af.nettyNew;
 
+import com.af.device.impl.AFHsmDevice;
 import com.af.utils.BytesOperate;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.slf4j.Logger;
@@ -39,18 +41,30 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         NettyClientChannels.CallbackService callbackService = new NettyClientChannels.CallbackService();
-        ChannelUtils.putCallback2DataMap(ctx.channel(), nettyChannelPool.getClientChannels().getTaskNo(), callbackService);
-        ctx.writeAndFlush(Unpooled.wrappedBuffer(nettyChannelPool.getClientChannels().getHeartBeat()));
+        NettyClientChannels clientChannels = nettyChannelPool.getClientChannels();
+        if (clientChannels != null) {
+            ChannelUtils.putCallback2DataMap(ctx.channel(), clientChannels.getTaskNo(), callbackService);
+            ctx.writeAndFlush(Unpooled.wrappedBuffer(clientChannels.getHeartBeat()));
+        }
     }
 
     /**
      * 断线
      */
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+    public void channelInactive(ChannelHandlerContext ctx) {
         logger.info("与服务器断开连接,连接地址:{},通道ID:{}", ctx.channel().remoteAddress(), ctx.channel().id());
-        if (nettyChannelPool.isAvailable()) {
-            nettyChannelPool.reconnect(ctx.channel());
+        Channel channel = ctx.channel();
+        //获取通道ip+port
+        String ipAndPort = channel.remoteAddress().toString();
+        //去除前面的/
+        ipAndPort = ipAndPort.substring(1);
+        System.out.println("ipAndPort:" + ipAndPort);
+        synchronized (NettyHandler.class) {
+            if (nettyChannelPool.isAvailable() && AFHsmDevice.containsKey(ipAndPort)) {
+                nettyChannelPool.reconnect(ctx.channel());
+            }
         }
+
     }
 }
