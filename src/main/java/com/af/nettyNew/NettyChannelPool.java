@@ -267,14 +267,25 @@ public class NettyChannelPool {
         channelQueue.remove(channel);
         //attr中删除对应的map
         channel.attr(ChannelUtils.DATA_MAP_ATTRIBUTEKEY).set(null);
-        //创建新的channel
-        Channel channelNew = null;
-        try {
-            channelNew = connectToServer();
-            channelQueue.offer(channelNew);
-        } catch (Exception e) {
-            logger.error("重连失败,清除设备,{}", clientChannels.getAddr());
-            AFHsmDevice.close(clientChannels.getAddr());
+        //获取ipAndPort
+        String ipAndPort = channel.remoteAddress().toString();
+        ipAndPort = ipAndPort.substring(1);
+        System.out.println("ipAndPort:" + ipAndPort);
+        synchronized (NettyChannelPool.class) {
+            if (!AFHsmDevice.containsKey(ipAndPort)) {
+                return;  //如果设备已经被删除，不再重连
+            }
+            //创建新的channel
+            Channel channelNew = null;
+            try {
+                channelNew = connectToServer();
+                channelQueue.offer(channelNew);
+            } catch (Exception e) {
+                logger.error("重连失败,清除设备,{}", clientChannels.getAddr());
+                AFHsmDevice.close(clientChannels.getAddr());
+            }
         }
+        AFHsmDevice.close(clientChannels.getAddr());
+
     }
 }

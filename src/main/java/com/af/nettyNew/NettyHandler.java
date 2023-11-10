@@ -55,16 +55,13 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) {
         logger.info("与服务器断开连接,连接地址:{},通道ID:{}", ctx.channel().remoteAddress(), ctx.channel().id());
         Channel channel = ctx.channel();
-        //获取通道ip+port
         String ipAndPort = channel.remoteAddress().toString();
-        //去除前面的/
         ipAndPort = ipAndPort.substring(1);
         System.out.println("ipAndPort:" + ipAndPort);
-        synchronized (NettyHandler.class) {
-            if (nettyChannelPool.isAvailable() && AFHsmDevice.containsKey(ipAndPort)) {
-                nettyChannelPool.reconnect(ctx.channel());
-            }
+        if (nettyChannelPool.isAvailable() && AFHsmDevice.containsKey(ipAndPort)) {
+//            nettyChannelPool.reconnect(ctx.channel());
+            AFHsmDevice.close(ipAndPort);
         }
-
     }
+
 }

@@ -60,8 +60,8 @@ class AFHsmDeviceTest {
     @Test
     void testDevice() throws AFCryptoException, IOException, InterruptedException {
         AFHsmDevice build = new AFHsmDevice.Builder("192.168.90.40", 8008, "abcd1234")
-                .responseTimeOut(100000)
-                .connectTimeOut(100000)
+                .responseTimeOut(10000)
+                .connectTimeOut(10000)
                 .build();
         byte[] random = build.getRandom(5);
         System.out.println("随机数:" + HexUtil.encodeHexStr(random));

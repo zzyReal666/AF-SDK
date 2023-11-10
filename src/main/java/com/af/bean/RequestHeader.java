@@ -53,11 +53,6 @@ public class RequestHeader {
     public RequestHeader(int length, int cmd) {
         this.length = length + HEADER_LENGTH;
         this.cmd = cmd;
-//        if (CmdConsts.CMD_LOGIN == cmd) {
-//            taskNO = 0;
-//        } else {
-//            taskNO = atomicInteger.incrementAndGet();
-//        }
     }
 
     /**

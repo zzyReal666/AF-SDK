@@ -186,8 +186,9 @@ public class AFHsmDevice implements IAFHsmDevice {
             hsmDevice.setClient(client);
             hsmDevice.setCmd(new AFHSMCmd(client, hsmDevice.getAgKey()));
             InstanceHolder.instanceMap.put(host + ":" + port, hsmDevice);
+            logger.info("设备实例创建成功,地址为:{}", host + ":" + port);
             if (isAgKey && hsmDevice.getAgKey() == null) {
-                hsmDevice.setAgKey();
+                hsmDevice.setAgKey();  //协商密钥
             }
             return hsmDevice;
         }
@@ -217,7 +218,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     }
 
     public static void close(String addr) {
-        logger.info("关闭设备:{}", addr);
+        logger.warn("设备关闭:{}", addr);
         InstanceHolder.instanceMap.remove(addr);
     }
 
