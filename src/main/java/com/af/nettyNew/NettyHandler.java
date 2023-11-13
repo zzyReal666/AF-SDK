@@ -1,6 +1,5 @@
 package com.af.nettyNew;
 
-import com.af.device.impl.AFHsmDevice;
 import com.af.utils.BytesOperate;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -53,15 +52,16 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        logger.info("与服务器断开连接,连接地址:{},通道ID:{}", ctx.channel().remoteAddress(), ctx.channel().id());
-        Channel channel = ctx.channel();
-        String ipAndPort = channel.remoteAddress().toString();
-        ipAndPort = ipAndPort.substring(1);
-        System.out.println("ipAndPort:" + ipAndPort);
-        if (nettyChannelPool.isAvailable() && AFHsmDevice.containsKey(ipAndPort)) {
-//            nettyChannelPool.reconnect(ctx.channel());
-            AFHsmDevice.close(ipAndPort);
+        if (!nettyChannelPool.isExceptionStatus()) {  //主动断开连接
+            logger.info("主动断开连接,连接地址:{},通道ID:{}", ctx.channel().remoteAddress(), ctx.channel().id());
+        } else {  //被动断开连接
+            logger.info("与服务器断开连接,连接地址:{},通道ID:{}", ctx.channel().remoteAddress(), ctx.channel().id());
+            Channel channel = ctx.channel();
+            String ipAndPort = channel.remoteAddress().toString();
+            ipAndPort = ipAndPort.substring(1);
+            System.out.println("ipAndPort:" + ipAndPort);
+            nettyChannelPool.reconnect(ctx.channel());
+//            AFHsmDevice.close(ipAndPort);
         }
     }
-
 }

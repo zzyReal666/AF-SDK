@@ -117,6 +117,11 @@ public class NettyClientChannels implements NettyClient {
      * 发送消息并且接收响应
      */
     public ResponseMessage send(RequestMessage requestMessage) {
+        //发送之前,检查连接状态
+        if (!nettyChannelPool.isAvailable()) {
+            nettyChannelPool.init();
+            //协商密钥
+        }
         requestMessage.setTaskNo(taskNo);
         logger.info(requestMessage.isEncrypt() ? "加密==>{}" : "==>{}", requestMessage);
         //开始时间

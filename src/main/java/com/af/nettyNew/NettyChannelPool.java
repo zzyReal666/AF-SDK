@@ -84,9 +84,14 @@ public class NettyChannelPool {
     private int channelCount = 10;
 
     /**
-     * 是否启用状态 默认启用  主动关闭后不再启用 netty异常处理不在启用
+     * 是否异常关闭状态,默认为true,调用close()方法后为false
      */
-    private boolean isAvailable = true;
+    private boolean isExceptionStatus = true;
+
+    /**
+     * 连接池是否可用 默认为false 初始化后为true 调用close()方法后为false 异常后为false
+     */
+    private boolean isAvailable = false;
 
     /**
      * 通道数组
@@ -203,6 +208,7 @@ public class NettyChannelPool {
     public void init() {
         setBootStrap();
         initChannels();
+        isAvailable = true;
     }
 
     /**
@@ -251,6 +257,9 @@ public class NettyChannelPool {
      * 关闭通道池
      */
     public void close() {
+        //标志是否异常关闭
+        isExceptionStatus = false;
+        //标志通道池不可用
         isAvailable = false;
         //关闭通道池
         for (Channel channel : channelQueue) {
@@ -262,6 +271,7 @@ public class NettyChannelPool {
         bootstrap.config().group().shutdownGracefully();
     }
 
+    //重连机制
     public void reconnect(Channel channel) {
         //channelQueue 中删除 channel
         channelQueue.remove(channel);
@@ -270,7 +280,9 @@ public class NettyChannelPool {
         //获取ipAndPort
         String ipAndPort = channel.remoteAddress().toString();
         ipAndPort = ipAndPort.substring(1);
-        System.out.println("ipAndPort:" + ipAndPort);
+        if (!AFHsmDevice.containsKey(ipAndPort)) {
+            return;  //如果设备已经被删除，不再重连
+        }
         synchronized (NettyChannelPool.class) {
             if (!AFHsmDevice.containsKey(ipAndPort)) {
                 return;  //如果设备已经被删除，不再重连
@@ -278,14 +290,15 @@ public class NettyChannelPool {
             //创建新的channel
             Channel channelNew = null;
             try {
-                channelNew = connectToServer();
-                channelQueue.offer(channelNew);
+                channelNew = connectToServer();  //连接服务端
+                channelQueue.offer(channelNew);  //放入队列
+                // 重新协商密钥  只执行一次
+                AFHsmDevice.getDevice(ipAndPort).setAgKey();
             } catch (Exception e) {
                 logger.error("重连失败,清除设备,{}", clientChannels.getAddr());
-                AFHsmDevice.close(clientChannels.getAddr());
+//                AFHsmDevice.close(clientChannels.getAddr());
+                isAvailable = false;
             }
         }
-        AFHsmDevice.close(clientChannels.getAddr());
-
     }
 }

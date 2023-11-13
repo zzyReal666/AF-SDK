@@ -63,6 +63,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -143,7 +144,7 @@ public class AFSVDevice implements IAFSVDevice {
 
     //静态内部类单例
     private static class SingletonHolder {
-        private static final Map<String, AFSVDevice> INSTANCEMAP = new HashMap<>();
+        private static final Map<String, AFSVDevice> INSTANCEMAP = new ConcurrentHashMap<>();
     }
 
 

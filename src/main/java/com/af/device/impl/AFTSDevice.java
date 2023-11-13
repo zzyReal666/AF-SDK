@@ -16,8 +16,8 @@ import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author zhangzhongyuan@szanfu.cn
@@ -37,7 +37,7 @@ public class AFTSDevice implements IAFTSDevice {
     }
     //静态内部类单例
     private static class SingletonHolder {
-        private static final Map<String, AFTSDevice> INSTANCE = new HashMap<>();
+        private static final Map<String, AFTSDevice> INSTANCE = new ConcurrentHashMap<>();
     }
     public static class Builder {
         //必要参数

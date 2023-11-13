@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -62,7 +63,7 @@ public class AFHsmDevice implements IAFHsmDevice {
     private AFHSMCmd cmd;
 
     private static final class InstanceHolder {
-        static final Map<String, AFHsmDevice> instanceMap = new HashMap<>();
+        static final Map<String, AFHsmDevice> instanceMap = new ConcurrentHashMap<>();
     }
 
 
@@ -199,6 +200,11 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     }
 
+    //重连
+    public void rebuild() {
+
+    }
+
     /**
      * 协商密钥
      *
@@ -224,6 +230,9 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     public static boolean containsKey(String addr) {
         return InstanceHolder.instanceMap.containsKey(addr);
+    }
+    public static AFHsmDevice getDevice(String addr) {
+        return AFHsmDevice.InstanceHolder.instanceMap.get(addr);
     }
     //endregion
 
