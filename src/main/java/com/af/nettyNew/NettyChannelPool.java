@@ -195,7 +195,6 @@ public class NettyChannelPool {
         } catch (Exception e) {
             Thread.sleep(retryInterval);
             channel = connectToServer0(retryCount);
-
         }
         return channel;
 
@@ -296,8 +295,7 @@ public class NettyChannelPool {
                 AFHsmDevice.getDevice(ipAndPort).setAgKey();
             } catch (Exception e) {
                 logger.error("重连失败,清除设备,{}", clientChannels.getAddr());
-//                AFHsmDevice.close(clientChannels.getAddr());
-                isAvailable = false;
+                AFHsmDevice.close(clientChannels.getAddr());
             }
         }
     }

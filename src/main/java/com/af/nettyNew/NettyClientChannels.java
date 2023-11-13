@@ -36,9 +36,11 @@ public class NettyClientChannels implements NettyClient {
 
     private byte[] heartBeat;
 
+
     //私有无参构造
     private NettyClientChannels() {
     }
+
 
     //region//建造者模式
 
@@ -118,10 +120,6 @@ public class NettyClientChannels implements NettyClient {
      */
     public ResponseMessage send(RequestMessage requestMessage) {
         //发送之前,检查连接状态
-        if (!nettyChannelPool.isAvailable()) {
-            nettyChannelPool.init();
-            //协商密钥
-        }
         requestMessage.setTaskNo(taskNo);
         logger.info(requestMessage.isEncrypt() ? "加密==>{}" : "==>{}", requestMessage);
         //开始时间

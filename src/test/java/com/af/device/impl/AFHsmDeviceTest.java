@@ -8,7 +8,6 @@ import com.af.crypto.key.sm2.SM2KeyPair;
 import com.af.crypto.key.sm2.SM2PublicKey;
 import com.af.crypto.key.symmetricKey.SessionKey;
 import com.af.exception.AFCryptoException;
-import com.af.netty.NettyClient;
 import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.agreementData.AgreementData;
@@ -18,7 +17,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,12 +34,14 @@ class AFHsmDeviceTest {
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-        device = new AFHsmDevice.Builder("192.168.90.182", 6007, "abcd1234")
-                .responseTimeOut(100000)
-                .connectTimeOut(10000)
-                .channelCount(16)
-                .managementPort(443)
-                .build();
+//        device = new AFHsmDevice.Builder("192.168.90.40", 8008, "abcd1234")
+//                .responseTimeOut(100000)
+//                .connectTimeOut(10000)
+//                .channelCount(16)
+//                .managementPort(443)
+//                .build();
+
+
 
 
 //        //获取私钥访问权限
@@ -51,40 +51,26 @@ class AFHsmDeviceTest {
     }
 
 
+
+
+
     @AfterAll
     static void tearDown() throws Exception {
-        logger.info("发送关闭连接请求");
-        NettyClient client = device.getClient();
-        System.out.println(client);
-        device.close(client);
-        logger.info("服务端已经关闭连接");
+//        logger.info("发送关闭连接请求");
+//        NettyClient client = device.getClient();
+//        System.out.println(client);
+//        device.close(client);
+//        logger.info("服务端已经关闭连接");
     }
 
 
     @Test
-    void testDevice() throws AFCryptoException, IOException, InterruptedException {
-        AFHsmDevice build = new AFHsmDevice.Builder("192.168.90.182", 6000, "abcd1234")
-                .responseTimeOut(10000)
-                .connectTimeOut(10000)
-                .build();
+    void testDevice() throws AFCryptoException {
+        AFHsmDevice build = new AFHsmDevice.Builder("192.168.90.182", 6000, "abcd1234").build();
+        AFHsmDevice build2 = new AFHsmDevice.Builder("192.168.90.182", 6005, "abcd1234").build();
+        byte[] random2 = build2.getRandom(5);
         byte[] random = build.getRandom(5);
-        System.out.println("随机数:" + HexUtil.encodeHexStr(random));
-
-        //等待30秒
-        Thread.sleep(30000);
-        build.getRandom(5);
-        build.getRandom(5);
-        build.getRandom(5);
-        build.getRandom(5);
-        build.getRandom(5);
-
-
-//
-//        AFHsmDevice build3 = new AFHsmDevice.Builder("192.168.90.40", 8008, "abcd1234").build();
-//        byte[] random3 = build3.getRandom(5);
-//        System.out.println("随机数:" + HexUtil.encodeHexStr(random3));
-
-
+        System.out.println(build.equals(build2));
     }
 
 
@@ -206,46 +192,44 @@ class AFHsmDeviceTest {
     }
 
 
+
     //DES
     @Test
-    void testDES() throws AFCryptoException {
+    void testDESECB() throws AFCryptoException {
         //SM1 SM4 16 | DES 8 | AES 16  |3DES 24  | AES192 24
         int keyLen = 8;
         byte[] key = RandomUtil.randomBytes(keyLen);
         byte[] iv = RandomUtil.randomBytes(keyLen);
 
-//        //ECB
-//        byte[] bytes = device.symmEncrypt(Algorithm.SGD_DES_ECB, key, null, data);
-//        byte[] bytes1 = device.symmDecrypt(Algorithm.SGD_DES_ECB, key, null, bytes);
-//        assert Arrays.equals(data, bytes1);
-//        System.out.println("DES ECB SUCCESS");
-//
-//        //CBC
-//        byte[] bytes2 = device.symmEncrypt(Algorithm.SGD_DES_CBC, key, iv, data);
-//        byte[] bytes3 = device.symmDecrypt(Algorithm.SGD_DES_CBC, key, iv, bytes2);
-//        assert Arrays.equals(data, bytes3);
-//        System.out.println("DES CBC SUCCESS");
+        //ECB
+        byte[] bytes = device.symmEncrypt(Algorithm.SGD_DES_ECB, key, null, data);
+        byte[] bytes1 = device.symmDecrypt(Algorithm.SGD_DES_ECB, key, null, bytes);
+        assert Arrays.equals(data, bytes1);
+        System.out.println("DES ECB SUCCESS");
+
+        //CBC
+        byte[] bytes2 = device.symmEncrypt(Algorithm.SGD_DES_CBC, key, iv, data);
+        byte[] bytes3 = device.symmDecrypt(Algorithm.SGD_DES_CBC, key, iv, bytes2);
+        assert Arrays.equals(data, bytes3);
+        System.out.println("DES CBC SUCCESS");
 
 //        //OFB
 //        byte[] bytes4 = device.symmEncrypt(Algorithm.SGD_DES_OFB, key, iv, data);
 //        byte[] bytes5 = device.symmDecrypt(Algorithm.SGD_DES_OFB, key, iv, bytes4);
 //        assert Arrays.equals(data, bytes5);
 //        System.out.println("DES OFB SUCCESS");
-//
+
 //        //CFB
 //        byte[] bytes6 = device.symmEncrypt(Algorithm.SGD_DES_CFB, key, iv, data);
 //        byte[] bytes7 = device.symmDecrypt(Algorithm.SGD_DES_CFB, key, iv, bytes6);
 //        assert Arrays.equals(data, bytes7);
 //        System.out.println("DES CFB SUCCESS");
-//
+
 //        //CTR
 //        byte[] bytes8 = device.symmEncrypt(Algorithm.SGD_DES_CTR, key, iv, data);
 //        byte[] bytes9 = device.symmDecrypt(Algorithm.SGD_DES_CTR, key, iv, bytes8);
 //        assert Arrays.equals(data, bytes9);
 //        System.out.println("DES CTR SUCCESS");
-        //MAC
-        byte[] bytes10 = device.mac(Algorithm.SGD_DES_MAC, key, iv, data);
-        System.out.println("DES MAC VALUE:" + HexUtil.encodeHexStr(bytes10));
 
     }
 
