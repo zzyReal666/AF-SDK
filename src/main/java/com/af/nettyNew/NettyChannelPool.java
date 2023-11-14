@@ -226,7 +226,7 @@ public class NettyChannelPool {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast(new MyDecoder());
-                        pipeline.addLast(new IdleStateHandler(0, 4, 0, TimeUnit.SECONDS));
+                        pipeline.addLast(new IdleStateHandler(0, 30, 0, TimeUnit.SECONDS));
                         pipeline.addLast(new NettyHandler(NettyChannelPool.this));
                     }
                 });
