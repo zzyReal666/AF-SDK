@@ -183,7 +183,7 @@ public class NettyChannelPool {
             if (!future.isSuccess()) {
                 //重试次数减一
                 retryCount.decrementAndGet();
-                logger.error("连接服务端失败，正在重试...,剩余重试次数:{}", retryCount);
+                logger.error("连接{}服务端失败，正在重试...,剩余重试次数:{}", host + ":" + port, retryCount);
             }
         });
         Channel channel = null;
