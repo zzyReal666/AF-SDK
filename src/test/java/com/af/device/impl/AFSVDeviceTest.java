@@ -57,14 +57,14 @@ class AFSVDeviceTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-//        device = new AFSVDevice.Builder("192.168.90.40", 8008, "abcd1234").build();
-//        device = new AFSVDevice.Builder("192.168.90.182", 6000, "abcd1234").build();
+//        instanceOfDevice = new AFSVDevice.Builder("192.168.90.40", 8008, "abcd1234").build();
+//        instanceOfDevice = new AFSVDevice.Builder("192.168.90.182", 6000, "abcd1234").build();
     }
 
     @AfterAll
     static void tearDown() throws Exception {
 //        logger.info("发送关闭连接请求");
-//        device.close(AFSVDevice.getClient());
+//        instanceOfDevice.close(AFSVDevice.getClient());
 //        logger.info("已经关闭连接");
     }
 
@@ -136,7 +136,7 @@ class AFSVDeviceTest {
 //        //base64编码
 //        byte[] encode = BytesOperate.base64EncodeData(decode);
 //        //证书中的公钥验签
-//        boolean b2 = device.sm2Verify(encode, data, bytes);
+//        boolean b2 = instanceOfDevice.sm2Verify(encode, data, bytes);
 //        assert b2;
 
 
@@ -157,7 +157,7 @@ class AFSVDeviceTest {
      */
     @Test
     void testClose() throws Exception {
-//        device.close(AFSVDevice.getClient());
+//        instanceOfDevice.close(AFSVDevice.getClient());
     }
 
 
@@ -212,15 +212,15 @@ class AFSVDeviceTest {
     @Test
     void testExportPublicKey() throws Exception {
 //        //SM2
-//        byte[] sm2EncryptPublicKey = device.getSM2EncryptPublicKey(1);
+//        byte[] sm2EncryptPublicKey = instanceOfDevice.getSM2EncryptPublicKey(1);
 //        System.out.println("SM2加密公钥:" + new String(sm2EncryptPublicKey));
-//        byte[] sm2SignPublicKey = device.getSM2SignPublicKey(1);
+//        byte[] sm2SignPublicKey = instanceOfDevice.getSM2SignPublicKey(1);
 //        System.out.println("SM2签名公钥:" + new String(sm2SignPublicKey));
 //
 //        //RSA
-//        byte[] rsaSignPublicKey = device.getRSASignPublicKey(1);
+//        byte[] rsaSignPublicKey = instanceOfDevice.getRSASignPublicKey(1);
 //        System.out.println("RSA签名公钥:" + new String(rsaSignPublicKey));
-//        byte[] rsaEncPublicKey = device.getRSAEncPublicKey(1);
+//        byte[] rsaEncPublicKey = instanceOfDevice.getRSAEncPublicKey(1);
 //        System.out.println("RSA加密公钥:" + new String(rsaEncPublicKey));
 
 //        String db = "AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArn/WpknD21f5d3OiSECti33kNhvLEg3f2GPwBNAfp2oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJRJp0AAlBnLp+27syoqXW9zIWaC+DR477xIcTvnSJXYAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsvfYeaKFjZlDFd8deeHGRV6DGkKD541V7N1i1cSm4+k=";
@@ -431,13 +431,13 @@ class AFSVDeviceTest {
         assert b1;
 
 //        //SM2 私钥签名 带z值
-//        byte[] bytes2 = device.sm2SignatureByPrivateKey(priKey, data);
-//        boolean b2 = device.sm2VerifyByCertificate(cert, data, bytes2);
+//        byte[] bytes2 = instanceOfDevice.sm2SignatureByPrivateKey(priKey, data);
+//        boolean b2 = instanceOfDevice.sm2VerifyByCertificate(cert, data, bytes2);
 //        assert b2;
 //
 //        //SM2 私钥签名 带证书
-//        byte[] bytes3 = device.sm2SignatureByCertificate(priKey, data, cert);
-//        boolean b3 = device.sm2VerifyByCertificate(cert, cert, data, bytes3);
+//        byte[] bytes3 = instanceOfDevice.sm2SignatureByCertificate(priKey, data, cert);
+//        boolean b3 = instanceOfDevice.sm2VerifyByCertificate(cert, cert, data, bytes3);
 //        assert b3;
 
     }
@@ -531,7 +531,7 @@ class AFSVDeviceTest {
     @Test
     void testTemp() throws Exception {
         //SM2 内部加解密 success
-//        device.getPrivateAccess(1, 3, "12345678");
+//        instanceOfDevice.getPrivateAccess(1, 3, "12345678");
         byte[] bytes = device.sm2Encrypt(1, data);
         byte[] bytes1 = device.sm2Decrypt(1, bytes);
         assert Arrays.equals(data, BytesOperate.base64DecodeData(bytes1));
@@ -584,11 +584,11 @@ class AFSVDeviceTest {
         assert Arrays.equals(data, decodeData3);
 
 //        //SM4 CBC 密钥句柄
-//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
-//        byte[] bytes2 = device.sm4HandleEncryptCBC(key2.getId(), iv, data);
-//        byte[] bytes3 = device.sm4HandleDecryptCBC(key2.getId(), iv, bytes2);
+//        SessionKey key2 = instanceOfDevice.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
+//        byte[] bytes2 = instanceOfDevice.sm4HandleEncryptCBC(key2.getId(), iv, data);
+//        byte[] bytes3 = instanceOfDevice.sm4HandleDecryptCBC(key2.getId(), iv, bytes2);
 //        //释放密钥句柄
-//        device.releaseSessionKey(key2.getId());
+//        instanceOfDevice.releaseSessionKey(key2.getId());
 //        assert Arrays.equals(data, bytes3);
     }
 
@@ -611,11 +611,11 @@ class AFSVDeviceTest {
         assert Arrays.equals(data, decodeData5);
 
 //        //SM1 ECB 密钥句柄
-//        SessionKey key3 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
-//        byte[] bytes4 = device.sm1HandleEncryptECB(key3.getId(), data);
-//        byte[] bytes5 = device.sm1HandleDecryptECB(key3.getId(), bytes4);
+//        SessionKey key3 = instanceOfDevice.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
+//        byte[] bytes4 = instanceOfDevice.sm1HandleEncryptECB(key3.getId(), data);
+//        byte[] bytes5 = instanceOfDevice.sm1HandleDecryptECB(key3.getId(), bytes4);
 //        //释放密钥句柄
-//        device.releaseSessionKey(key3.getId());
+//        instanceOfDevice.releaseSessionKey(key3.getId());
 //        assert Arrays.equals(data, bytes5);
 
 
@@ -630,11 +630,11 @@ class AFSVDeviceTest {
         assert Arrays.equals(data, decodeData7);
 
 //        //SM1 CBC 密钥句柄
-//        SessionKey key4 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
-//        byte[] bytes6 = device.sm1HandleEncryptCBC(key4.getId(), iv, data);
-//        byte[] bytes7 = device.sm1HandleDecryptCBC(key4.getId(), iv, bytes6);
+//        SessionKey key4 = instanceOfDevice.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
+//        byte[] bytes6 = instanceOfDevice.sm1HandleEncryptCBC(key4.getId(), iv, data);
+//        byte[] bytes7 = instanceOfDevice.sm1HandleDecryptCBC(key4.getId(), iv, bytes6);
 //        //释放密钥句柄
-//        device.releaseSessionKey(key4.getId());
+//        instanceOfDevice.releaseSessionKey(key4.getId());
 //        assert Arrays.equals(data, bytes7);
     }
 
@@ -667,11 +667,11 @@ class AFSVDeviceTest {
         }
 
 //        //SM4 ECB 密钥句柄
-//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
-//        List<byte[]> encodeList2 = device.sm4HandleBatchEncryptECB(key1.getId(), list);
-//        List<byte[]> decodeList2 = device.sm4HandleBatchDecryptECB(key1.getId(), encodeList2);
+//        SessionKey key1 = instanceOfDevice.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
+//        List<byte[]> encodeList2 = instanceOfDevice.sm4HandleBatchEncryptECB(key1.getId(), list);
+//        List<byte[]> decodeList2 = instanceOfDevice.sm4HandleBatchDecryptECB(key1.getId(), encodeList2);
 //        //释放密钥句柄
-//        device.releaseSessionKey(key1.getId());
+//        instanceOfDevice.releaseSessionKey(key1.getId());
 //        for (int i = 0; i < list.size(); i++) {
 //            assert Arrays.equals(list.get(i), decodeList2.get(i));
 //        }
@@ -691,11 +691,11 @@ class AFSVDeviceTest {
         }
 
 //        //SM4 CBC 密钥句柄
-//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
-//        List<byte[]> encodeList5 = device.sm4HandleBatchEncryptCBC(key2.getId(), iv, list);
-//        List<byte[]> decodeList5 = device.sm4HandleBatchDecryptCBC(key2.getId(), iv, encodeList5);
+//        SessionKey key2 = instanceOfDevice.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
+//        List<byte[]> encodeList5 = instanceOfDevice.sm4HandleBatchEncryptCBC(key2.getId(), iv, list);
+//        List<byte[]> decodeList5 = instanceOfDevice.sm4HandleBatchDecryptCBC(key2.getId(), iv, encodeList5);
 //        //释放密钥句柄
-//        device.releaseSessionKey(key2.getId());
+//        instanceOfDevice.releaseSessionKey(key2.getId());
 //        for (int i = 0; i < list.size(); i++) {
 //            assert Arrays.equals(list.get(i), decodeList5.get(i));
 //        }
@@ -731,11 +731,11 @@ class AFSVDeviceTest {
         }
 
 //        //SM1 ECB 密钥句柄
-//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
-//        List<byte[]> encodeList2 = device.sm1HandleBatchEncryptECB(key1.getId(), list);
-//        List<byte[]> decodeList2 = device.sm1HandleBatchDecryptECB(key1.getId(), encodeList2);
+//        SessionKey key1 = instanceOfDevice.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
+//        List<byte[]> encodeList2 = instanceOfDevice.sm1HandleBatchEncryptECB(key1.getId(), list);
+//        List<byte[]> decodeList2 = instanceOfDevice.sm1HandleBatchDecryptECB(key1.getId(), encodeList2);
 //        //释放密钥句柄
-//        device.releaseSessionKey(key1.getId());
+//        instanceOfDevice.releaseSessionKey(key1.getId());
 //        for (int i = 0; i < list.size(); i++) {
 //            assert Arrays.equals(list.get(i), decodeList2.get(i));
 //        }
@@ -755,11 +755,11 @@ class AFSVDeviceTest {
         }
 
 //        //SM1 CBC 密钥句柄
-//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
-//        List<byte[]> encodeList5 = device.sm1HandleBatchEncryptCBC(key2.getId(), iv, list);
-//        List<byte[]> decodeList5 = device.sm1HandleBatchDecryptCBC(key2.getId(), iv, encodeList5);
+//        SessionKey key2 = instanceOfDevice.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
+//        List<byte[]> encodeList5 = instanceOfDevice.sm1HandleBatchEncryptCBC(key2.getId(), iv, list);
+//        List<byte[]> decodeList5 = instanceOfDevice.sm1HandleBatchDecryptCBC(key2.getId(), iv, encodeList5);
 //        //释放密钥句柄
-//        device.releaseSessionKey(key2.getId());
+//        instanceOfDevice.releaseSessionKey(key2.getId());
 //        for (int i = 0; i < list.size(); i++) {
 //            assert Arrays.equals(list.get(i), decodeList5.get(i));
 //        }
@@ -780,10 +780,10 @@ class AFSVDeviceTest {
         byte[] mac1 = device.sm4ExternalMac(key, iv, data);
 
 //        //SM4 密钥句柄
-//        SessionKey key1 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
-//        byte[] mac2 = device.sm4HandleMac(key1.getId(), iv, data);
+//        SessionKey key1 = instanceOfDevice.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
+//        byte[] mac2 = instanceOfDevice.sm4HandleMac(key1.getId(), iv, data);
 //        //释放密钥句柄
-//        device.releaseSessionKey(key1.getId());
+//        instanceOfDevice.releaseSessionKey(key1.getId());
 
         //SM1 内部
         byte[] mac3 = device.sm1InternalMac(1, iv, data);
@@ -792,8 +792,8 @@ class AFSVDeviceTest {
         byte[] mac4 = device.sm1ExternalMac(key, iv, data);
 
 //        //SM1 密钥句柄
-//        SessionKey key2 = device.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
-//        byte[] mac5 = device.sm1HandleMac(key2.getId(), iv, data);
+//        SessionKey key2 = instanceOfDevice.generateSessionKeyBySym(Algorithm.SGD_SM4_ECB, 1, 16);
+//        byte[] mac5 = instanceOfDevice.sm1HandleMac(key2.getId(), iv, data);
 //        //释放密钥句柄
 
     }
@@ -900,7 +900,7 @@ class AFSVDeviceTest {
     void testVerifyCert() throws Exception {
         int i = device.validateCertificate(userCert);
         assert i == 0;
-//        device.isCertificateRevoked(cert);
+//        instanceOfDevice.isCertificateRevoked(cert);
     }
 
     //验证证书有效性 ignore
@@ -983,7 +983,7 @@ class AFSVDeviceTest {
             System.out.println(new String(certInfo));
         }
 
-//        byte[] certInfo = device.getCertInfo(cert, 8);
+//        byte[] certInfo = instanceOfDevice.getCertInfo(cert, 8);
 //        SM2PublicKey sm2PublicKey = new SM2PublicKey(certInfo);
 //        System.out.println(sm2PublicKey);
     }
@@ -1265,7 +1265,7 @@ class AFSVDeviceTest {
 
         byte[] bytes1 = device.sm2SignatureByCertificate(bytes2, "af/密码云平台测试".getBytes(StandardCharsets.UTF_8), certStr.getBytes(StandardCharsets.UTF_8));
 
-//        boolean b2 = device.sm2VerifyByCertificate(certStr.getBytes(), "af/密码云平台测试".getBytes(StandardCharsets.UTF_8), bytes1);
+//        boolean b2 = instanceOfDevice.sm2VerifyByCertificate(certStr.getBytes(), "af/密码云平台测试".getBytes(StandardCharsets.UTF_8), bytes1);
 //        System.out.println(b2);
 
         SM2PublicKey sm2PublicKey = AFSVDevice.parseSM2PublicKeyFromCert(certStr.getBytes());
@@ -1321,9 +1321,9 @@ class AFSVDeviceTest {
 //        byte[] bytes2 = BytesOperate.base64EncodeData(encoded);
 //
 //
-//        byte[] bytes1 = device.sm2SignFileByCertificate(bytes2, "C:\\Users\\zzype\\Desktop\\1.txt".getBytes(), certStr.getBytes());
+//        byte[] bytes1 = instanceOfDevice.sm2SignFileByCertificate(bytes2, "C:\\Users\\zzype\\Desktop\\1.txt".getBytes(), certStr.getBytes());
 //
-//        boolean b = device.sm2VerifyFileByCertificate(certStr.getBytes(), "C:\\Users\\zzype\\Desktop\\1.txt".getBytes(), bytes1);
+//        boolean b = instanceOfDevice.sm2VerifyFileByCertificate(certStr.getBytes(), "C:\\Users\\zzype\\Desktop\\1.txt".getBytes(), bytes1);
 //        System.out.println();
 //
 //

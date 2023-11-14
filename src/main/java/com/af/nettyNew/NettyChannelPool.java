@@ -1,6 +1,6 @@
 package com.af.nettyNew;
 
-import com.af.device.impl.AFHsmDevice;
+import com.af.device.IAFDevice;
 import com.af.netty.handler.MyDecoder;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -35,7 +35,7 @@ public class NettyChannelPool {
     //region//======>属性
     private static final Logger logger = LoggerFactory.getLogger(NettyChannelPool.class);
 
-    private NettyClientChannels clientChannels;
+    private NettyClientChannels instanceOfClient;
 
     private boolean loginStatus = false;
 
@@ -276,26 +276,15 @@ public class NettyChannelPool {
         channelQueue.remove(channel);
         //attr中删除对应的map
         channel.attr(ChannelUtils.DATA_MAP_ATTRIBUTEKEY).set(null);
-        //获取ipAndPort
-        String ipAndPort = channel.remoteAddress().toString();
-        ipAndPort = ipAndPort.substring(1);
-        if (!AFHsmDevice.containsKey(ipAndPort)) {
-            return;  //如果设备已经被删除，不再重连
-        }
-        synchronized (NettyChannelPool.class) {
-            if (!AFHsmDevice.containsKey(ipAndPort)) {
-                return;  //如果设备已经被删除，不再重连
-            }
-            //创建新的channel
-            Channel channelNew = null;
+        if (channelQueue.isEmpty()) {
+            IAFDevice device = instanceOfClient.getInstanceOfDevice();
+            device.close();  //从map删除设备
             try {
-                channelNew = connectToServer();  //连接服务端
-                channelQueue.offer(channelNew);  //放入队列
-                // 重新协商密钥  只执行一次
-                AFHsmDevice.getDevice(ipAndPort).setAgKey();
+                device.rebuild();
             } catch (Exception e) {
-                logger.error("重连失败,清除设备,{}", clientChannels.getAddr());
-                AFHsmDevice.close(clientChannels.getAddr());
+                logger.error("重连失败,清除设备,{}", instanceOfClient.getAddr());
+                device.close();  //从map删除设备
+                isAvailable = false;  //通道池不可用
             }
         }
     }

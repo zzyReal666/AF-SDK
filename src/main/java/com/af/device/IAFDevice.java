@@ -57,6 +57,11 @@ public interface IAFDevice {
 
 
     void close();
+
+    IAFDevice get(String addr);
+
+    IAFDevice rebuild();
+
     /**
      * 密钥协商
      */
@@ -129,8 +134,7 @@ public interface IAFDevice {
      */
     default void close(NettyClient client) {
         RequestMessage req = new RequestMessage(CMDCode.CMD_CLOSE).setIsEncrypt(false);
-        ResponseMessage send = null;
-        send = client.send(req);
+        ResponseMessage send = client.send(req);
         if (send == null) {
             throw new DeviceException("关闭连接失败，响应为空");
         }

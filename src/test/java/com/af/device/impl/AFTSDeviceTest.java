@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 
 class AFTSDeviceTest {
-//        static AFTSDevice device = AFDeviceFactory.getAFTSDevice("192.168.10.40", 8008, "abcd1234");
+//        static AFTSDevice instanceOfDevice = AFDeviceFactory.getAFTSDevice("192.168.10.40", 8008, "abcd1234");
     static AFTSDevice device = new AFTSDevice.Builder("192.168.90.40", 8008, "abcd1234")
         .responseTimeOut(100000)
         .build();

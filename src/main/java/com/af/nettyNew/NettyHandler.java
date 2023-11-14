@@ -40,7 +40,7 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         NettyClientChannels.CallbackService callbackService = new NettyClientChannels.CallbackService();
-        NettyClientChannels clientChannels = nettyChannelPool.getClientChannels();
+        NettyClientChannels clientChannels = nettyChannelPool.getInstanceOfClient();
         if (clientChannels != null) {
             ChannelUtils.putCallback2DataMap(ctx.channel(), clientChannels.getTaskNo(), callbackService);
             ctx.writeAndFlush(Unpooled.wrappedBuffer(clientChannels.getHeartBeat()));

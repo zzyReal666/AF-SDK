@@ -32,13 +32,18 @@ public class AFTSDevice implements IAFTSDevice {
     private NettyClient client = null;
     private byte[] agKey;
     private AFTSMCmd cmd;
+    private Builder builder;
+
     //私有化构造方法
     private AFTSDevice() {
     }
     //静态内部类单例
-    private static class SingletonHolder {
-        private static final Map<String, AFTSDevice> INSTANCE = new ConcurrentHashMap<>();
-    }
+
+
+    //享元模式
+    public static final Map<String, AFTSDevice> INSTANCE_MAP = new ConcurrentHashMap<>();
+
+
     public static class Builder {
         //必要参数
         private final String host;
@@ -125,8 +130,8 @@ public class AFTSDevice implements IAFTSDevice {
 
         public AFTSDevice build() {
 
-            if (SingletonHolder.INSTANCE.containsKey(host + ":" + port)) {
-                return SingletonHolder.INSTANCE.get(host + ":" + port);
+            if (INSTANCE_MAP.containsKey(host + ":" + port)) {
+                return INSTANCE_MAP.get(host + ":" + port);
             }
             AFTSDevice instance = new AFTSDevice();
             NettyClientChannels build = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
@@ -138,8 +143,9 @@ public class AFTSDevice implements IAFTSDevice {
                     .channelCount(channelCount)
                     .build();
             instance.setClient(build);
+            instance.setBuilder(this);
             instance.setCmd(new AFTSMCmd(build, instance.agKey));
-            SingletonHolder.INSTANCE.put(host + ":" + port, instance);
+            INSTANCE_MAP.put(host + ":" + port, instance);
             if (isAgKey && instance.getAgKey() == null) {
                 instance.setAgKey();
             }
@@ -176,7 +182,20 @@ public class AFTSDevice implements IAFTSDevice {
 
     @Override
     public void close() {
-        SingletonHolder.INSTANCE.remove(client.getAddr());
+        INSTANCE_MAP.remove(client.getAddr());
+    }
+
+    @Override
+    public AFTSDevice get(String addr) {
+        return INSTANCE_MAP.get(addr);
+    }
+
+    @Override
+    public AFTSDevice rebuild() {
+        NettyClient clientOld = client;
+        AFTSDevice device = builder.build();
+        close(clientOld);
+        return device;
     }
 
 

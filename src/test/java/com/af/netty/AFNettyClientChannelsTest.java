@@ -52,7 +52,7 @@ class AFNettyClientChannelsTest {
         System.out.println(new ResponseMessage(send));
 
 //        System.out.println("=====================================");
-//        AFNettyClient client2 = AFNettyClient.getInstance("192.168.1.224", 8008,"abcd1234");
+//        AFNettyClient client2 = AFNettyClient.getInstanceOfDevice("192.168.1.224", 8008,"abcd1234");
 //        ByteArrayOutputStream out2 = new ByteArrayOutputStream();
 //        out2.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(16).array());
 //

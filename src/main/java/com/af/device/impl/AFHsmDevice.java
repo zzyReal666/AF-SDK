@@ -4,7 +4,10 @@ import cn.hutool.core.util.HexUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.af.bean.RequestMessage;
+import com.af.bean.ResponseMessage;
 import com.af.constant.Algorithm;
+import com.af.constant.CMDCode;
 import com.af.constant.ConstantNumber;
 import com.af.constant.ModulusLength;
 import com.af.crypto.algorithm.sm3.SM3;
@@ -18,6 +21,7 @@ import com.af.device.IAFDevice;
 import com.af.device.IAFHsmDevice;
 import com.af.device.cmd.AFHSMCmd;
 import com.af.exception.AFCryptoException;
+import com.af.exception.DeviceException;
 import com.af.netty.NettyClient;
 import com.af.nettyNew.NettyClientChannels;
 import com.af.struct.impl.RSA.RSAKeyPair;
@@ -61,10 +65,8 @@ public class AFHsmDevice implements IAFHsmDevice {
     private NettyClient client;  //netty客户端
     private SM3 sm3 = new SM3Impl();  //国密SM3算法
     private AFHSMCmd cmd;
-
-    private static final class InstanceHolder {
-        static final Map<String, AFHsmDevice> instanceMap = new ConcurrentHashMap<>();
-    }
+    private Builder builder;
+    public static final Map<String, AFHsmDevice> INSTANCE_MAP = new ConcurrentHashMap<>();
 
 
     /**
@@ -171,9 +173,9 @@ public class AFHsmDevice implements IAFHsmDevice {
         //endregion
         //region//======>build
         public AFHsmDevice build() {
-            if (InstanceHolder.instanceMap.containsKey(host + ":" + port)) {
+            if (INSTANCE_MAP.containsKey(host + ":" + port)) {
                 logger.info("设备实例已经存在,地址为:{}", host + ":" + port);
-                return InstanceHolder.instanceMap.get(host + ":" + port);
+                return INSTANCE_MAP.get(host + ":" + port);
             }
             NettyClientChannels client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
                     .timeout(connectTimeOut)
@@ -184,9 +186,11 @@ public class AFHsmDevice implements IAFHsmDevice {
                     .channelCount(channelCount)
                     .build();
             AFHsmDevice hsmDevice = new AFHsmDevice();
+            hsmDevice.setBuilder(this);
             hsmDevice.setClient(client);
             hsmDevice.setCmd(new AFHSMCmd(client, hsmDevice.getAgKey()));
-            InstanceHolder.instanceMap.put(host + ":" + port, hsmDevice);
+            INSTANCE_MAP.put(host + ":" + port, hsmDevice);
+            client.setInstanceOfDevice(hsmDevice);
             logger.info("设备实例创建成功,地址为:{}", host + ":" + port);
             if (isAgKey && hsmDevice.getAgKey() == null) {
                 hsmDevice.setAgKey();  //协商密钥
@@ -194,15 +198,64 @@ public class AFHsmDevice implements IAFHsmDevice {
             return hsmDevice;
         }
 
-
+        public AFHsmDevice rebuild(AFHsmDevice hsmDevice) {
+            if (INSTANCE_MAP.containsKey(host + ":" + port)) {
+                logger.info("设备实例已经存在,地址为:{}", host + ":" + port);
+                return INSTANCE_MAP.get(host + ":" + port);
+            }
+            NettyClientChannels client = new NettyClientChannels.Builder(host, port, passwd, IAFDevice.generateTaskNo())
+                    .timeout(connectTimeOut)
+                    .responseTimeout(responseTimeOut)
+                    .retryCount(retryCount)
+                    .retryInterval(retryInterval)
+                    .bufferSize(bufferSize)
+                    .channelCount(channelCount)
+                    .build();
+            //获取device对象
+            hsmDevice.setBuilder(this);
+            hsmDevice.setClient(client);
+            hsmDevice.setCmd(new AFHSMCmd(client, hsmDevice.getAgKey()));
+            INSTANCE_MAP.put(host + ":" + port, hsmDevice);
+            client.setInstanceOfDevice(hsmDevice);
+            logger.info("设备实例创建成功,地址为:{}", host + ":" + port);
+            if (isAgKey && hsmDevice.getAgKey() == null) {
+                hsmDevice.setAgKey();  //协商密钥
+            }
+            return hsmDevice;
+        }
         //endregion
-
-
     }
 
-    //重连
-    public void rebuild() {
 
+    //重连
+    public AFHsmDevice rebuild() {
+        //保存旧的client
+        int taskNo = ((NettyClientChannels) client).getTaskNo();
+
+        //协商密钥置空
+        this.setAgKey(null);
+
+        //重新连接
+        AFHsmDevice device = builder.rebuild(this);
+
+        //使用新的client发送上次连接的关闭信息
+        NettyClientChannels clientNew = (NettyClientChannels) device.getClient();
+        NettyClientChannels clone = clientNew.clone();
+        clone.setTaskNo(taskNo);
+        logger.info("发送关闭连接请求");
+        try {
+            RequestMessage req = new RequestMessage(CMDCode.CMD_CLOSE).setIsEncrypt(false);
+            ResponseMessage send = clone.send(req);
+            if (send == null) {
+                throw new DeviceException("关闭连接失败，响应为空");
+            }
+            if (send.getHeader().getErrorCode() != 0) {
+                throw new DeviceException("关闭连接失败，错误码：" + send.getHeader().getErrorCode() + ",错误信息：" + send.getHeader().getErrorInfo());
+            }
+        }catch (Exception e){
+            logger.error("重连后发送上次异常关闭连接请求失败");
+        }
+        return device;
     }
 
     /**
@@ -219,20 +272,12 @@ public class AFHsmDevice implements IAFHsmDevice {
 
     @Override
     public void close() {
-        InstanceHolder.instanceMap.remove(client.getAddr());
-
+        INSTANCE_MAP.remove(client.getAddr());
     }
 
-    public static void close(String addr) {
-        logger.warn("设备关闭:{}", addr);
-        InstanceHolder.instanceMap.remove(addr);
-    }
-
-    public static boolean containsKey(String addr) {
-        return InstanceHolder.instanceMap.containsKey(addr);
-    }
-    public static AFHsmDevice getDevice(String addr) {
-        return AFHsmDevice.InstanceHolder.instanceMap.get(addr);
+    @Override
+    public AFHsmDevice get(String addr) {
+        return INSTANCE_MAP.get(addr);
     }
     //endregion
 

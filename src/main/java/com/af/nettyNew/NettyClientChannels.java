@@ -4,6 +4,7 @@ import com.af.bean.RequestMessage;
 import com.af.bean.ResponseMessage;
 import com.af.constant.CMDCode;
 import com.af.constant.SpecialRequestsType;
+import com.af.device.IAFDevice;
 import com.af.netty.NettyClient;
 import com.af.utils.BytesBuffer;
 import io.netty.buffer.ByteBuf;
@@ -26,7 +27,7 @@ import org.slf4j.LoggerFactory;
 @Setter
 @ToString
 @EqualsAndHashCode
-public class NettyClientChannels implements NettyClient {
+public class NettyClientChannels implements NettyClient ,Cloneable{
 
     private static final Logger logger = LoggerFactory.getLogger(NettyClientChannels.class);
 
@@ -36,9 +37,22 @@ public class NettyClientChannels implements NettyClient {
 
     private byte[] heartBeat;
 
+    private IAFDevice instanceOfDevice;
+
 
     //私有无参构造
     private NettyClientChannels() {
+    }
+
+    @Override
+    public NettyClientChannels clone() {
+        try {
+            NettyClientChannels clone = (NettyClientChannels) super.clone();
+            // TODO: copy mutable state here, so the clone can't change the internals of the original
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 
 
@@ -90,11 +104,10 @@ public class NettyClientChannels implements NettyClient {
             instance.nettyChannelPool.setChannelCount(channelCount);
             return this;
         }
-
         public NettyClientChannels build() {
             instance.connect();
             instance.login();
-            instance.nettyChannelPool.setClientChannels(instance);
+            instance.nettyChannelPool.setInstanceOfClient(instance);
             return instance;
         }
 
@@ -120,6 +133,7 @@ public class NettyClientChannels implements NettyClient {
      */
     public ResponseMessage send(RequestMessage requestMessage) {
         //发送之前,检查连接状态
+
         requestMessage.setTaskNo(taskNo);
         logger.info(requestMessage.isEncrypt() ? "加密==>{}" : "==>{}", requestMessage);
         //开始时间
@@ -142,6 +156,10 @@ public class NettyClientChannels implements NettyClient {
         Channel channel;
         try {
             channel = nettyChannelPool.syncGetChannel();
+            if (channel == null) {
+                logger.error("获取通道失败,当前设备连接数为0,正在重新连接");
+                instanceOfDevice.rebuild();
+            }
         } catch (InterruptedException e) {
             logger.error("获取通道失败");
             throw new RuntimeException(e);
