@@ -18,7 +18,7 @@ import lombok.Setter;
 public class SM2PublicKey implements Key {
 
     private int length;                //x和y的长度 256/512 位
-    private int bit = 256;        //模长 有效的位数(256意味着如果x和y是64字节,只有后32字节有用)
+    private  int bit = 256;        //模长 有效的位数(256意味着如果x和y是64字节,只有后32字节有用)
     private byte[] x = new byte[64];   //公钥x
     private byte[] y = new byte[64];   //公钥y
 
@@ -45,7 +45,7 @@ public class SM2PublicKey implements Key {
         String nl = System.getProperty("line.separator");
         builder.append("    |    project    |   value  ").append(nl);
         builder.append("   _|_______________|______________________________________________________").append(nl);
-        builder.append("   1| bits          | ").append(this.length).append(nl);
+        builder.append("   1| bits          | ").append(this.bit).append(nl);
         builder.append("   2| x             | ").append(BytesOperate.bytesToHexString(this.x)).append(nl);
         builder.append("   4| y             | ").append(BytesOperate.bytesToHexString(this.y)).append(nl);
         return builder.toString();

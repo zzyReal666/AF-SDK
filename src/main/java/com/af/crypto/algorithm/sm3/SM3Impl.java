@@ -13,10 +13,6 @@ import java.nio.ByteOrder;
  */
 public class SM3Impl implements SM3 {
 
-
-
-
-
     /**
      * SM3 hash
      *

@@ -252,7 +252,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             if (send.getHeader().getErrorCode() != 0) {
                 throw new DeviceException("关闭连接失败，错误码：" + send.getHeader().getErrorCode() + ",错误信息：" + send.getHeader().getErrorInfo());
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.error("重连后发送上次异常关闭连接请求失败");
         }
         return device;
@@ -929,7 +929,6 @@ public class AFHsmDevice implements IAFHsmDevice {
         return cmd.sm2Decrypt(-1, prvKey.encode(), cipher);
     }
 
-
     /**
      * SM2 内部密钥 签名运算 私钥签名
      *
@@ -949,8 +948,30 @@ public class AFHsmDevice implements IAFHsmDevice {
         }
         //SM3 摘要
         byte[] digest = new cn.hutool.crypto.digest.SM3().digest(data);
-//        //获取私钥访问权限
-//        getPrivateKeyAccessRight(index, 3, "12345678");
+        //签名
+        return cmd.sm2Sign(index, null, digest);
+    }
+
+    /**
+     * SM2 内部密钥 签名运算 私钥签名
+     * 带Z值的签名
+     *
+     * @param index 密钥索引
+     * @param data  原始数据
+     */
+    public byte[] sm2InternalSignWithZ(int index, byte[] data) throws AFCryptoException {
+        //参数检查
+        if (index < 0) {
+            logger.error("SM2 内部密钥签名，索引不能小于0,当前索引：{}", index);
+            throw new AFCryptoException("SM2 内部密钥签名，索引不能小于0,当前索引：" + index);
+        }
+        if (data == null || data.length == 0) {
+            logger.error("SM2 内部密钥签名，签名数据不能为空");
+            throw new AFCryptoException("SM2 内部密钥签名，签名数据不能为空");
+
+        }
+        SM2PublicKey sm2SignPublicKey = getSM2SignPublicKey(1).to256();
+        byte[] digest = sm3.SM3HashWithPublicKey256(data, sm2SignPublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
         //签名
         return cmd.sm2Sign(index, null, digest);
     }
@@ -1921,7 +1942,8 @@ public class AFHsmDevice implements IAFHsmDevice {
     /**
      * 批量对称加密 通用
      */
-    public List<byte[]> batchSymmEncrypt(Algorithm algorithm, byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> batchSymmEncrypt(Algorithm algorithm, byte[] key, byte[] iv, List<byte[]> plainList) throws
+            AFCryptoException {
         //region//======>参数检查
         if (algorithm == null) {
             logger.error("对称批量加密失败,算法标识不能为空");
@@ -2030,7 +2052,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public List<byte[]> sm4ExternalBatchEncryptECB(byte[] keyIndex, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm4ExternalBatchEncryptECB(byte[] keyIndex, List<byte[]> plainList) throws
+            AFCryptoException {
         //参数检查
         if (keyIndex == null || keyIndex.length == 0) {
             logger.error("SM4 批量加密，索引不能为空");
@@ -2134,7 +2157,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public List<byte[]> sm4InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm4InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws
+            AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 批量加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2190,7 +2214,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public List<byte[]> sm4ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm4ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws
+            AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM4 批量加密，key不能为空，且长度必须为16");
@@ -2246,7 +2271,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public List<byte[]> sm4HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm4HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws
+            AFCryptoException {
 
         //参数检查
         if (iv == null || iv.length != 16) {
@@ -2450,7 +2476,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param iv        初始向量
      * @param plainList 明文列表
      */
-    public List<byte[]> sm1InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm1InternalBatchEncryptCBC(int keyIndex, byte[] iv, List<byte[]> plainList) throws
+            AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量加密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2506,7 +2533,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public List<byte[]> sm1ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm1ExternalBatchEncryptCBC(byte[] key, byte[] iv, List<byte[]> plainList) throws
+            AFCryptoException {
         //参数检查
         if (null == key || key.length == 0) {
             logger.error("SM1 批量加密，外部密钥不能为空");
@@ -2562,7 +2590,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param plainList 明文列表
      * @return 密文列表
      */
-    public List<byte[]> sm1HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> sm1HandleBatchEncryptCBC(int keyHandle, byte[] iv, List<byte[]> plainList) throws
+            AFCryptoException {
         //参数检查
         if (null == iv || iv.length == 0) {
             logger.error("SM1 批量加密，iv不能为空");
@@ -2612,7 +2641,8 @@ public class AFHsmDevice implements IAFHsmDevice {
     /**
      * 批量对称解密 通用
      */
-    public List<byte[]> batchSymmDecrypt(Algorithm algorithm, byte[] key, byte[] iv, List<byte[]> plainList) throws AFCryptoException {
+    public List<byte[]> batchSymmDecrypt(Algorithm algorithm, byte[] key, byte[] iv, List<byte[]> plainList) throws
+            AFCryptoException {
         //region//======>参数检查
         if (algorithm == null) {
             logger.error("批量解密，算法不能为空");
@@ -2803,7 +2833,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param iv         初始向量
      * @param cipherList 密文列表
      */
-    public List<byte[]> sm4InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm4InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws
+            AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM4 批量解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -2856,7 +2887,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public List<byte[]> sm4ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm4ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws
+            AFCryptoException {
         //参数检查
         if (key == null || key.length != 16) {
             logger.error("SM4 批量解密，密钥长度必须为16");
@@ -2909,7 +2941,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public List<byte[]> sm4HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm4HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws
+            AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length != 16) {
@@ -3100,7 +3133,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public List<byte[]> sm1InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm1InternalBatchDecryptCBC(int keyIndex, byte[] iv, List<byte[]> cipherList) throws
+            AFCryptoException {
         //参数检查
         if (keyIndex < 0) {
             logger.error("SM1 批量解密，索引不能小于0,当前索引：{}", keyIndex);
@@ -3153,7 +3187,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public List<byte[]> sm1ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm1ExternalBatchDecryptCBC(byte[] key, byte[] iv, List<byte[]> cipherList) throws
+            AFCryptoException {
 
         //参数检查
         if (key == null || key.length != 16) {
@@ -3207,7 +3242,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param cipherList 密文列表
      * @return 明文列表
      */
-    public List<byte[]> sm1HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws AFCryptoException {
+    public List<byte[]> sm1HandleBatchDecryptCBC(int keyHandle, byte[] iv, List<byte[]> cipherList) throws
+            AFCryptoException {
         //参数检查
 
         if (iv == null || iv.length != 16) {
@@ -3697,7 +3733,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      * @param encCert   加密证书
      * @param encPriKey 加密密钥
      */
-    public void importCertByIndex(int keyIndex, String signCert, String encCert, String encPriKey) throws AFCryptoException {
+    public void importCertByIndex(int keyIndex, String signCert, String encCert, String encPriKey) throws
+            AFCryptoException {
         // 获取服务器地址和端口
         String ip = "";
         int port = AFHsmDevice.Builder.managementPort;

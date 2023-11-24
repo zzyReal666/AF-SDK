@@ -2,6 +2,8 @@ package com.af.device.impl;
 
 import cn.hutool.core.util.HexUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.crypto.ECKeyUtil;
+import cn.hutool.crypto.SmUtil;
 import com.af.constant.Algorithm;
 import com.af.constant.ModulusLength;
 import com.af.crypto.key.sm2.SM2KeyPair;
@@ -12,6 +14,10 @@ import com.af.struct.impl.RSA.RSAKeyPair;
 import com.af.struct.impl.RSA.RSAPubKey;
 import com.af.struct.impl.agreementData.AgreementData;
 import com.af.struct.signAndVerify.CsrRequest;
+import com.af.utils.Sm2Util;
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.params.ParametersWithRandom;
+import org.bouncycastle.crypto.signers.SM2Signer;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,24 +40,19 @@ class AFHsmDeviceTest {
 
     @BeforeAll
     static void setUpBeforeClass() throws Exception {
-//        instanceOfDevice = new AFHsmDevice.Builder("192.168.90.40", 8008, "abcd1234")
-//                .responseTimeOut(100000)
-//                .connectTimeOut(10000)
-//                .channelCount(16)
-//                .managementPort(443)
-//                .build();
+        device = new AFHsmDevice.Builder("192.168.8.15", 8008, "abcd1234")
+                .responseTimeOut(100000)
+                .connectTimeOut(10000)
+                .channelCount(16)
+                .managementPort(443)
+                .build();
 
 
-
-
-//        //获取私钥访问权限
-//        instanceOfDevice.getPrivateKeyAccessRight(1, 3, "12345678");
-//        //获取私钥访问权限
-//        instanceOfDevice.getPrivateKeyAccessRight(1, 4, "12345678");
+        //获取私钥访问权限
+        device.getPrivateKeyAccessRight(1, 3, "12345678");
+        //获取私钥访问权限
+        device.getPrivateKeyAccessRight(1, 4, "12345678");
     }
-
-
-
 
 
     @AfterAll
@@ -199,7 +200,6 @@ class AFHsmDeviceTest {
         byte[] bytes5 = device.symmDecrypt(Algorithm.SGD_SM1_OFB, key, iv, bytes4);
         assert Arrays.equals(data, bytes5);
     }
-
 
 
     //DES
@@ -601,6 +601,64 @@ class AFHsmDeviceTest {
 //        byte[] sign1 = instanceOfDevice.sm2ExternalSign(sm2KeyPair.getPriKey(), data);
 //        boolean verify1 = instanceOfDevice.sm2ExternalVerify(sm2KeyPair.getPubKey(), data, sign1);
 //        assert verify1;
+    }
+
+    //SM2 对摘要直接签名
+    @Test
+    void testSM2Sign() throws Exception {
+
+        //签名
+        byte[] sign = device.sm2InternalSignWithZ(1, data);
+
+        //hutool 验签
+        sign = Sm2Util.changeSign512To256(sign);
+        sign = SmUtil.rsPlainToAsn1(sign);
+        final SM2Signer signer = new SM2Signer();
+        SM2PublicKey sm2SignPublicKey = device.getSM2SignPublicKey(1);  //公钥
+        signer.init(false, ECKeyUtil.decodePublicKeyParams(Sm2Util.changePublicKey512ToQ(sm2SignPublicKey.encode())));
+        signer.update(data, 0, data.length);
+        boolean verify = signer.verifySignature(sign);
+        assert verify;
+
+    }
+
+
+    //hutool签名
+    @Test
+    void testhutoolsign()throws Exception {
+        //生成密钥对
+        SM2KeyPair sm2KeyPair = device.generateSM2KeyPair(1);
+        //公钥
+        byte[] publicKey = sm2KeyPair.getPubKey().encode();
+        System.out.println("SM2签名公钥:" + HexUtil.encodeHexStr(publicKey));
+        //私钥
+        byte[] privateKey = sm2KeyPair.getPriKey().encode();
+        //去掉前四个字节
+        privateKey = Arrays.copyOfRange(privateKey, 4, privateKey.length);
+        System.out.println("SM2签名私钥:" + HexUtil.encodeHexStr(privateKey));
+
+        //hutool 签名
+
+        final SM2Signer signer1 = new SM2Signer();
+        CipherParameters param = new ParametersWithRandom(ECKeyUtil.decodePrivateKeyParams(privateKey));
+        signer1.init(true, param);
+        signer1.update(data, 0, data.length);
+        byte[] sign = signer1.generateSignature();
+        sign = SmUtil.rsAsn1ToPlain(sign);
+
+
+        //hutool 验签
+//        sign = Sm2Util.changeSign512To256(sign);
+        sign = SmUtil.rsPlainToAsn1(sign);
+        final SM2Signer signer = new SM2Signer();
+        signer.init(false, ECKeyUtil.decodePublicKeyParams(Sm2Util.changePublicKey512ToQ(publicKey)));
+        signer.update(data, 0, data.length);
+        boolean verify = signer.verifySignature(sign);
+
+
+
+        assert verify;
+
     }
 
     //SM4
