@@ -414,7 +414,6 @@ public class AFSVCmd {
             return false;
         }
 
-
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("SV-CMD-SM2 验证签名,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("SV-CMD-SM2 验证签名,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());

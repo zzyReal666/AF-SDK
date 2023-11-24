@@ -817,13 +817,14 @@ public class AFHSMCmd extends AFCmd {
         }
         RequestMessage req = new RequestMessage(CMDCode.SM2_VERIFY, buffer.toBytes(), agKey);
         ResponseMessage res = client.send(req);
+        if (res.getHeader().getErrorCode() == 16777230) {
+            return false;
+        }
         if (res.getHeader().getErrorCode() != 0) {
             logger.error("HSM-CMD-SM2 验证签名,错误码:{},错误信息:{}", res.getHeader().getErrorCode(), res.getHeader().getErrorInfo());
             throw new AFCryptoException("HSM-CMD-SM2 验证签名,错误码:" + res.getHeader().getErrorCode() + ",错误信息:" + res.getHeader().getErrorInfo());
         }
-        if (res.getHeader().getErrorCode() == 16777230) {
-            return false;
-        }
+
 
         return true;
     }
