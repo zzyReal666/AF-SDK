@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 @Setter
 @ToString
 @EqualsAndHashCode
-public class NettyClientChannels implements NettyClient ,Cloneable{
+public class NettyClientChannels implements NettyClient, Cloneable {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyClientChannels.class);
 
@@ -104,6 +104,7 @@ public class NettyClientChannels implements NettyClient ,Cloneable{
             instance.nettyChannelPool.setChannelCount(channelCount);
             return this;
         }
+
         public NettyClientChannels build() {
             instance.connect();
             instance.login();
@@ -132,8 +133,6 @@ public class NettyClientChannels implements NettyClient ,Cloneable{
      * 发送消息并且接收响应
      */
     public ResponseMessage send(RequestMessage requestMessage) {
-        //发送之前,检查连接状态
-
         requestMessage.setTaskNo(taskNo);
         logger.info(requestMessage.isEncrypt() ? "加密==>{}" : "==>{}", requestMessage);
         //开始时间

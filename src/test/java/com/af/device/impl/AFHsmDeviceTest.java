@@ -66,18 +66,18 @@ class AFHsmDeviceTest {
 
     @Test
     void testDevice() throws Exception {
-//        AFHsmDevice build = new AFHsmDevice.Builder("192.168.90.40", 8008, "abcd1234").build();
-//
-//        byte[] random = build.getRandom(5);
-//        System.out.println("random:" + HexUtil.encodeHexStr(random));
-//
-//        Thread.sleep(30000);
-//        build.getRandom(5);
-//        build.getRandom(5);
-//        build.getRandom(5);
-//        build.getRandom(5);
-//        build.getRandom(5);
-//        build.getRandom(5);
+        AFHsmDevice build = new AFHsmDevice.Builder("192.168.90.182", 6004, "abcd1234").build();
+
+        byte[] random = build.getRandom(5);
+        System.out.println("random:" + HexUtil.encodeHexStr(random));
+
+        Thread.sleep(30000);
+        build.getRandom(5);
+        build.getRandom(5);
+        build.getRandom(5);
+        build.getRandom(5);
+        build.getRandom(5);
+        build.getRandom(5);
 
 
     }
