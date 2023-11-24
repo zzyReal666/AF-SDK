@@ -958,6 +958,8 @@ public class AFHsmDevice implements IAFHsmDevice {
      *
      * @param index 密钥索引
      * @param data  原始数据
+     *
+     * @return 签名数据 R+S
      */
     public byte[] sm2InternalSignWithZ(int index, byte[] data) throws AFCryptoException {
         //参数检查

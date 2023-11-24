@@ -910,9 +910,9 @@ public class AFSVCmd {
     /**
      * 验证证书
      *
-     * @param root 根证书  证书字符串去掉头尾 base64解码 下同
-     * @param ca   中间证书
-     * @param user 要验证的用户证书
+     * @param rootCert 根证书  证书字符串去掉头尾 base64解码 下同
+     * @param caCert   中间证书
+     * @param userCert 要验证的用户证书
      * @return 验证结果
      */
     public boolean validateCertificate(byte[] rootCert, byte[] caCert, byte[] userCert) {
