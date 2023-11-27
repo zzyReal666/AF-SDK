@@ -224,7 +224,11 @@ public class NettyClientChannels implements NettyClient, Cloneable {
         }
         BytesBuffer dataBuffer = responseMessage.getDataBuffer();
         logger.info("服务端版本号{}", new String(dataBuffer.readOneData()));
-        logger.info("服务端设备类型{}", new String(dataBuffer.readOneData()));
+        try {
+            logger.info("服务端设备类型{}", new String(dataBuffer.readOneData()));
+        } catch (Exception e) {
+            logger.warn("服务端未返回设备类型!!!!");
+        }
         logger.info("客户端版本号{}", new String("1.0.0".getBytes()));
         getNettyChannelPool().setLoginStatus(true);
 

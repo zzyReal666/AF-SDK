@@ -972,7 +972,7 @@ public class AFHsmDevice implements IAFHsmDevice {
             throw new AFCryptoException("SM2 内部密钥签名，签名数据不能为空");
 
         }
-        SM2PublicKey sm2SignPublicKey = getSM2SignPublicKey(1).to256();
+        SM2PublicKey sm2SignPublicKey = getSM2SignPublicKey(index).to256();
         byte[] digest = sm3.SM3HashWithPublicKey256(data, sm2SignPublicKey, ConstantNumber.DEFAULT_USER_ID.getBytes());
         //签名
         return cmd.sm2Sign(index, null, digest);
